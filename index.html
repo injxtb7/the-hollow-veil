@@ -5127,7 +5127,7 @@ h1, h2, h3, .caps {
       const tm = ((time % 1) + 1) % 1;
       let col = 'rgba(0,0,0,0)', a = 0;
       if (tm < 0.2 || tm > 0.82) {
-        col = 'rgba(16, 22, 36, 0.22)'; a = 1;
+        col = 'rgba(14, 22, 48, 0.34)'; a = 1;
       } else if (tm < 0.3) {
         const k = (tm - 0.2) / 0.1;
         col = 'rgba(' + Math.round(200 - k * 40) + ',110,70,0.18)'; a = 1;
@@ -5136,6 +5136,8 @@ h1, h2, h3, .caps {
         col = 'rgba(80, 70, 110, ' + (0.1 + k * 0.16) + ')'; a = 1;
       } else if (biome === 'cave') {
         col = 'rgba(10, 16, 22, 0.06)'; a = 1;
+      } else {
+        col = 'rgba(255, 238, 196, 0.10)'; a = 1; /* warm midday sun wash */
       }
       if (!a) return;
       ctx.save();
@@ -10869,9 +10871,10 @@ h1, h2, h3, .caps {
           }
         }
       }
-      const ambient = this.area.dark ? 0.26
-        : (night ? (this.area.biome === 'town' ? 0.26 : 0.26)
-          : (this.area.biome === 'town' ? 0.12 : 0.12));
+      const tmA = ((s.world.time % 1) + 1) % 1;
+      /* daylight 0 at night, 1 at midday, smooth ramps through dawn and dusk */
+      const dayK = tmA < 0.2 || tmA > 0.82 ? 0 : (tmA < 0.32 ? (tmA - 0.2) / 0.12 : (tmA > 0.68 ? (0.82 - tmA) / 0.14 : 1));
+      const ambient = (this.area.dark || this.area.biome === 'cave') ? 0.26 : (0.46 - dayK * 0.44);
       HV.Render.drawLighting(ctx, zw, zh, {
         dark: dark,
         ambient: ambient,
@@ -10994,6 +10997,28 @@ h1, h2, h3, .caps {
       ctx.fillText((hero.name || '') + '   LV ' + hero.level, bx + 4, by + 88);
       ctx.fillStyle = pal.gold;
       ctx.fillText((hero.gold || 0) + '¢', bx + 4, by + 104);
+      {
+        const tm = ((s.world.time % 1) + 1) % 1;
+        const lbl = tm < 0.2 || tm > 0.82 ? 'Night' : (tm < 0.32 ? 'Dawn' : (tm < 0.45 ? 'Morning' : (tm < 0.58 ? 'Midday' : (tm <= 0.68 ? 'Afternoon' : 'Dusk'))));
+        const isN = lbl === 'Night';
+        const ix = bx + bw - 6, iy = by + 99;
+        ctx.save();
+        if (isN) {
+          ctx.fillStyle = '#E8DCC0';
+          ctx.beginPath(); ctx.arc(ix, iy, 6, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#1C1612';
+          ctx.beginPath(); ctx.arc(ix + 3, iy - 2, 5.2, 0, Math.PI * 2); ctx.fill();
+        } else {
+          ctx.strokeStyle = pal.gold; ctx.fillStyle = pal.gold; ctx.lineWidth = 1.4;
+          for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; ctx.beginPath(); ctx.moveTo(ix + Math.cos(a) * 7, iy + Math.sin(a) * 7); ctx.lineTo(ix + Math.cos(a) * 10, iy + Math.sin(a) * 10); ctx.stroke(); }
+          ctx.beginPath(); ctx.arc(ix, iy, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.stroke();
+        }
+        ctx.font = serifSm; ctx.textAlign = 'right';
+        ctx.fillStyle = isN ? '#B9C4CF' : pal.gold;
+        ctx.fillText(lbl, ix - 14, by + 104);
+        ctx.restore();
+      }
       if (hintLines.length) {
         ctx.fillStyle = pal.gold;
         ctx.font = serifSm;
