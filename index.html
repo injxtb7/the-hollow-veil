@@ -9643,8 +9643,13 @@ h1, h2, h3, .caps {
       window.addEventListener('touchstart', unlock, { passive: true });
       window.addEventListener('keydown', unlock, { passive: true });
       window.addEventListener('blur', () => { this.keys = {}; this.touchMove = { x: 0, y: 0 }; });
+      const saveNow = () => { try { if (this.state && !this.state.flags.runEnded && !['title', 'create', 'dead', 'ending'].includes(this.mode)) HV.Save.autosave(this.state); } catch (e) { /* ignore */ } };
+      window.addEventListener('pagehide', saveNow);
+      setInterval(saveNow, 20000);
+      try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* ignore */ }
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
+          saveNow();
           if (this.mode === 'play') this.openPause();
           if (this.mode === 'rhythm' && HV.Rhythm && HV.Rhythm.pause) HV.Rhythm.pause();
         } else if (this.mode === 'rhythm' && HV.Rhythm && HV.Rhythm.resume) {
