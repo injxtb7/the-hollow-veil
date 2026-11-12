@@ -9278,7 +9278,7 @@ h1, h2, h3, .caps {
         + '<input id="lat" type="range" min="-250" max="250" step="5" style="width:100%"></label>'
         + '<p style="margin:8px 0 0;font-size:13px;opacity:0.8">If the notes feel early or late (for example over Bluetooth), nudge this until a Perfect lands with the sound.</p>'
         + '<div style="margin-top:14px"><button class="ink-btn" id="mute">Mute</button> <button class="ink-btn ghost" id="back">Back</button></div>'
-        + '<p class="dedication" style="margin:16px 0 0;font-size:13px;color:#B9A68C;letter-spacing:0.04em">A Christmas gift for Lara.</p>';
+        + '';
       const vol = p.querySelector('#vol');
       vol.value = (audio && audio.volume) || 0.85;
       vol.addEventListener('input', () => handlers.volume(+vol.value));
