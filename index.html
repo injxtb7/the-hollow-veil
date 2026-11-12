@@ -3176,6 +3176,47 @@ h1, h2, h3, .caps {
       }
     },
 
+    exitSign(ctx, x, y, label, dir) {
+      const pal = PAL();
+      ctx.save();
+      ctx.translate(x, y);
+      /* dark post */
+      ctx.fillStyle = '#3A2A1C';
+      ctx.fillRect(-3, -28, 6, 30);
+      ctx.strokeStyle = pal.ink;
+      ctx.lineWidth = 1.6;
+      ctx.strokeRect(-3, -28, 6, 30);
+      /* cream plank */
+      ctx.fillStyle = pal.parchment;
+      ctx.fillRect(-22, -42, 44, 16);
+      ctx.strokeStyle = pal.ink;
+      ctx.lineWidth = 1.8;
+      ctx.strokeRect(-22, -42, 44, 16);
+      ctx.strokeStyle = pal.bark;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-20, -40, 40, 12);
+      ctx.fillStyle = pal.ink;
+      ctx.font = '9px Palatino, "Palatino Linotype", Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const text = String(label || '');
+      const short = text.length > 16 ? text.slice(0, 14) + '…' : text;
+      ctx.fillText(short, 0, -34);
+      /* arrow toward the edge */
+      ctx.fillStyle = pal.ink;
+      ctx.beginPath();
+      if (dir === 'east') { ctx.moveTo(24, -34); ctx.lineTo(32, -34); ctx.lineTo(28, -38); ctx.moveTo(32, -34); ctx.lineTo(28, -30); }
+      else if (dir === 'west') { ctx.moveTo(-24, -34); ctx.lineTo(-32, -34); ctx.lineTo(-28, -38); ctx.moveTo(-32, -34); ctx.lineTo(-28, -30); }
+      else if (dir === 'south') { ctx.moveTo(0, -12); ctx.lineTo(0, -2); ctx.lineTo(-4, -6); ctx.moveTo(0, -2); ctx.lineTo(4, -6); }
+      else { ctx.moveTo(0, -46); ctx.lineTo(0, -54); ctx.lineTo(-4, -50); ctx.moveTo(0, -54); ctx.lineTo(4, -50); }
+      ctx.strokeStyle = pal.ink;
+      ctx.lineWidth = 1.6;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      ctx.restore();
+      ctx.beginPath();
+    },
+
     /* Lara: hooded, cloaked figure with teal-flame staff and lantern, from the title art. */
     hero(ctx, x, y, opts) {
       opts = opts || {};
@@ -6199,6 +6240,35 @@ h1, h2, h3, .caps {
     return (area.exits || []).find((e) => Math.abs(e.x - tx) + Math.abs(e.y - ty) <= 1) || null;
   };
 
+  HV.compassDir = function (area, ex) {
+    if (!area || !ex) return '';
+    if (ex.x <= 2) return 'west';
+    if (ex.x >= (area.w || 0) - 3) return 'east';
+    if (ex.y <= 2) return 'north';
+    if (ex.y >= (area.h || 0) - 3) return 'south';
+    return '';
+  };
+
+  HV.isMovingIntent = function (keys, touchMove) {
+    const k = keys || {}, t = touchMove || {};
+    return !!(k.KeyW || k.KeyS || k.KeyA || k.KeyD
+      || k.ArrowUp || k.ArrowDown || k.ArrowLeft || k.ArrowRight
+      || t.x || t.y);
+  };
+
+  /* Auto-exit when walking onto or near a border exit (keyboard or touch). */
+  HV.pickAutoExit = function (area, tx, ty) {
+    if (!area) return null;
+    const ex = (area.exits || []).find((e) => Math.abs(e.x - tx) + Math.abs(e.y - ty) <= 2);
+    if (!ex) return null;
+    const m = 2;
+    const w = area.w || 0, h = area.h || 0;
+    const onEdge = tx <= m || ty <= m || tx >= w - 1 - m || ty >= h - 1 - m
+      || ex.x <= m || ex.y <= m || ex.x >= w - 1 - m || ex.y >= h - 1 - m;
+    const onTile = Math.abs(ex.x - tx) + Math.abs(ex.y - ty) <= 1;
+    return (onEdge || onTile) ? ex : null;
+  };
+
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -6425,6 +6495,106 @@ h1, h2, h3, .caps {
       if (def && q.done) out.push({ id, name: def.name, journal: def.stages[def.stages.length - 1].journal });
     });
     return out;
+  };
+
+
+  HV.pathToArea = function (fromId, goalId) {
+    if (!fromId || !goalId || !HV.AREAS) return null;
+    if (fromId === goalId) return { here: true, path: [fromId] };
+    const q = [[fromId]];
+    const seen = {};
+    seen[fromId] = true;
+    while (q.length) {
+      const path = q.shift();
+      const cur = path[path.length - 1];
+      const area = HV.AREAS[cur];
+      const exits = (area && area.exits) || [];
+      for (let i = 0; i < exits.length; i++) {
+        const to = exits[i].to;
+        if (!to || seen[to]) continue;
+        seen[to] = true;
+        const next = path.concat([to]);
+        if (to === goalId) return { here: false, path: next };
+        q.push(next);
+      }
+    }
+    return null;
+  };
+
+  HV.formatTravel = function (fromId, goalId) {
+    const found = HV.pathToArea(fromId, goalId);
+    const dest = (HV.AREAS[goalId] && HV.AREAS[goalId].name) || goalId;
+    if (!found) return 'Find your way to ' + dest + '.';
+    if (found.here) return 'You are in ' + dest + '.';
+    const area = HV.AREAS[fromId];
+    const hop = found.path[1];
+    const ex = ((area && area.exits) || []).find((e) => e.to === hop);
+    const dir = HV.compassDir ? HV.compassDir(area, ex) : '';
+    const names = found.path.slice(1).map((id) => (HV.AREAS[id] && HV.AREAS[id].name) || id);
+    return (dir ? 'Head ' + dir + ' from ' + ((area && area.name) || fromId) + ': ' : '') + names.join(' > ') + '.';
+  };
+
+  HV.nextHint = function (state, areaId) {
+    if (!state) return 'Talk to folks in Yarrow Crossing (look for !).';
+    const flags = state.flags || {};
+    const areaId2 = areaId || (state.world && state.world.area) || 'yarrow_crossing';
+    const travel = (goal, prefix) => {
+      const t = HV.formatTravel(areaId2, goal);
+      return (prefix ? prefix + ' ' : '') + t;
+    };
+
+    const banjo = state.quests && state.quests.crossroads_letter;
+    if (banjo && !banjo.done) {
+      const hasBanjo = flags.has_banjo || (HV.hasItem && HV.hasItem(state, 'crossroads_banjo'));
+      if (!hasBanjo && (banjo.stage || 0) <= 0) {
+        if (areaId2 === 'the_crossroads') return 'Tap USE on the west side of The Crossroads to dig up the banjo (no shovel needed).';
+        return travel('the_crossroads', 'Dig the banjo at The Crossroads (tap USE on the west side).');
+      }
+      if (!flags.showdown_won) {
+        if (areaId2 === 'the_crossroads') return 'Wait for night (12-minute day cycle) and meet the Man in the Dark Hat in the middle of The Crossroads to start the duel.';
+        return travel('the_crossroads', 'Go to The Crossroads at night for the Man in the Dark Hat.');
+      }
+    }
+
+    const thinning = state.quests && state.quests.the_thinning;
+    const stage = thinning ? thinning.stage : 0;
+    if (!flags.ila_briefed && stage <= 0) {
+      if (areaId2 === 'yarrow_crossing') return 'Talk to Granny Ila in Yarrow Crossing (look for !).';
+      return travel('yarrow_crossing', 'Talk to Granny Ila.');
+    }
+
+    const marks = [
+      { flag: 'bluff_seen', id: 'widows_bluff', name: "Widow's Bluff" },
+      { flag: 'promenade_seen', id: 'devil_promenade', name: "Devil's Promenade" },
+      { flag: 'church_seen', id: 'pine_churchyard', name: 'Pine Churchyard' },
+    ];
+    const missing = marks.filter((m) => !flags[m.flag]);
+    if (missing.length && stage < 5) {
+      let best = missing[0], bestLen = 99;
+      missing.forEach((m) => {
+        const p = HV.pathToArea(areaId2, m.id);
+        const n = p && p.path ? p.path.length : 99;
+        if (n < bestLen) { bestLen = n; best = m; }
+      });
+      if (areaId2 === best.id) return 'Walk the scarred mark here at ' + best.name + ' (tap USE if you need to look).';
+      return travel(best.id, 'Walk the scarred mark at ' + best.name + '.');
+    }
+
+    if (!flags.chose_ila && !flags.chose_cald && !flags.chose_peck && !flags.faction) {
+      if (areaId2 === 'yarrow_crossing') return 'Choose a road: talk to Ila (mend), Cald (purge), or find Jonas Peck on Bald Knob.';
+      if (areaId2 === 'bald_knob') return 'Talk to Jonas Peck, or return to Yarrow to stand with Ila or Cald.';
+      return travel('yarrow_crossing', 'Return to Yarrow and choose a road: Ila, Cald, or Peck on Bald Knob.');
+    }
+
+    if (!flags.descended && !flags.ending_pending && !flags.ending) {
+      if (areaId2 === 'under_karst') return 'Find the Under-Stone in the Under-Karst.';
+      return travel('under_karst', 'Descend into the Under-Karst and face the Under-Stone.');
+    }
+    if (flags.ending_pending && !flags.ending) return 'Speak with the Under-Stone and choose how this telling ends.';
+    if (flags.ending) return 'The thinning is decided. You can start New Game+ from the title.';
+
+    if (!banjo && areaId2 === 'yarrow_crossing') return 'Talk to Josie Fiddler in Yarrow (near the well) about a crossroads banjo, or talk to other folks (look for !).';
+    return 'Talk to folks in Yarrow Crossing (look for !).';
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
@@ -8399,7 +8569,7 @@ h1, h2, h3, .caps {
     ctx.fillRect(hudX, hudY + 32, 120 * (this.roll / 100), 8);
     ctx.fillStyle = pal.tan;
     ctx.font = '11px ' + serif;
-    ctx.fillText(this.roll >= 50 ? 'Space · Thunder Roll' : 'Thunder Roll', hudX, hudY + 54);
+    ctx.fillText(this.roll >= 50 ? 'Tap ROLL · Thunder Roll' : 'Thunder Roll', hudX, hudY + 54);
 
     const mxb = hudX, myb = hudY + 64, mw = 120, mh = 8;
     ctx.fillStyle = '#140F0C';
@@ -8464,7 +8634,7 @@ h1, h2, h3, .caps {
       ctx.font = '18px ' + serif;
       ctx.fillText((this.lastResult.line || '') + '  —  ' + this.score + '  /  streak ' + this.maxCombo, w / 2, h * 0.48);
       ctx.font = '14px ' + serif;
-      ctx.fillText('Press Enter or tap to continue.', w / 2, h * 0.56);
+      ctx.fillText('Tap to continue.', w / 2, h * 0.56);
     }
 
     ctx.restore();
@@ -8896,6 +9066,7 @@ h1, h2, h3, .caps {
       if (state && (state.flags && state.flags.jam_unlocked || (HV.Rhythm && HV.Rhythm.unlockedJam))) {
         btn('Jam Mode', handlers.jam);
       }
+      if (handlers.guide) btn('Guide', handlers.guide);
       btn('Settings', handlers.settings);
       btn('Return to Title', handlers.title, 'ghost');
       this.showOverlay(p, false);
@@ -9466,6 +9637,7 @@ h1, h2, h3, .caps {
       window.addEventListener('keydown', (e) => this.keydown(e));
       window.addEventListener('keyup', (e) => { this.keys[e.code] = false; });
       this.canvas.addEventListener('mousedown', (e) => this.mousedown(e));
+      this.canvas.addEventListener('touchstart', (e) => this.canvasTap(e), { passive: false });
       const unlock = () => { if (HV.Audio && HV.Audio.unlock) HV.Audio.unlock(); };
       window.addEventListener('pointerdown', unlock, { passive: true });
       window.addEventListener('touchstart', unlock, { passive: true });
@@ -9673,6 +9845,7 @@ h1, h2, h3, .caps {
         exportSave: () => self.exportSave(),
         importSave: () => self.importSave(),
         jam: () => self.openJam(false),
+        guide: () => { try { window.open('./guide.html', '_blank', 'noopener'); } catch (err) {} },
         settings: () => self.openSettings(),
         title: () => { HV.Save.autosave(self.state); self.showTitle(); },
       });
@@ -9713,7 +9886,7 @@ h1, h2, h3, .caps {
             songId: id, mode: 'jam', difficulty: 'hollow',
             onDone: () => { /* wait for enter */ },
           });
-          if (window.matchMedia && window.matchMedia('(pointer:coarse)').matches) {
+          if (self.shouldUseTouch && self.shouldUseTouch()) {
             HV.UI.showRhythmTouch((lane) => HV.Rhythm.input(lane, HV.Audio.now()), () => HV.Rhythm.activateRoll());
           }
         },
@@ -9762,8 +9935,33 @@ h1, h2, h3, .caps {
     },
 
     mousedown(e) {
+      if (this.hitHotbar(e.clientX, e.clientY)) return;
       if (this.mode === 'rhythm' && HV.Rhythm.ended) { this.finishRhythm(); return; }
+      if (this.mode === 'card') { this.hideArtCard(); return; }
       if (this.mode === 'play') this.attack();
+    },
+    canvasTap(e) {
+      const pt = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]) || e;
+      if (this.hitHotbar(pt.clientX, pt.clientY)) { e.preventDefault(); return; }
+      if (this.mode === 'rhythm' && HV.Rhythm && HV.Rhythm.ended) { e.preventDefault(); this.finishRhythm(); return; }
+      if (this.mode === 'card') { e.preventDefault(); this.hideArtCard(); return; }
+    },
+    hitHotbar(clientX, clientY) {
+      if (this.mode !== 'play' && this.mode !== 'preview') return false;
+      const rects = this._hotRects;
+      if (!rects || !rects.length || !this.canvas) return false;
+      const r = this.canvas.getBoundingClientRect();
+      if (!r.width) return false;
+      const x = (clientX - r.left) * (this.w / r.width);
+      const y = (clientY - r.top) * (this.h / r.height);
+      for (let i = 0; i < rects.length; i++) {
+        const b = rects[i];
+        if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
+          this.castHotbar(b.i);
+          return true;
+        }
+      }
+      return false;
     },
 
     openInv() {
@@ -10030,7 +10228,7 @@ h1, h2, h3, .caps {
         songId: 'thunder', mode: 'duel', difficulty: this.state.difficulty === 'story' ? 'easy' : (this.state.difficulty === 'hard' ? 'hard' : 'hollow'),
         onDone: (result) => { self._rhythmResult = result; },
       });
-      if (window.matchMedia && window.matchMedia('(pointer:coarse)').matches) {
+      if (this.shouldUseTouch && this.shouldUseTouch()) {
         HV.UI.showRhythmTouch((lane) => HV.Rhythm.input(lane, HV.Audio.now()), () => HV.Rhythm.activateRoll());
       }
     },
@@ -10046,7 +10244,7 @@ h1, h2, h3, .caps {
       } else if (result && !result.won && result.mode !== 'jam') {
         HV.UI.toast('The fork took the last word. You can try again.');
       }
-      if (this.state) { this.mode = 'play'; }
+      if (this.state) { this.mode = 'play'; this.maybeShowTouch(); }
       else { this.showTitle(); }
     },
 
@@ -10331,17 +10529,18 @@ h1, h2, h3, .caps {
       s.hero.veil = Math.min(s.hero.veilMax, s.hero.veil + dt * 3);
       HV.tickStatuses(s.hero, dt);
 
-      /* auto-exit if standing on exit */
+      /* auto-exit if walking onto or near an exit (keyboard or touch stick) */
       const tx = Math.floor(s.world.x / TILE), ty = Math.floor(s.world.y / TILE);
-      const ex = HV.exitAt(this.area, tx, ty);
-      if (ex && (this.keys.KeyW || this.keys.KeyS || this.keys.KeyA || this.keys.KeyD || this.keys.ArrowUp)) {
-        /* require interact, but if walking into border exit, allow */
-        if (tx <= 1 || ty <= 1 || tx >= this.area.w - 2 || ty >= this.area.h - 2) {
-          this.interactLock = 0.4;
-          const dest = HV.AREAS[ex.to];
-          this.enterArea(ex.to, (ex.tx != null ? ex.tx : dest.start.x) * TILE + 16, (ex.ty != null ? ex.ty : dest.start.y) * TILE + 16);
-          return;
-        }
+      const moving = HV.isMovingIntent ? HV.isMovingIntent(this.keys, this.touchMove)
+        : !!(this.keys.KeyW || this.keys.KeyS || this.keys.KeyA || this.keys.KeyD
+          || this.keys.ArrowUp || this.keys.ArrowDown || this.keys.ArrowLeft || this.keys.ArrowRight
+          || (this.touchMove && (this.touchMove.x || this.touchMove.y)));
+      const ex = HV.pickAutoExit ? HV.pickAutoExit(this.area, tx, ty) : HV.exitAt(this.area, tx, ty);
+      if (ex && moving) {
+        this.interactLock = 0.4;
+        const dest = HV.AREAS[ex.to];
+        this.enterArea(ex.to, (ex.tx != null ? ex.tx : dest.start.x) * TILE + 16, (ex.ty != null ? ex.ty : dest.start.y) * TILE + 16);
+        return;
       }
 
       this.tickEnemies(dt, d);
@@ -10655,11 +10854,43 @@ h1, h2, h3, .caps {
 
       if (this.flashT > 0) HV.Render.flash(ctx, zw, zh, this.flashColor, Math.min(0.45, this.flashT * 3));
       HV.Render.overlayPaper(ctx, zw, zh);
+      if (HV.Render.exitSign) {
+        (this.area.exits || []).forEach((ex) => {
+          const dir = HV.compassDir ? HV.compassDir(this.area, ex) : '';
+          let sx = ex.x, sy = ex.y;
+          if (dir === 'west') sx = ex.x + 1;
+          if (dir === 'east') sx = ex.x - 1;
+          if (dir === 'north') sy = ex.y + 1;
+          if (dir === 'south') sy = ex.y - 1;
+          HV.Render.exitSign(ctx, sx * TILE + 16 - camX, sy * TILE + 18 - camY, ex.label || (HV.AREAS[ex.to] && HV.AREAS[ex.to].name) || ex.to, dir);
+        });
+      }
       ctx.restore();
 
       if (this.mode !== 'card' && this.preview !== 'lara') {
         this.drawHud(ctx, w, h);
         this.drawMinimap(ctx, w, h);
+        const nearEx = (this.area.exits || []).find((e) => {
+          const ddx = e.x - Math.floor(s.world.x / TILE), ddy = e.y - Math.floor(s.world.y / TILE);
+          return Math.abs(ddx) + Math.abs(ddy) <= 3;
+        });
+        if (nearEx) {
+          const padP = this.safePad();
+          const name = nearEx.label || (HV.AREAS[nearEx.to] && HV.AREAS[nearEx.to].name) || nearEx.to;
+          ctx.save();
+          ctx.font = '13px Palatino, "Palatino Linotype", Georgia, serif';
+          ctx.textAlign = 'center';
+          const msg = 'Walk on or tap USE: ' + name;
+          const tw = ctx.measureText(msg).width;
+          const py = this.wantTouch ? (h - 200 - padP.b) : (h - 36 - padP.b);
+          ctx.fillStyle = 'rgba(20,15,12,0.78)';
+          ctx.fillRect(w / 2 - tw / 2 - 10, py - 16, tw + 20, 24);
+          ctx.strokeStyle = pal.tan;
+          ctx.strokeRect(w / 2 - tw / 2 - 10, py - 16, tw + 20, 24);
+          ctx.fillStyle = pal.parchment;
+          ctx.fillText(msg, w / 2, py);
+          ctx.restore();
+        }
         const padN = this.safePad();
         const compactN = h < 500;
         const mwN = compactN ? 100 : 128, mhN = compactN ? 70 : 90;
@@ -10693,7 +10924,20 @@ h1, h2, h3, .caps {
       const serifSm = '11px Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif';
       const bx = 12 + pad.l, by = 12 + pad.t;
       const bw = compact ? 150 : 176;
-      const panelH = compact ? 112 : 122;
+      const hint = (HV.nextHint && HV.nextHint(s, this.area && this.area.id)) || '';
+      const wrapW = compact ? 26 : 32;
+      const hintLines = [];
+      if (hint) {
+        const words = hint.split(' ');
+        let line = '';
+        words.forEach((wrd) => {
+          const next = line ? line + ' ' + wrd : wrd;
+          if (next.length > wrapW && line) { hintLines.push(line); line = wrd; }
+          else line = next;
+        });
+        if (line) hintLines.push(line);
+      }
+      const panelH = (compact ? 112 : 122) + (hintLines.length ? 16 + hintLines.length * 13 : 0);
       this._ironFrame(ctx, bx - 6, by - 6, bw + 28, panelH);
       const bar = (x, y, wth, val, max, color, label) => {
         ctx.fillStyle = pal.parchment;
@@ -10717,6 +10961,14 @@ h1, h2, h3, .caps {
       ctx.fillText((hero.name || '') + '   LV ' + hero.level, bx + 4, by + 88);
       ctx.fillStyle = pal.gold;
       ctx.fillText((hero.gold || 0) + '¢', bx + 4, by + 104);
+      if (hintLines.length) {
+        ctx.fillStyle = pal.gold;
+        ctx.font = serifSm;
+        ctx.textAlign = 'left';
+        ctx.fillText('Next:', bx + 4, by + 118);
+        ctx.fillStyle = pal.parchment;
+        hintLines.forEach((ln, i) => ctx.fillText(ln, bx + 4, by + 131 + i * 13));
+      }
 
       const hot = hero.hotbar || [];
       const slot = 46, gap = 6;
@@ -10724,10 +10976,12 @@ h1, h2, h3, .caps {
       const hx = bx - 6;
       /* On a phone the left d-pad covers a bottom-left hotbar; dock it under the HUD panel instead. */
       const hy = this.wantTouch ? (by + panelH + 6) : (h - slot - 14 - pad.b);
+      this._hotRects = [];
       if (hot.length) this._ironFrame(ctx, hx, hy - 8, Math.max(rowW, 80), slot + 16);
       hot.forEach((id, i) => {
         const def = HV.SKILL_BY_ID[id];
         const x = hx + 8 + i * (slot + gap), y = hy;
+        this._hotRects.push({ x: x, y: y, w: slot, h: slot, i: i });
         ctx.fillStyle = '#1A1410';
         ctx.fillRect(x, y, slot, slot);
         ctx.strokeStyle = (this.skillCd[id] || 0) > 0 ? pal.dusk : pal.tan;
@@ -11054,6 +11308,16 @@ h1, h2, h3, .caps {
         this.state.world.time = 0.45;
         this.mode = 'play';
         HV.UI.hideOverlay();
+        return;
+      }
+      if (kind === 'exits' || kind === 'yarrow-exit') {
+        this.applySafeInsets({ t: 59, r: 0, b: 34, l: 0 });
+        this.wantTouch = true;
+        this.enterArea('yarrow_crossing', 52 * TILE + 16, 21 * TILE + 16);
+        this.state.world.time = 0.45;
+        this.mode = 'play';
+        HV.UI.hideOverlay();
+        this.maybeShowTouch();
         return;
       }
       if (kind === 'iphone15' || kind === 'iphone') {

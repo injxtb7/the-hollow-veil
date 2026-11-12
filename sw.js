@@ -1,8 +1,9 @@
 /* The Hollow Veil — offline cache */
-const CACHE = 'hv-final4-3';
+const CACHE = 'hv-final4-4';
 const ASSETS = [
   './',
   './index.html',
+  './guide.html',
   './manifest.webmanifest',
   './icon-180.png',
   './icon-192.png',
@@ -26,9 +27,18 @@ self.addEventListener('fetch', (e) => {
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req, { cache: 'no-store' }).then((res) => {
-        if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put('./index.html', copy)); }
+        if (res && res.ok) {
+          const copy = res.clone();
+          const path = new URL(req.url).pathname;
+          const key = path.indexOf('guide.html') >= 0 ? './guide.html' : './index.html';
+          caches.open(CACHE).then((c) => c.put(key, copy));
+        }
         return res;
-      }).catch(() => caches.match('./index.html').then((h) => h || caches.match('./')))
+      }).catch(() => {
+        const path = new URL(req.url).pathname;
+        const key = path.indexOf('guide') >= 0 ? './guide.html' : './index.html';
+        return caches.match(key).then((h) => h || caches.match('./index.html') || caches.match('./'));
+      })
     );
     return;
   }
