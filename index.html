@@ -4906,10 +4906,11 @@ h1, h2, h3, .caps {
         } else {
           /* Portrait (iPhone 15): show the full 16:9 keyart in the upper band so the left sky stays in frame. */
           artW = w;
-          artH = Math.round(w * 9 / 16);
-          artY = safeT;
+          artH = Math.round(Math.max(w * 9 / 16, h * 0.62 - safeT));
+          artY = 0;
           artX = 0;
-          drew = HV.Art.drawContain(ctx, 'title_keyart', artX, artY, artW, artH);
+          drew = HV.Art.drawCover(ctx, 'title_keyart', -6 + ox, -6 + oy, artW + 12, artH + safeT + 12, 0.6, 0.5);
+          artH += safeT;
           const fadeY = artY + artH - 24;
           const fade = ctx.createLinearGradient(0, fadeY, 0, artY + artH + 36);
           fade.addColorStop(0, 'rgba(11,12,10,0)');
