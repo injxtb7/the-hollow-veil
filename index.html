@@ -491,11 +491,11 @@ h1, h2, h3, .caps {
   HV.SLOT_IDS = HV.SLOTS.map((s) => s.id);
 
   HV.CALLINGS = {
-    bushwhacker: { id: 'bushwhacker', name: 'Bushwhacker', blurb: 'Steel, powder, and the long back ways.' },
-    yarb:        { id: 'yarb',        name: 'Yarb Doctor', blurb: 'Roots, poultices, and the old hill charms.' },
-    singer:      { id: 'singer',      name: 'Charm-Singer', blurb: 'A voice that binds, blesses, and breaks.' },
-    lantern:     { id: 'lantern',     name: 'Lantern Bearer', blurb: 'Consecrated light against the haint-dark.' },
-    cave:        { id: 'cave',        name: 'Cave Walker', blurb: 'Karst, relics, and the roads under stone.' },
+    bushwhacker: { id: 'bushwhacker', name: 'Bushwhacker', blurb: 'Steel, powder, and the long back ways.', play: 'Strongest fighter. Starts with heavy staff blows and a steady aim.' },
+    yarb:        { id: 'yarb',        name: 'Yarb Doctor', blurb: 'Roots, poultices, and the old hill charms.', play: 'Healer and forager. Starts with poultices to mend wounds. Easiest start.' },
+    singer:      { id: 'singer',      name: 'Charm-Singer', blurb: 'A voice that binds, blesses, and breaks.', play: 'Spell-singer. Starts with songs that hush and bind foes, and Veil Sight.' },
+    lantern:     { id: 'lantern',     name: 'Lantern Bearer', blurb: 'Consecrated light against the haint-dark.', play: 'Sturdy spirit-warrior. Brighter lantern and cedar smoke against haints.' },
+    cave:        { id: 'cave',        name: 'Cave Walker', blurb: 'Karst, relics, and the roads under stone.', play: 'Clever explorer. Sees through the Veil and can step past danger.' },
   };
 
   HV.DIFFICULTY = {
@@ -9008,7 +9008,7 @@ h1, h2, h3, .caps {
       const callings = Object.keys(HV.CALLINGS);
       p.innerHTML = '<h2 style="margin-bottom:12px">WHO WALKS THE HILLS</h2>'
         + '<label>Name<br><input id="nm" type="text" maxlength="24" value="Lara" style="width:100%;padding:8px;font:16px Palatino,Georgia,serif;border:2px solid #1A1410;background:#F8F1E3"></label>'
-        + '<div style="margin:12px 0 6px" class="caps">Calling</div><div id="calls"></div>'
+        + '<div style="margin:12px 0 6px" class="caps">Calling</div><div id="calls" style="display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>'
         + '<div style="margin:12px 0 6px" class="caps">Difficulty</div><div id="diffs"></div>'
         + '<p id="diffblurb" style="margin:8px 0 0;font-size:14px;min-height:2.2em"></p>'
         + '<div style="margin-top:16px;display:flex;gap:8px"><button class="ink-btn ghost" id="back">Back</button><button class="ink-btn gold" id="go">Walk On</button></div>';
@@ -9023,9 +9023,9 @@ h1, h2, h3, .caps {
       const calls = p.querySelector('#calls');
       callings.forEach((id) => {
         const c = HV.CALLINGS[id];
-        const b = el('<button class="ink-btn" style="margin:0 6px 6px 0;display:inline-block"></button>');
-        b.textContent = c.name;
-        b.title = c.blurb;
+        const b = el('<button class="ink-btn" style="display:block;width:100%;margin:0;padding:6px 8px;text-align:left;line-height:1.2;text-transform:none;letter-spacing:0"></button>');
+        b.innerHTML = '<span style="display:block;font-weight:bold;font-size:13px;text-transform:uppercase;letter-spacing:.06em">' + c.name + '</span>'
+          + '<span style="display:block;font-size:12px;font-family:Palatino,Georgia,serif;margin-top:2px">' + (c.play || c.blurb) + '</span>';
         b.addEventListener('click', () => { calling = id; [...calls.children].forEach((x) => x.style.outline = ''); b.style.outline = '2px solid #C45C26'; });
         if (id === 'yarb') b.style.outline = '2px solid #C45C26';
         calls.appendChild(b);
