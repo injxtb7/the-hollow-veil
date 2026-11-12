@@ -3186,27 +3186,28 @@ h1, h2, h3, .caps {
       ctx.strokeStyle = pal.ink;
       ctx.lineWidth = 1.6;
       ctx.strokeRect(-3, -28, 6, 30);
-      /* cream plank */
+      /* cream plank sized to the label */
+      ctx.font = 'bold 9px Palatino, "Palatino Linotype", Georgia, serif';
+      let text = String(label || '');
+      const ABBR = { Crossing: 'Xing', Churchyard: 'Chyd', Mountain: 'Mtn', Country: 'Ctry', Promenade: 'Prom.', Hollow: 'Holl.', Bottoms: 'Btms' };
+      if (ctx.measureText(text).width > 80) text = text.split(' ').map((w) => ABBR[w] || w).join(' ');
+      if (ctx.measureText(text).width > 80) text = text.replace(/^(The|Devil's) /, '');
+      while (ctx.measureText(text).width > 80 && text.length > 4) text = text.slice(0, -2) + '.';
+      const half = Math.max(22, Math.ceil(ctx.measureText(text).width / 2) + 6);
       ctx.fillStyle = pal.parchment;
-      ctx.fillRect(-22, -42, 44, 16);
+      ctx.fillRect(-half, -42, half * 2, 16);
       ctx.strokeStyle = pal.ink;
       ctx.lineWidth = 1.8;
-      ctx.strokeRect(-22, -42, 44, 16);
-      ctx.strokeStyle = pal.bark;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(-20, -40, 40, 12);
+      ctx.strokeRect(-half, -42, half * 2, 16);
       ctx.fillStyle = pal.ink;
-      ctx.font = '9px Palatino, "Palatino Linotype", Georgia, serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const text = String(label || '');
-      const short = text.length > 16 ? text.slice(0, 14) + '…' : text;
-      ctx.fillText(short, 0, -34);
+      ctx.fillText(text, 0, -34);
       /* arrow toward the edge */
       ctx.fillStyle = pal.ink;
       ctx.beginPath();
-      if (dir === 'east') { ctx.moveTo(24, -34); ctx.lineTo(32, -34); ctx.lineTo(28, -38); ctx.moveTo(32, -34); ctx.lineTo(28, -30); }
-      else if (dir === 'west') { ctx.moveTo(-24, -34); ctx.lineTo(-32, -34); ctx.lineTo(-28, -38); ctx.moveTo(-32, -34); ctx.lineTo(-28, -30); }
+      if (dir === 'east') { ctx.moveTo(half + 2, -34); ctx.lineTo(half + 10, -34); ctx.lineTo(half + 6, -38); ctx.moveTo(half + 10, -34); ctx.lineTo(half + 6, -30); }
+      else if (dir === 'west') { ctx.moveTo(-half - 2, -34); ctx.lineTo(-half - 10, -34); ctx.lineTo(-half - 6, -38); ctx.moveTo(-half - 10, -34); ctx.lineTo(-half - 6, -30); }
       else if (dir === 'south') { ctx.moveTo(0, -12); ctx.lineTo(0, -2); ctx.lineTo(-4, -6); ctx.moveTo(0, -2); ctx.lineTo(4, -6); }
       else { ctx.moveTo(0, -46); ctx.lineTo(0, -54); ctx.lineTo(-4, -50); ctx.moveTo(0, -54); ctx.lineTo(4, -50); }
       ctx.strokeStyle = pal.ink;
@@ -6263,8 +6264,7 @@ h1, h2, h3, .caps {
     if (!ex) return null;
     const m = 2;
     const w = area.w || 0, h = area.h || 0;
-    const onEdge = tx <= m || ty <= m || tx >= w - 1 - m || ty >= h - 1 - m
-      || ex.x <= m || ex.y <= m || ex.x >= w - 1 - m || ex.y >= h - 1 - m;
+    const onEdge = tx <= 1 || ty <= 1 || tx >= w - 2 || ty >= h - 2;
     const onTile = Math.abs(ex.x - tx) + Math.abs(ex.y - ty) <= 1;
     return (onEdge || onTile) ? ex : null;
   };
@@ -9785,6 +9785,7 @@ h1, h2, h3, .caps {
     enterArea(id, px, py) {
       const area = HV.AREAS[id];
       if (!area) return;
+      this.exitArmed = false;
       this.area = area;
       this.state.world.area = id;
       this.state.discovered[id] = true;
@@ -10450,8 +10451,8 @@ h1, h2, h3, .caps {
       const r = 8;
       if (walk(x - r, s.world.y - r) && walk(x + r, s.world.y - r) && walk(x - r, s.world.y + r) && walk(x + r, s.world.y + r)) s.world.x = x;
       if (walk(s.world.x - r, y - r) && walk(s.world.x + r, y - r) && walk(s.world.x - r, y + r) && walk(s.world.x + r, y + r)) s.world.y = y;
-      if (dx > 0.2) s.world.facing = 1;
-      if (dx < -0.2) s.world.facing = -1;
+      if (dx > 0.01) s.world.facing = 1;
+      if (dx < -0.01) s.world.facing = -1;
     },
 
     shakeNow(mag, dur) {
@@ -10536,7 +10537,12 @@ h1, h2, h3, .caps {
           || this.keys.ArrowUp || this.keys.ArrowDown || this.keys.ArrowLeft || this.keys.ArrowRight
           || (this.touchMove && (this.touchMove.x || this.touchMove.y)));
       const ex = HV.pickAutoExit ? HV.pickAutoExit(this.area, tx, ty) : HV.exitAt(this.area, tx, ty);
-      if (ex && moving) {
+      if (!this.exitArmed) {
+        const near3 = (this.area.exits || []).some((e) => Math.abs(e.x - tx) + Math.abs(e.y - ty) <= 3);
+        if (!near3) this.exitArmed = true;
+      }
+      if (ex && moving && this.exitArmed) {
+        this.exitArmed = false;
         this.interactLock = 0.4;
         const dest = HV.AREAS[ex.to];
         this.enterArea(ex.to, (ex.tx != null ? ex.tx : dest.start.x) * TILE + 16, (ex.ty != null ? ex.ty : dest.start.y) * TILE + 16);
