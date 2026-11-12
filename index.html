@@ -2313,13 +2313,15 @@ h1, h2, h3, .caps {
     ctx.lineCap = 'butt';
     const rad = (angle || 0) * Math.PI / 180;
     const c = Math.cos(rad), s = Math.sin(rad);
-    const span = Math.abs(w) + Math.abs(h) + 12;
-    const step = spacing || 4;
+    /* parallel lines through the whole rect at any angle (shallow angles used to cover only a top wedge) */
+    const R = Math.hypot(w, h) / 2 + 6;
+    const cx = x + w / 2, cy = y + h / 2;
+    const step = (spacing || 4) * Math.max(Math.abs(s), 0.6);
     ctx.beginPath();
-    for (let i = -span; i < span * 2; i += step) {
-      const ox = x + i, oy = y - 6;
-      ctx.moveTo(ox, oy);
-      ctx.lineTo(ox + c * span * 2, oy + s * span * 2);
+    for (let d = -R; d <= R; d += step) {
+      const px = cx - s * d, py = cy + c * d;
+      ctx.moveTo(px - c * R, py - s * R);
+      ctx.lineTo(px + c * R, py + s * R);
     }
     ctx.stroke();
     ctx.beginPath();
@@ -2489,14 +2491,14 @@ h1, h2, h3, .caps {
       t('path', (ctx, s) => { stampPath(ctx, s, 'pathA'); });
       t('path2', (ctx, s) => { stampPath(ctx, s, 'pathB'); });
       t('dirt', (ctx, s) => {
-        ctx.fillStyle = '#2A2620';
+        ctx.fillStyle = '#4E3F30';
         ctx.fillRect(0, 0, s, s);
         grain(ctx, s, s, HV.rng('dirtG'), 0.07);
         hatch(ctx, 0, 0, s, s, 'rgba(26,20,16,0.28)', 6, 14, 0.8);
         ctx.beginPath();
       });
       t('dirt2', (ctx, s) => {
-        ctx.fillStyle = '#2A2620';
+        ctx.fillStyle = '#4E3F30';
         ctx.fillRect(0, 0, s, s);
         grain(ctx, s, s, HV.rng('dirtH'), 0.07);
         hatch(ctx, 0, 0, s, s, 'rgba(26,20,16,0.26)', 7, -16, 0.8);
@@ -2685,7 +2687,17 @@ h1, h2, h3, .caps {
               ctx.stroke();
             }
           } else if (ch === ',' || ch === 'd' || ch === 's' || ch === 'f') {
-            hatch(ctx, x, y, TILE, TILE, 'rgba(26,20,16,0.3)', 4.6, 8 + (h % 22), 0.9);
+            hatch(ctx, x, y, TILE, TILE, 'rgba(26,20,16,0.26)', 4.6, 12, 0.9);
+            /* soft worn patch that spills past the tile so the road has no checker seams */
+            if (h % 2 === 0) {
+              const wx = x + 16 + ((h >> 5) % 16) - 8, wy = y + 16 + ((h >> 9) % 16) - 8, wr = 26 + (h % 12);
+              ctx.save(); ctx.translate(wx, wy); ctx.scale(1, 0.6);
+              const wg = ctx.createRadialGradient(0, 0, 2, 0, 0, wr);
+              wg.addColorStop(0, (h >> 3) % 2 ? 'rgba(120,96,70,0.18)' : 'rgba(20,14,10,0.18)');
+              wg.addColorStop(1, 'rgba(20,14,10,0)');
+              ctx.fillStyle = wg; ctx.fillRect(-wr, -wr, wr * 2, wr * 2);
+              ctx.restore();
+            }
             hatch(ctx, x, y, TILE, TILE, 'rgba(74,55,40,0.16)', 7.5, -20, 0.7);
             ctx.fillStyle = 'rgba(26,20,16,0.28)';
             for (let i = 0; i < 6; i++) {
