@@ -1,5 +1,5 @@
 /* The Hollow Veil — offline cache */
-const CACHE = 'hv-final4-27';
+const CACHE = 'hv-final4-28';
 const ASSETS = [
   './',
   './index.html',
