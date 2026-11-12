@@ -11068,6 +11068,42 @@ h1, h2, h3, .caps {
         this.drawHud(ctx, w, h);
         this.drawMinimap(ctx, w, h);
         this.drawObjectiveBanner(ctx, w, h);
+        /* edge markers pointing to exits that are off screen */
+        const edgeSeen = [];
+        (this.area.exits || []).forEach((ex) => {
+          const ex2 = (ex.x * TILE + 16 - camX) * zoom, ey2 = (ex.y * TILE + 16 - camY) * zoom;
+          if (ex2 > 0 && ex2 < w && ey2 > 0 && ey2 < h) return;
+          const padE = this.safePad();
+          const top = 150 + padE.t, bot = h - (this.wantTouch ? 230 : 60) - padE.b;
+          const px = (s.world.x - camX) * zoom, py0 = (s.world.y - camY) * zoom;
+          const ang = Math.atan2(ey2 - py0, ex2 - px);
+          const mx = Math.max(22 + padE.l, Math.min(w - 22 - padE.r, ex2));
+          const my = Math.max(top, Math.min(bot, ey2));
+          if (edgeSeen.some((q) => Math.abs(q[0] - mx) + Math.abs(q[1] - my) < 40)) return;
+          edgeSeen.push([mx, my]);
+          const name = ex.label || (HV.AREAS[ex.to] && HV.AREAS[ex.to].name) || ex.to;
+          ctx.save();
+          ctx.globalAlpha = 0.9;
+          ctx.translate(mx, my);
+          ctx.fillStyle = 'rgba(232,220,196,0.92)';
+          ctx.strokeStyle = pal.ink;
+          ctx.lineWidth = 1.6;
+          ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.save();
+          ctx.rotate(ang);
+          ctx.fillStyle = pal.ink;
+          ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-4, -5.5); ctx.lineTo(-1.5, 0); ctx.lineTo(-4, 5.5); ctx.closePath(); ctx.fill();
+          ctx.restore();
+          ctx.font = '10px Palatino, "Palatino Linotype", Georgia, serif';
+          ctx.textAlign = mx < w / 2 ? 'left' : 'right';
+          const lx = mx < w / 2 ? -11 : 11;
+          const tw = ctx.measureText(name).width;
+          ctx.fillStyle = 'rgba(20,15,12,0.7)';
+          ctx.fillRect(mx < w / 2 ? lx - 3 : lx - tw - 3, 13, tw + 6, 14);
+          ctx.fillStyle = pal.parchment;
+          ctx.fillText(name, lx, 24);
+          ctx.restore();
+        });
         const nearEx = (this.area.exits || []).find((e) => {
           const ddx = e.x - Math.floor(s.world.x / TILE), ddy = e.y - Math.floor(s.world.y / TILE);
           return Math.abs(ddx) + Math.abs(ddy) <= 3;
