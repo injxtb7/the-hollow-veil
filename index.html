@@ -8888,6 +8888,8 @@ h1, h2, h3, .caps {
         box.appendChild(b);
       };
       btn('Resume', handlers.resume, 'gold');
+      if (handlers.journal) btn('Journal', handlers.journal);
+      if (handlers.skills) btn('Skills', handlers.skills);
       btn('Save to Slot…', handlers.saveSlots);
       btn('Export Save', handlers.exportSave);
       btn('Import Save…', handlers.importSave);
@@ -9665,6 +9667,8 @@ h1, h2, h3, .caps {
       const self = this;
       HV.UI.showPause(this.state, {
         resume: () => { HV.UI.hideOverlay(); self.mode = 'play'; },
+        journal: () => { HV.UI.hideOverlay(); self.mode = 'play'; self.openJournal(); },
+        skills: () => { HV.UI.hideOverlay(); self.mode = 'play'; self.openSkills(); },
         saveSlots: () => self.showSlots(),
         exportSave: () => self.exportSave(),
         importSave: () => self.importSave(),
