@@ -7326,7 +7326,7 @@ h1, h2, h3, .caps {
   function windows(diff) {
     /* Fair windows on desktop keys and slightly looser on touch. */
     const touch = !!(HV.Rhythm && HV.Rhythm.touchFeel);
-    const k = touch ? 1.2 : 1;
+    const k = touch ? 1.4 : 1.15;
     if (diff === 'hard') return { perfect: 0.038 * k, good: 0.085 * k, miss: 0.12 * k };
     if (diff === 'easy') return { perfect: 0.06 * k, good: 0.13 * k, miss: 0.17 * k };
     return { perfect: 0.05 * k, good: 0.11 * k, miss: 0.155 * k };
@@ -7503,7 +7503,12 @@ h1, h2, h3, .caps {
       const song = HV.SONGS[songId];
       if (!song) return null;
       const built = song.build();
-      const notes = built.notes.slice().sort((a, b) => a.t - b.t).map((n, i) => Object.assign({}, n, { i, judged: false, hit: false }));
+      const d0 = diff || song.difficultyDefault || 'hollow';
+      /* Thin the sixteenth-note rolls so they are playable by touch:
+         easy = every other beat, hollow = one note per beat, hard = eighth notes. */
+      const step = d0 === 'easy' ? 2 : d0 === 'hard' ? 0.5 : 1;
+      const onGrid = (t) => Math.abs(t / step - Math.round(t / step)) < 0.001;
+      const notes = built.notes.filter((n) => onGrid(n.t)).sort((a, b) => a.t - b.t).map((n, i) => Object.assign({}, n, { i, judged: false, hit: false }));
       return {
         song, diff: diff || song.difficultyDefault || 'hollow',
         notes, sections: built.sections || [],
@@ -7688,14 +7693,14 @@ h1, h2, h3, .caps {
         this.hits.good++;
         this.combo++;
         this.score += 100 * this.mul * (this.rolling > 0 ? 2 : 1);
-        this.meter = HV.clamp(this.meter + 1.0, 0, 100);
+        this.meter = HV.clamp(this.meter + 1.8, 0, 100);
         this.roll = HV.clamp(this.roll + 3, 0, 100);
         this.flash.push({ t: 0.3, text: 'GOOD', color: HV.PAL.ember, lane: note && note.lane });
         this._spark(note, 'good');
       } else if (grade === 'miss' || grade === 'whiff') {
         if (grade === 'miss') this.hits.miss++;
         this.combo = 0;
-        this.meter = HV.clamp(this.meter - (this.mode === 'jam' ? 3 : 7), 0, 100);
+        this.meter = HV.clamp(this.meter - (this.mode === 'jam' ? 2 : 4), 0, 100);
         this.flash.push({ t: 0.28, text: grade === 'whiff' ? '' : 'MISS', color: HV.PAL.blood, lane: note && note.lane });
       }
       this.maxCombo = Math.max(this.maxCombo, this.combo);
@@ -11280,6 +11285,19 @@ h1, h2, h3, .caps {
         const room = this._previewOpenTile(caves, 8) || caves.start || { x: 24, y: 18 };
         this.enterArea('fog_caves', room.x * TILE + 16, room.y * TILE + 16);
         this.state.world.time = 0.5;
+        this.mode = 'play';
+        HV.UI.hideOverlay();
+        return;
+      }
+      if (kind === 'banjo-spot') {
+        const cr = HV.AREAS.the_crossroads;
+        let spot = null;
+        for (let r = 0; r < 12 && !spot; r++) for (let x = 12 - r; x <= 12 + r && !spot; x++) for (const y of [20 - r, 20 + r]) {
+          if (x > 1 && x < 16 && HV.tileWalkable(HV.getTile(cr, x, y), {})) { spot = { x: x, y: y }; break; }
+        }
+        spot = spot || { x: 10, y: 20 };
+        this.enterArea('the_crossroads', spot.x * TILE + 16, spot.y * TILE + 16);
+        this.state.world.time = 0.45;
         this.mode = 'play';
         HV.UI.hideOverlay();
         return;
