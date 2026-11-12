@@ -10906,6 +10906,7 @@ h1, h2, h3, .caps {
       if (this.mode !== 'card' && this.preview !== 'lara') {
         this.drawHud(ctx, w, h);
         this.drawMinimap(ctx, w, h);
+        this.drawObjectiveBanner(ctx, w, h);
         const nearEx = (this.area.exits || []).find((e) => {
           const ddx = e.x - Math.floor(s.world.x / TILE), ddy = e.y - Math.floor(s.world.y / TILE);
           return Math.abs(ddx) + Math.abs(ddy) <= 3;
@@ -10949,6 +10950,47 @@ h1, h2, h3, .caps {
       ctx.strokeStyle = pal.ink;
       ctx.lineWidth = 1;
       ctx.strokeRect(x + 3.5, y + 3.5, w - 7, h - 7);
+    },
+
+    /* Story prompt: pops when the next objective changes, and again as a nudge if it sits unchanged a while. */
+    drawObjectiveBanner(ctx, w, h) {
+      const s = this.state;
+      if (!s || this.mode !== 'play') return;
+      const now = performance.now() / 1000;
+      const hint = (HV.nextHint && HV.nextHint(s, this.area && this.area.id)) || '';
+      if (!hint) return;
+      const key = hint.replace(/^Head [a-z]+ from [^:]+: /, '').slice(0, 40);
+      if (this._objKey === undefined) { this._objKey = key; this._objSince = now; this._objShow = now; this._objHead = 'THE ROAD AHEAD'; }
+      else if (key !== this._objKey && !/^You are in /.test(hint)) {
+        this._objKey = key; this._objSince = now;
+        this._objShow = now; this._objHead = 'THE ROAD AHEAD';
+      } else if (now - this._objSince > 240 && now - this._objShow > 240) {
+        this._objShow = now; this._objHead = 'THE HILLS WHISPER';
+      }
+      const age = now - this._objShow;
+      const dur = 6;
+      if (age < 0 || age > dur) return;
+      const a = Math.min(1, age / 0.4, (dur - age) / 0.8);
+      const pad = this.safePad();
+      const bw = Math.min(w - 32 - pad.l - pad.r, 360);
+      const words = hint.split(' ');
+      const lines = []; let line = '';
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.font = '14px Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif';
+      words.forEach((wd) => { const t = line ? line + ' ' + wd : wd; if (ctx.measureText(t).width > bw - 28 && line) { lines.push(line); line = wd; } else line = t; });
+      if (line) lines.push(line);
+      const bh = 34 + lines.length * 18;
+      const bx = (w - bw) / 2, by = Math.round(h * 0.58);
+      this._ironFrame(ctx, bx, by, bw, bh);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = HV.PAL.gold;
+      ctx.font = 'bold 11px Palatino, "Palatino Linotype", Georgia, serif';
+      ctx.fillText(this._objHead.split('').join(String.fromCharCode(8202)), w / 2, by + 20);
+      ctx.fillStyle = HV.PAL.parchment;
+      ctx.font = '14px Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif';
+      lines.forEach((ln, i) => ctx.fillText(ln, w / 2, by + 40 + i * 18));
+      ctx.restore();
     },
 
     drawHud(ctx, w, h) {
