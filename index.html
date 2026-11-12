@@ -3506,11 +3506,20 @@ h1, h2, h3, .caps {
           ctx.quadraticCurveTo(c.x - c.rx * 0.5, c.y + c.ry * 0.85, c.x - c.rx, c.y);
           ctx.quadraticCurveTo(c.x - c.rx * 0.85, c.y - c.ry * 0.6, c.x, c.y - c.ry);
         }, '#1C2A22', pal.ink, 2.4);
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(c.x, c.y - c.ry);
+        ctx.quadraticCurveTo(c.x + c.rx * 0.9, c.y - c.ry * 0.7, c.x + c.rx, c.y + 2);
+        ctx.quadraticCurveTo(c.x + c.rx * 0.3, c.y + c.ry * 0.9, c.x, c.y + c.ry * 0.7);
+        ctx.quadraticCurveTo(c.x - c.rx * 0.5, c.y + c.ry * 0.85, c.x - c.rx, c.y);
+        ctx.quadraticCurveTo(c.x - c.rx * 0.85, c.y - c.ry * 0.6, c.x, c.y - c.ry);
+        ctx.clip();
         hatch(ctx, c.x - c.rx, c.y - c.ry, c.rx * 2, c.ry * 2, 'rgba(8,10,10,0.55)', 2.8, -32, 1.05);
         hatch(ctx, c.x - c.rx, c.y - c.ry, c.rx * 2, c.ry * 2, 'rgba(8,10,10,0.28)', 4.6, 38, 1);
-        /* moonlit gold / teal rim on the crown */
-        ctx.strokeStyle = (c.x < 0 ? 'rgba(212,184,96,0.85)' : 'rgba(126,200,192,0.78)');
-        ctx.lineWidth = 2.2;
+        ctx.restore();
+        /* soft moonlit rim on the crown */
+        ctx.strokeStyle = (c.x < 0 ? 'rgba(212,184,96,0.36)' : 'rgba(126,200,192,0.3)');
+        ctx.lineWidth = 1.4;
         ctx.beginPath();
         ctx.ellipse(c.x - 2, c.y - 2, c.rx * 0.92, c.ry * 0.88, -0.2, -Math.PI * 0.9, -Math.PI * 0.15);
         ctx.stroke();
@@ -3581,10 +3590,16 @@ h1, h2, h3, .caps {
           ctx.lineTo(-L.w, L.y + 1);
           ctx.closePath();
         }, '#1C2C24', pal.ink, 2.3);
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(0, L.y - L.h); ctx.lineTo(L.w, L.y); ctx.lineTo(L.w * 0.45, L.y - jag); ctx.lineTo(0, L.y + 2);
+        ctx.lineTo(-L.w * 0.5, L.y - jag * 0.6); ctx.lineTo(-L.w, L.y + 1); ctx.closePath();
+        ctx.clip();
         hatch(ctx, -L.w, L.y - L.h, L.w * 2, L.h, 'rgba(8,10,10,0.52)', 2.7, 28, 1.05);
         hatch(ctx, -L.w, L.y - L.h, L.w * 2, L.h, 'rgba(8,10,10,0.24)', 4.6, -40, 1);
-        ctx.strokeStyle = (i % 2 ? 'rgba(212,184,96,0.8)' : 'rgba(126,200,192,0.75)');
-        ctx.lineWidth = 2.0;
+        ctx.restore();
+        ctx.strokeStyle = (i % 2 ? 'rgba(212,184,96,0.34)' : 'rgba(126,200,192,0.3)');
+        ctx.lineWidth = 1.3;
         ctx.beginPath();
         ctx.moveTo(0, L.y - L.h + 1);
         ctx.lineTo(L.w * 0.72, L.y - 3);
@@ -10683,7 +10698,8 @@ h1, h2, h3, .caps {
       if (!this.area || !this.state) return;
 
       const s = this.state;
-      const zoom = this.camZoom || 1;
+      /* Phones in portrait: move the camera in so Lara isn't tiny on a field of empty grass. */
+      const zoom = this.camZoom || ((this.wantTouch && w < 600 && h > w) ? 1.3 : 1);
       const zw = w / zoom, zh = h / zoom;
       ctx.save();
       ctx.translate(w / 2, h / 2);
