@@ -11372,6 +11372,7 @@ h1, h2, h3, .caps {
           else if (ch === '~' || ch === 'w') col = '#3A5460';
           else if (ch === 'H' || ch === 'f' || ch === '#') col = '#3A2A1C';
           else if (ch === 'g') col = '#22262A';
+          else if (ch === 'T') col = '#0E1612';
           if (!col) continue;
           ctx.fillStyle = col;
           ctx.fillRect(ix + tx * sx, iy + ty * sy, Math.max(1, sx * stepX + 0.5), Math.max(1, sy * stepY + 0.5));
@@ -11380,6 +11381,12 @@ h1, h2, h3, .caps {
       (area.buildings || []).forEach((b) => {
         ctx.fillStyle = '#C4B49A';
         ctx.fillRect(ix + b.x * sx, iy + b.y * sy, Math.max(2, b.w * sx), Math.max(2, b.h * sy));
+      });
+      (area.exits || []).forEach((ex) => {
+        const ex0 = Math.max(ix + 2, Math.min(ix + iw - 2, ix + (ex.x + 0.5) * sx));
+        const ey0 = Math.max(iy + 2, Math.min(iy + ih - 2, iy + (ex.y + 0.5) * sy));
+        ctx.fillStyle = '#E8DCC4';
+        ctx.beginPath(); ctx.moveTo(ex0, ey0 - 3); ctx.lineTo(ex0 + 3, ey0); ctx.lineTo(ex0, ey0 + 3); ctx.lineTo(ex0 - 3, ey0); ctx.closePath(); ctx.fill();
       });
       ctx.fillStyle = HV.PAL.gold;
       ctx.fillRect(ix + (s.world.x / TILE) * sx - 2, iy + (s.world.y / TILE) * sy - 2, 5, 5);
