@@ -10765,6 +10765,22 @@ h1, h2, h3, .caps {
             facing: en.facing, tint: en.tint, glow: en.glow, t: now, scale: en.boss ? 1 : 1,
             tags: en.tags, boss: en.boss,
           });
+          const near = Math.hypot(en.x - s.world.x, en.y - s.world.y) < 150;
+          if (en.alive && (near || en.hp < en.hpMax || en.boss)) {
+            const nd = HV.ENEMY_BY_ID[en.id];
+            const nm = en.name || (nd && nd.name) || '';
+            if (nm) {
+              ctx.save();
+              ctx.font = 'bold 9px Georgia, serif';
+              ctx.textAlign = 'center';
+              ctx.lineWidth = 3;
+              ctx.strokeStyle = '#E8DCC0';
+              ctx.strokeText(nm, x, y - 40);
+              ctx.fillStyle = en.boss ? pal.blood : '#140F0C';
+              ctx.fillText(nm, x, y - 40);
+              ctx.restore();
+            }
+          }
           if (en.hp < en.hpMax) {
             ctx.fillStyle = '#140F0C';
             ctx.fillRect(x - 14, y - 36, 28, 4);
