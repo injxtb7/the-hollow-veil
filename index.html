@@ -4846,7 +4846,7 @@ h1, h2, h3, .caps {
     drawTitleWordmark(ctx, artX, artY, artW, artH, pal, safeL, safeT) {
       /* Lives in the open dark sky at the upper left — never over Lara or the Howler. */
       const padL = artX + (safeL || 0) + Math.max(16, artW * 0.035);
-      const maxW = Math.min(artW * 0.40, artW - padL - artW * 0.08);
+      const maxW = Math.min(artW * (artH > artW ? 0.62 : 0.40), artW - padL - artW * 0.08);
       const maxH = artH * 0.42;
       let ts = Math.min(artW / 14, artH * 0.11, 62);
       ctx.save();
@@ -4874,12 +4874,12 @@ h1, h2, h3, .caps {
       stroke('VEIL', padL, ty + lineH);
       const ruleW = Math.min(maxW * 0.72, ctx.measureText('THE HOLLOW').width);
       ctx.fillStyle = pal.gold;
-      ctx.fillRect(padL, ty + lineH + ts * 0.16, ruleW, 3);
+      ctx.fillRect(padL, ty + lineH + Math.max(ts * 0.16, 5), ruleW, 3);
       ctx.fillStyle = pal.ember;
       ctx.letterSpacing = '0.18em';
       const sub = Math.max(10, Math.min(ts * 0.24, 15));
       ctx.font = sub + 'px Impact, "Arial Black", sans-serif';
-      ctx.fillText('A TALE OF THE OZARK HILLS', padL, ty + lineH + ts * 0.48);
+      ctx.fillText('A TALE OF THE OZARK HILLS', padL, ty + lineH + Math.max(ts * 0.48, sub + 10));
       ctx.restore();
     },
 
@@ -4932,7 +4932,7 @@ h1, h2, h3, .caps {
       this.drawTitleSnow(ctx, artX, artY, artW, artH, t);
       this.overlayPaper(ctx, w, h);
       if (opt.headline !== false) {
-        this.drawTitleWordmark(ctx, artX, artY, artW, artH, pal, wide ? safeL : 0, wide ? safeT : 0);
+        this.drawTitleWordmark(ctx, artX, artY, artW, artH, pal, wide ? safeL : 0, wide ? safeT : Math.max(safeT, 54));
       }
       ctx.beginPath();
     },
