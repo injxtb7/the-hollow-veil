@@ -2753,6 +2753,114 @@ h1, h2, h3, .caps {
         }
       }
 
+      /* Wild undergrowth: tonal patches, brush, ferns, stones and mushrooms so the woods are not bare lawn. */
+      const wild = area && area.biome !== 'town' && area.biome !== 'cave' && !area.dark;
+      if (wild) {
+        const thick = area.biome === 'woods' || area.biome === 'bottoms' || area.biome === 'ruins';
+        for (let ty = t0; ty < t1; ty++) {
+          for (let tx = x0; tx < x1; tx++) {
+            if (get(tx, ty) !== '.') continue;
+            const x = tx * TILE - camX, y = ty * TILE - camY;
+            /* broad tonal blotches over 3x3 tile regions, darker and lighter ground */
+            const rh = HV.hash((area.id || '') + ':rg:' + Math.floor(tx / 3) + ':' + Math.floor(ty / 3));
+            if (rh % 3 === 0 && tx % 3 === 1 && ty % 3 === 1) {
+              const bx = x + 16 + ((rh >> 4) % 20) - 10, by = y + 16 + ((rh >> 9) % 20) - 10, br = TILE * (1.6 + (rh % 5) * 0.15);
+              ctx.save();
+              ctx.translate(bx, by); ctx.scale(1, 0.7);
+              const bg = ctx.createRadialGradient(0, 0, 2, 0, 0, br);
+              bg.addColorStop(0, rh % 2 ? 'rgba(10,16,12,0.2)' : 'rgba(150,160,110,0.08)');
+              bg.addColorStop(1, 'rgba(10,16,12,0)');
+              ctx.fillStyle = bg;
+              ctx.fillRect(-br, -br, br * 2, br * 2);
+              ctx.restore();
+            }
+            const h = HV.hash((area.id || '') + ':wu:' + tx + ':' + ty);
+            if (h % (thick ? 4 : 7) !== 0) continue;
+            const cx = x + 8 + ((h >> 3) % 16), cy = y + 14 + ((h >> 7) % 12);
+            const kind = (h >> 11) % 9;
+            ctx.save();
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            if (kind <= 2) {
+              /* low brush clump: three inked lobes with hatching */
+              const r = 6 + (h % 4);
+              const lobes = () => {
+                ctx.moveTo(cx - r * 1.6, cy + r * 0.5);
+                ctx.arc(cx - r * 0.8, cy, r * 0.8, Math.PI, Math.PI * 1.8);
+                ctx.arc(cx, cy - r * 0.35, r, Math.PI * 1.1, Math.PI * 1.9);
+                ctx.arc(cx + r * 0.9, cy + r * 0.05, r * 0.75, Math.PI * 1.2, Math.PI * 2.05);
+                ctx.lineTo(cx + r * 1.6, cy + r * 0.5);
+                ctx.closePath();
+              };
+              ctx.fillStyle = 'rgba(8,10,8,0.28)';
+              ctx.beginPath(); ctx.ellipse(cx + 2, cy + r * 0.55, r * 1.7, r * 0.35, 0, 0, Math.PI * 2); ctx.fill();
+              ctx.beginPath(); lobes();
+              ctx.fillStyle = (h >> 5) % 2 ? '#2B3A30' : '#33402F';
+              ctx.fill();
+              ctx.save(); ctx.clip();
+              hatch(ctx, cx - r * 2, cy - r * 2, r * 4, r * 3, 'rgba(8,12,9,0.55)', 2.6, 38, 0.8);
+              ctx.restore();
+              ctx.strokeStyle = 'rgba(12,14,11,0.9)'; ctx.lineWidth = 1.2; ctx.stroke();
+              ctx.strokeStyle = 'rgba(190,200,150,0.22)'; ctx.lineWidth = 0.9;
+              ctx.beginPath(); ctx.arc(cx - 1, cy - r * 0.35, r * 0.7, Math.PI * 1.2, Math.PI * 1.55); ctx.stroke();
+            } else if (kind <= 4) {
+              /* fern spray */
+              ctx.strokeStyle = 'rgba(16,24,18,0.9)';
+              ctx.lineWidth = 1.1;
+              ctx.beginPath();
+              for (let f = -1; f <= 1; f++) {
+                const ex = cx + f * 9, ey = cy - 12 + Math.abs(f) * 3;
+                ctx.moveTo(cx, cy);
+                ctx.quadraticCurveTo(cx + f * 3, cy - 8, ex, ey);
+                for (let k = 1; k <= 3; k++) {
+                  const px = cx + (ex - cx) * k / 4, py = cy + (ey - cy) * k / 4;
+                  ctx.moveTo(px, py); ctx.lineTo(px - 3.5, py - 1.5);
+                  ctx.moveTo(px, py); ctx.lineTo(px + 3.5, py - 1.5);
+                }
+              }
+              ctx.stroke();
+            } else if (kind === 5) {
+              /* fieldstone half-sunk in the ground */
+              ctx.fillStyle = 'rgba(8,10,8,0.3)';
+              ctx.beginPath(); ctx.ellipse(cx + 1, cy + 3, 8, 2.4, 0, 0, Math.PI * 2); ctx.fill();
+              ctx.beginPath();
+              ctx.moveTo(cx - 7, cy + 2); ctx.quadraticCurveTo(cx - 6, cy - 5, cx, cy - 5);
+              ctx.quadraticCurveTo(cx + 7, cy - 4, cx + 7, cy + 2); ctx.closePath();
+              ctx.fillStyle = '#5A584C'; ctx.fill();
+              ctx.save(); ctx.clip();
+              hatch(ctx, cx - 8, cy - 6, 16, 9, 'rgba(18,16,12,0.5)', 2.4, -30, 0.7);
+              ctx.restore();
+              ctx.strokeStyle = 'rgba(12,12,10,0.9)'; ctx.lineWidth = 1.1; ctx.stroke();
+            } else if (kind === 6 && thick) {
+              /* mushroom cluster */
+              for (let m = 0; m < 3; m++) {
+                const mx = cx + m * 4 - 4, my = cy - (m === 1 ? 2 : 0);
+                ctx.strokeStyle = 'rgba(14,12,10,0.9)'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx, my - 4); ctx.stroke();
+                ctx.beginPath(); ctx.ellipse(mx, my - 4.5, 2.6, 1.7, 0, Math.PI, 0); ctx.closePath();
+                ctx.fillStyle = m === 1 ? '#C9B79A' : '#8E7A5C'; ctx.fill(); ctx.stroke();
+              }
+            } else if (kind === 7) {
+              /* fallen branch */
+              ctx.strokeStyle = 'rgba(30,22,16,0.95)'; ctx.lineWidth = 2.4;
+              ctx.beginPath(); ctx.moveTo(cx - 11, cy + 2); ctx.quadraticCurveTo(cx, cy - 2, cx + 12, cy + 1); ctx.stroke();
+              ctx.lineWidth = 1.2;
+              ctx.beginPath(); ctx.moveTo(cx - 2, cy); ctx.lineTo(cx + 3, cy - 6); ctx.moveTo(cx + 6, cy); ctx.lineTo(cx + 10, cy - 4); ctx.stroke();
+            } else {
+              /* tall grass whorl */
+              ctx.strokeStyle = 'rgba(20,30,22,0.9)'; ctx.lineWidth = 1.1;
+              ctx.beginPath();
+              for (let g = 0; g < 6; g++) {
+                const gx = cx + g * 2 - 5;
+                ctx.moveTo(gx, cy); ctx.quadraticCurveTo(gx + (g - 2.5), cy - 8, gx + (g - 2.5) * 2.2, cy - 13 - (g % 2) * 3);
+              }
+              ctx.stroke();
+            }
+            ctx.restore();
+          }
+        }
+      }
+
       /* Sparse leaves, roots, fog — not an even sprinkle of pebbles. */
       for (let ty = t0; ty < t1; ty++) {
         for (let tx = x0; tx < x1; tx++) {
@@ -5209,19 +5317,27 @@ h1, h2, h3, .caps {
     drawFog(ctx, w, h, camX, camY, t, amount) {
       if (!amount) return;
       ctx.save();
+      /* drifting clumps of soft puffs, each an elliptical gradient so edges fade instead of cutting off */
       for (let i = 0; i < 7; i++) {
-        const fx = ((t * 16 + i * 150 - camX * 0.2) % (w + 280)) - 90;
+        const fx = ((t * (10 + (i % 3) * 5) + i * 150 - camX * 0.2) % (w + 320)) - 110;
         const fy = ((i * 68 + Math.sin(t * 0.28 + i) * 18 - camY * 0.05) % (h + 90));
-        const rw = 130 + (i % 3) * 20, rh = 20 + (i % 2) * 8;
-        const g = ctx.createRadialGradient(fx - 10, fy - 4, 4, fx, fy, rw);
-        g.addColorStop(0, 'rgba(214,204,170,' + (0.16 * amount) + ')');
-        g.addColorStop(0.5, 'rgba(150,176,168,' + (0.10 * amount) + ')');
-        g.addColorStop(1, 'rgba(120,140,136,0)');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.ellipse(fx, fy, rw, rh, 0, 0, Math.PI * 2);
-        ctx.fill();
-        hatch(ctx, fx - rw, fy - rh, rw * 2, rh * 2, 'rgba(244,232,208,' + (0.04 * amount) + ')', 7, 14, 1);
+        const base = 70 + (i % 3) * 18;
+        for (let k = 0; k < 3; k++) {
+          const px = fx + (k - 1) * base * 0.75 + Math.sin(t * 0.4 + i * 2 + k) * 10;
+          const py = fy + ((i + k) % 3 - 1) * 7;
+          const rw = base * (k === 1 ? 1 : 0.7), sq = 0.32 + ((i + k) % 3) * 0.06;
+          const a = amount * (0.55 + 0.45 * Math.sin(t * 0.25 + i * 1.7 + k));
+          ctx.save();
+          ctx.translate(px, py);
+          ctx.scale(1, sq);
+          const g = ctx.createRadialGradient(-rw * 0.15, -rw * 0.2, 2, 0, 0, rw);
+          g.addColorStop(0, 'rgba(214,206,176,' + (0.15 * a) + ')');
+          g.addColorStop(0.55, 'rgba(158,180,170,' + (0.08 * a) + ')');
+          g.addColorStop(1, 'rgba(120,140,136,0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(-rw, -rw, rw * 2, rw * 2);
+          ctx.restore();
+        }
       }
       ctx.restore();
     },
