@@ -15684,6 +15684,15 @@ html[data-text] #art-card {
   HV.marksComplete = function (state) {
     return HV.MARK_FLAGS.every((k) => state.flags && state.flags[k]);
   };
+  HV.canDescend = function (state) {
+    const f = (state && state.flags) || {};
+    if (f.descended || f.ending || (state && state.ngplus)) return true;
+    return HV.marksComplete(state) && !!(f.chose_ila || f.chose_cald || f.chose_peck || f.faction);
+  };
+  HV.descendRefusal = function (state) {
+    if (!HV.marksComplete(state)) return 'The stair below is grown shut with root and cold stone. Read all three marks first: Widow\'s Bluff, the Devil\'s Promenade, and the Pine Churchyard.';
+    return 'The stair below will not open for someone who has not chosen a side. Settle with Ila, the preacher, or Peck first.';
+  };
 
   HV.syncWorld = function (state, ev) {
     ev = ev || {};
@@ -17850,6 +17859,7 @@ html[data-text] #art-card {
         const dest = HV.AREAS[ex.to];
         const nx = (ex.tx != null ? ex.tx : (dest && dest.start.x)) * TILE + 16;
         const ny = (ex.ty != null ? ex.ty : (dest && dest.start.y)) * TILE + 16;
+        if (ex.to === 'under_karst' && HV.canDescend && !HV.canDescend(s)) { HV.UI.toast(HV.descendRefusal(s)); return; }
         this.enterArea(ex.to, nx, ny);
         HV.UI.toast((dest && dest.name) || ex.label || ex.to);
         return;
@@ -18537,6 +18547,10 @@ html[data-text] #art-card {
       if (ex && moving && this.exitArmed) {
         this.exitArmed = false;
         this.interactLock = 0.4;
+        if (ex.to === 'under_karst' && HV.canDescend && !HV.canDescend(this.state)) {
+          if (!this._descendToastT || Date.now() - this._descendToastT > 4000) { this._descendToastT = Date.now(); HV.UI.toast(HV.descendRefusal(this.state)); }
+          return;
+        }
         const dest = HV.AREAS[ex.to];
         this.enterArea(ex.to, (ex.tx != null ? ex.tx : dest.start.x) * TILE + 16, (ex.ty != null ? ex.ty : dest.start.y) * TILE + 16);
         return;
