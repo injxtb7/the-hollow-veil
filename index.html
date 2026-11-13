@@ -15526,7 +15526,7 @@ html[data-text] #art-card {
       const p = el('<div class="wood-panel hv-scroll-panel" style="width:min(560px,94vw);padding:20px 22px"></div>');
       const callings = Object.keys(HV.CALLINGS);
       p.innerHTML = '<div class="hv-panel-head"><h2>WHO WALKS THE HILLS</h2><button class="ink-btn ghost hv-panel-x" id="back">Back</button></div>'
-        + '<label>Name<br><input id="nm" type="text" maxlength="24" value="Lara" style="width:100%;padding:8px;font:16px Palatino,Georgia,serif;border:2px solid #1A1410;background:#F8F1E3"></label>'
+        + '<label>Name<br><input id="nm" type="text" maxlength="24" value="" placeholder="Type your name" autocomplete="off" style="width:100%;padding:8px;font:16px Palatino,Georgia,serif;border:2px solid #1A1410;background:#F8F1E3"></label>'
         + '<div style="margin:12px 0 6px" class="caps">Calling</div><div id="calls" style="display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>'
         + '<div style="margin:12px 0 6px" class="caps">Difficulty</div><div id="diffs"></div>'
         + '<p id="diffblurb" style="margin:8px 0 0;font-size:14px;min-height:2.2em"></p>'
@@ -15567,7 +15567,9 @@ html[data-text] #art-card {
       if (blurbEl()) blurbEl().textContent = blurbs.hollow;
       p.querySelector('#back').addEventListener('click', handlers.back);
       p.querySelector('#go').addEventListener('click', () => {
-        const name = (p.querySelector('#nm').value || 'Lara').trim() || 'Lara';
+        const nmEl = p.querySelector('#nm');
+        const name = (nmEl.value || '').trim();
+        if (!name) { nmEl.style.borderColor = '#8B1E1E'; nmEl.placeholder = 'Pick a name first'; nmEl.focus(); return; }
         handlers.start({ name, calling, difficulty, ironLantern: difficulty === 'iron' });
       });
       this.showOverlay(p, true);
@@ -16562,7 +16564,7 @@ html[data-text] #art-card {
       if (!HV.UI || !HV.UI.showLetter) { this.mode = 'play'; return; }
       this.mode = 'letter';
       const self = this;
-      HV.UI.showLetter(HV.OPENING_LETTER, () => self.afterOpeningLetter());
+      HV.UI.showLetter(Object.assign({}, HV.OPENING_LETTER, { body: HV.OPENING_LETTER.body.map((l, i) => i === 0 ? (((self.state && self.state.hero && self.state.hero.name) || 'Friend') + ',') : l) }), () => self.afterOpeningLetter());
     },
     afterOpeningLetter() {
       this.offerGuideOnce();
