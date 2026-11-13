@@ -43,6 +43,8 @@
   --r-legendary: #E8C547;
   --ui-font: Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif;
   --title-font: Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --hand-font: "Snell Roundhand", "Apple Chancery", "Bradley Hand", "Segoe Script", cursive;
+  --paper-noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .42  0 0 0 0 .28  0 0 0 0 .12  0 0 0 .22 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
 *, *::before, *::after { box-sizing: border-box; }
 html, body {
@@ -80,15 +82,26 @@ h1, h2, h3, .caps {
 
 .wood-panel {
   background:
-    repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(74,55,40,0.06) 3px, rgba(74,55,40,0.06) 4px),
-    repeating-linear-gradient(0deg, transparent, transparent 5px, rgba(47,79,62,0.05) 5px, rgba(47,79,62,0.05) 6px),
-    var(--parchment);
+    var(--paper-noise),
+    radial-gradient(ellipse at 12% 8%, rgba(140,80,30,0.2) 0%, transparent 42%),
+    radial-gradient(ellipse at 88% 10%, rgba(90,50,20,0.16) 0%, transparent 40%),
+    radial-gradient(ellipse at 82% 94%, rgba(70,32,10,0.3) 0%, transparent 48%),
+    radial-gradient(ellipse at 16% 92%, rgba(50,70,30,0.08) 0%, transparent 40%),
+    repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(74,55,40,0.05) 3px, rgba(74,55,40,0.05) 4px),
+    linear-gradient(180deg, #F0D9A8 0%, #E8C98A 48%, #D9B06A 100%);
   color: var(--ink);
   border: 3px solid var(--ink);
   box-shadow:
+    0 -8px 0 1px #6A4A28,
+    0 -11px 0 2px #1A1410,
+    0 8px 0 1px #5A3A20,
+    0 11px 0 2px #1A1410,
+    inset 0 14px 16px -10px rgba(80,42,12,0.42),
+    inset 0 -16px 18px -10px rgba(70,32,8,0.5),
     inset 0 0 0 2px var(--bark),
-    inset 0 0 0 5px var(--parchment2),
-    0 8px 0 rgba(0,0,0,0.45);
+    inset 0 0 0 5px rgba(244,226,184,0.35),
+    inset 0 0 36px rgba(90,50,20,0.12),
+    0 10px 0 rgba(0,0,0,0.4);
   pointer-events: auto;
 }
 
@@ -143,6 +156,7 @@ h1, h2, h3, .caps {
   position: absolute; left: 50%; bottom: calc(28px + var(--sab)); transform: translateX(-50%);
   width: min(760px, calc(100% - 32px - var(--sal) - var(--sar)));
   padding: 18px 22px 16px;
+  z-index: 21;
   pointer-events: auto;
   box-sizing: border-box;
   max-height: calc((100dvh - 48px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) / var(--text-scale, 1));
@@ -368,23 +382,41 @@ h1, h2, h3, .caps {
   color: #4A3728;
 }
 .letter-panel .letter-body p,
-.letter-hand {
-  font-family: Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif;
-  font-style: italic;
-  font-size: 17.5px;
-  line-height: 1.55;
+.letter-hand,
+.hand-note,
+.hv-page {
+  font-family: var(--hand-font);
+  font-style: normal;
+  font-size: 18px;
+  line-height: 1.65;
   margin: 0 0 13px;
   color: #1A1410;
+  letter-spacing: 0.01em;
+}
+.hand-title {
+  font-family: var(--hand-font);
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  font-size: 1.12em;
+}
+.hv-page { margin: 0 0 7px; padding-left: 8px; border-left: 3px solid #C45C26; font-size: 17px; }
+.hv-page .hv-sub {
+  font-family: Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  font-size: 12px;
 }
 .guide-prompt-card { text-align: center; padding: 26px 22px 22px; }
 .guide-prompt-card .letter-kicker { padding-right: 0; margin-bottom: 8px; }
 .guide-prompt-card .letter-hand { text-align: center; font-size: 16.5px; margin: 8px 0 16px; }
 .letter-panel .letter-sign {
-  font-family: Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif;
-  font-style: italic;
-  font-size: 18px;
+  font-family: var(--hand-font);
+  font-style: normal;
+  font-size: 22px;
   margin: 4px 0 16px;
   text-align: right;
+  letter-spacing: 0.02em;
 }
 .letter-panel #letter-go,
 .guide-prompt-card .ink-btn { width: 100%; }
@@ -543,10 +575,22 @@ html[data-text] #art-card {
   overscroll-behavior: contain;
   box-sizing: border-box;
   background:
-    repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(74,55,40,0.06) 3px, rgba(74,55,40,0.06) 4px),
-    var(--parchment);
+    var(--paper-noise),
+    radial-gradient(ellipse at 14% 8%, rgba(140,80,30,0.16) 0%, transparent 42%),
+    radial-gradient(ellipse at 86% 94%, rgba(70,32,10,0.24) 0%, transparent 48%),
+    repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(74,55,40,0.05) 3px, rgba(74,55,40,0.05) 4px),
+    linear-gradient(180deg, #F0D9A8 0%, #E8C98A 55%, #D9B06A 100%);
   border: 4px solid var(--ink);
-  box-shadow: inset 0 0 0 3px var(--bark), inset 0 0 0 6px var(--parchment2), 0 14px 0 rgba(0,0,0,0.5);
+  box-shadow:
+    0 -8px 0 1px #6A4A28,
+    0 -11px 0 2px #1A1410,
+    0 8px 0 1px #5A3A20,
+    0 11px 0 2px #1A1410,
+    inset 0 14px 16px -10px rgba(80,42,12,0.4),
+    inset 0 -16px 18px -10px rgba(70,32,8,0.46),
+    inset 0 0 0 3px var(--bark),
+    inset 0 0 0 6px rgba(244,226,184,0.35),
+    0 14px 0 rgba(0,0,0,0.5);
   padding: 10px 10px 16px;
   text-align: center;
 }
@@ -573,9 +617,13 @@ html[data-text] #art-card {
 /* iPhone 15 landscape — 852 x 393 pt, Dynamic Island */
 @media (orientation: landscape) and (max-height: 500px) {
   #dialog {
-    bottom: calc(8px + var(--sab));
+    top: 50%;
+    bottom: auto;
+    transform: translate(-50%, -54%);
     padding: 10px 12px;
-    width: min(720px, calc(100% - 20px - var(--sal) - var(--sar)));
+    width: min(520px, calc(100% - 248px - var(--sal) - var(--sar)));
+    max-height: calc(100dvh - 24px);
+    z-index: 21;
   }
   #dialog .portrait-wrap { flex: 0 0 88px; }
   #dialog .portrait-wrap canvas, #dialog .portrait-wrap img { width: 88px; height: 88px; }
@@ -656,7 +704,7 @@ html[data-text] #art-card {
 /* iPad landscape — keep the HUD and touch clear of the edges */
 @media (orientation: landscape) and (min-width: 820px) and (min-height: 600px) {
   #overlay-root { padding: 16px; }
-  #dialog { max-width: 720px; }
+  #dialog { max-width: 720px; bottom: calc(176px + var(--sab)); z-index: 21; }
   #touch-acts button, .ink-btn, #dialog .choices button { min-width: 44px; min-height: 44px; }
 }
 
@@ -1567,7 +1615,7 @@ html[data-text] #art-card {
   position: sticky; top: -20px; z-index: 20;
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   margin: -20px -22px 8px; padding: 14px 22px 8px;
-  background: inherit; background-color: #F3EAD7;
+  background: inherit; background-color: #E8D5A4;
   border-bottom: 1px solid rgba(43,30,20,0.25);
 }
 .settings-panel .settings-head h2,
@@ -1577,7 +1625,7 @@ html[data-text] #art-card {
 .hv-epi .hv-epi-nav {
   position: sticky; bottom: 0; z-index: 20;
   padding-top: 10px;
-  background: inherit; background-color: #F3EAD7;
+  background: inherit; background-color: #E8D5A4;
 }
 /* Portrait title: nudge the scene down so it sits centered between title and menu (less trail below). Top of art is black, so the gap blends. */
 .title-screen.is-portrait-art .title-art,
@@ -9246,6 +9294,36 @@ html[data-text] #art-card {
         hg.addColorStop(1, 'rgba(24, 40, 90, 0.16)');
         ctx.fillStyle = hg;
         ctx.fillRect(0, 0, w, h);
+      } else if (biome === 'woods') {
+        const wg = ctx.createLinearGradient(0, 0, 0, h);
+        wg.addColorStop(0, 'rgba(40, 70, 48, 0.05)');
+        wg.addColorStop(1, 'rgba(20, 40, 24, 0.10)');
+        ctx.fillStyle = wg;
+        ctx.fillRect(0, 0, w, h);
+      } else if (biome === 'ruins') {
+        const rug = ctx.createLinearGradient(0, 0, 0, h);
+        rug.addColorStop(0, 'rgba(80, 40, 24, 0.08)');
+        rug.addColorStop(1, 'rgba(24, 16, 12, 0.14)');
+        ctx.fillStyle = rug;
+        ctx.fillRect(0, 0, w, h);
+      } else if (biome === 'karst') {
+        const kg = ctx.createLinearGradient(0, 0, 0, h);
+        kg.addColorStop(0, 'rgba(48, 64, 80, 0.08)');
+        kg.addColorStop(1, 'rgba(16, 24, 36, 0.14)');
+        ctx.fillStyle = kg;
+        ctx.fillRect(0, 0, w, h);
+      } else if (biome === 'river') {
+        const riv = ctx.createLinearGradient(0, 0, 0, h);
+        riv.addColorStop(0, 'rgba(36, 70, 80, 0.06)');
+        riv.addColorStop(1, 'rgba(12, 32, 40, 0.12)');
+        ctx.fillStyle = riv;
+        ctx.fillRect(0, 0, w, h);
+      } else if (biome === 'road') {
+        const dg = ctx.createLinearGradient(0, 0, 0, h);
+        dg.addColorStop(0, 'rgba(90, 70, 40, 0.06)');
+        dg.addColorStop(1, 'rgba(40, 28, 16, 0.10)');
+        ctx.fillStyle = dg;
+        ctx.fillRect(0, 0, w, h);
       }
       ctx.restore();
     },
@@ -9855,6 +9933,22 @@ html[data-text] #art-card {
           ctx.lineWidth = 0.6;
           ctx.stroke();
           ctx.restore();
+        }
+        ctx.restore();
+      }
+      /* Slow dust and pollen motes — hashed, not random, so they do not jump. */
+      if (biome === 'woods' || biome === 'bottoms' || biome === 'bluff' || /hollow/.test(opt.areaId || '')) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 10; i++) {
+          const x = ((i * 149 + 19) * 11 - camX * 0.08 + t * (6 + (i % 4))) % (w + 30) - 10;
+          const y = ((i * 89 + 3) * 7 + t * (4 + (i % 3)) - camY * 0.04) % (h + 20) - 8;
+          const pulse = 0.12 + Math.sin(t * 1.4 + i) * 0.08;
+          ctx.globalAlpha = Math.max(0, pulse);
+          ctx.fillStyle = night ? '#E8D9A0' : '#F4E6C0';
+          ctx.beginPath();
+          ctx.arc(x, y, night ? 1.35 : 1.1, 0, Math.PI * 2);
+          ctx.fill();
         }
         ctx.restore();
       }
@@ -16179,6 +16273,7 @@ html[data-text] #art-card {
     },
 
     showSaveSlots(state, handlers) {
+      const scrollTop = this._scrollOf('.hv-scroll-panel');
       const slots = HV.Save.listSlots();
       const p = el('<div class="wood-panel hv-scroll-panel" style="width:min(480px,92vw);padding:20px 22px"></div>');
       p.innerHTML = '<div class="hv-panel-head"><h2>SAVE SLOTS</h2><button class="ink-btn ghost hv-panel-x" id="back">Back</button></div><div id="slots"></div>';
@@ -16203,6 +16298,7 @@ html[data-text] #art-card {
       });
       p.querySelector('#back').addEventListener('click', handlers.back);
       this.showOverlay(p, false);
+      this._restoreScroll(p, scrollTop);
     },
 
     showSettings(handlers, audio, rhythm) {
@@ -16818,6 +16914,7 @@ html[data-text] #art-card {
     },
 
     showJukebox(state, handlers) {
+      const scrollTop = this._scrollOf('.hv-scroll-panel');
       const p = el('<div class="wood-panel hv-scroll-panel" style="width:min(460px,94vw);padding:20px 22px"></div>');
       const stars = (n) => {
         n = Math.max(0, Math.min(5, n || 0)) | 0;
@@ -16851,6 +16948,7 @@ html[data-text] #art-card {
       });
       p.querySelector('#back').addEventListener('click', handlers.back);
       this.showOverlay(p, false);
+      this._restoreScroll(p, scrollTop);
     },
 
     showTouchPlay(handlers) {
@@ -17437,8 +17535,8 @@ html[data-text] #art-card {
       const self = this;
       HV.UI.showPause(this.state, {
         resume: () => { HV.UI.hideOverlay(); self.mode = 'play'; },
-        journal: () => { HV.UI.hideOverlay(); self.mode = 'play'; self.openJournal(); },
-        skills: () => { HV.UI.hideOverlay(); self.mode = 'play'; self.openSkills(); },
+        journal: () => { HV.UI.hideOverlay(); self.mode = 'play'; self.openJournal(true); },
+        skills: () => { HV.UI.hideOverlay(); self.mode = 'play'; self.openSkills(true); },
         worldMap: () => self.openWorldMap(true),
         saveSlots: () => self.showSlots(),
         exportSave: () => self.exportSave(),
@@ -17551,7 +17649,7 @@ html[data-text] #art-card {
       }
       if (e.code === 'Escape') {
         if (this.mode === 'play') this.openPause();
-        else if (this.mode === 'menu' || this.mode === 'inventory' || this.mode === 'skills' || this.mode === 'journal' || this.mode === 'shop' || this.mode === 'guide') {
+        else if (this.mode === 'menu' || this.mode === 'inventory' || this.mode === 'skills' || this.mode === 'journal' || this.mode === 'shop' || this.mode === 'guide' || this.mode === 'map') {
           HV.UI.hideOverlay(); HV.UI.hideDialog(); this.mode = 'play';
         }
         return;
@@ -17666,11 +17764,11 @@ html[data-text] #art-card {
       hero.inventory.splice(i, 1);
       HV.UI.toast('Used ' + (it.name || def.name));
     },
-    openSkills() {
+    openSkills(fromPause) {
       this.mode = 'skills';
       const self = this;
       HV.UI.showSkills(this.state, {
-        close: () => { HV.UI.hideOverlay(); self.mode = 'play'; },
+        close: () => { HV.UI.hideOverlay(); self.mode = 'play'; if (fromPause) self.openPause(); },
         learn: (id) => {
           const r = HV.learnSkill(self.state.hero, id);
           HV.UI.toast(r.ok ? 'Learned.' : r.error);
@@ -17679,14 +17777,14 @@ html[data-text] #art-card {
             const act = HV.activeSkills(self.state.hero).map((s) => s.id);
             self.state.hero.hotbar = act.slice(0, 8);
           }
-          self.openSkills();
+          self.openSkills(fromPause);
         },
       });
     },
-    openJournal() {
+    openJournal(fromPause) {
       this.mode = 'journal';
       const self = this;
-      HV.UI.showJournal(this.state, { close: () => { HV.UI.hideOverlay(); self.mode = 'play'; } });
+      HV.UI.showJournal(this.state, { close: () => { HV.UI.hideOverlay(); self.mode = 'play'; if (fromPause) self.openPause(); } });
     },
     openWorldMap(fromPause) {
       const self = this;
@@ -18621,6 +18719,7 @@ html[data-text] #art-card {
         this.enterArea('ila_cabin', cabin.start.x * TILE + 16, cabin.start.y * TILE + 16);
         HV.UI.hideOverlay();
         this.mode = 'play';
+        this.maybeShowTouch();
       });
     },
 
@@ -18878,8 +18977,11 @@ html[data-text] #art-card {
       const night = this.isNight();
       const dark = true;
       HV.Render.dayTint(ctx, zw, zh, s.world.time, this.area.biome);
-      const fogAmt = (this.area.biome === 'bottoms' || this.area.biome === 'river' || this.area.id === 'devil_promenade') ? 1.3
+      let fogAmt = (this.area.biome === 'bottoms' || this.area.biome === 'river' || this.area.id === 'devil_promenade') ? 1.3
         : (this.area.biome === 'woods' ? (night ? 0.9 : 0.7) : (this.area.biome === 'town' ? 0.25 : 0.45));
+      if (this.area.biome === 'karst' || /hollow|howler_run|fog_caves|sinkhole|wisp_bottoms/.test(this.area.id || '')) {
+        fogAmt = Math.max(fogAmt, night ? 1.25 : 0.95);
+      }
       HV.Render.drawFog(ctx, zw, zh, camX, camY, now, fogAmt);
 
       const face = s.world.facing >= 0 ? 1 : -1;
@@ -18948,12 +19050,11 @@ html[data-text] #art-card {
         ambient: ambient,
         lights: lights,
       });
-      const vig = this.area.dark ? 0.28 : (night ? 0.22 : (this.area.biome === 'town' ? 0.12 : 0.18));
+      const vig = this.area.dark ? 0.32 : (night ? 0.26 : (this.area.biome === 'town' ? 0.14 : 0.2));
       if (HV.Render.drawVignette) HV.Render.drawVignette(ctx, zw, zh, vig);
-      if (night && this.area.biome !== 'cave' && this.area.biome !== 'town') {
-        HV.Render.drawFireflies(ctx, zw, zh, now, 18);
-      } else if (!night && this.area.biome === 'woods') {
-        HV.Render.drawFireflies(ctx, zw, zh, now, 5);
+      if (this.area.biome !== 'cave') {
+        if (night) HV.Render.drawFireflies(ctx, zw, zh, now, this.area.biome === 'town' ? 8 : 20);
+        else if (this.area.biome === 'woods' || this.area.biome === 'bottoms') HV.Render.drawFireflies(ctx, zw, zh, now, 6);
       }
       if (HV.Render.drawAtmosphere) {
         HV.Render.drawAtmosphere(ctx, zw, zh, camX, camY, now, {
@@ -21745,11 +21846,11 @@ html[data-text] #art-card {
     html += '<div class="caps" style="margin-bottom:6px">Open roads</div>';
     if (!active.length) html += '<p><em>No work in the book yet. Folks with a ! over them have something to ask.</em></p>';
     active.forEach((q) => {
-      html += card((q.main ? '<span class="hv-tag">Main story</span><br>' : '') + '<strong>' + q.name + '</strong><br>' + q.journal, q.main);
+      html += card((q.main ? '<span class="hv-tag">Main story</span><br>' : '') + '<strong class="hand-title">' + q.name + '</strong><br><span class="hand-note">' + q.journal + '</span>', q.main);
     });
     if (done.length) {
       html += '<details class="hv-more"><summary class="caps">Finished (' + done.length + ')</summary>';
-      done.forEach((q) => { html += card('<strong style="text-decoration:line-through;opacity:.75">' + q.name + '</strong><br><span style="opacity:.8">' + q.journal + '</span>'); });
+      done.forEach((q) => { html += card('<strong class="hand-title" style="text-decoration:line-through;opacity:.75">' + q.name + '</strong><br><span class="hand-note" style="opacity:.8">' + q.journal + '</span>'); });
       html += '</details>';
     }
     const pages = (state.journal || []).slice().reverse().slice(0, 18);
