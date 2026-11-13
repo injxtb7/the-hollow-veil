@@ -17452,7 +17452,7 @@ html[data-text] #art-card {
     showSlots() {
       const self = this;
       HV.UI.showSaveSlots(this.state, {
-        back: () => self.openPause(),
+        back: () => { HV.UI.hideOverlay(); self.mode = 'play'; self.openPause(); },
         save: (n) => {
           const r = HV.Save.saveSlot(n, self.state);
           HV.UI.toast(r.ok ? 'Saved to slot ' + n + '.' : r.error);
@@ -17490,7 +17490,7 @@ html[data-text] #art-card {
             self.state.settings.weather = on ? 'on' : 'off';
           }
         },
-        back: () => { if (fromTitle) self.showTitle(); else self.openPause(); },
+        back: () => { if (fromTitle) self.showTitle(); else { HV.UI.hideOverlay(); self.mode = 'play'; self.openPause(); } },
       }, HV.Audio, HV.Rhythm);
     },
     openJam(fromTitle) {
@@ -17502,7 +17502,7 @@ html[data-text] #art-card {
       const back = () => {
         self._fromJukebox = false;
         if (self._jukeboxFrom === 'title') self.showTitle();
-        else if (self._jukeboxFrom === 'pause') self.openPause();
+        else if (self._jukeboxFrom === 'pause') { HV.UI.hideOverlay(); self.mode = 'play'; self.openPause(); }
         else { HV.UI.hideOverlay(); self.mode = 'play'; self.maybeShowTouch(); }
       };
       const play = (id, diff) => {
