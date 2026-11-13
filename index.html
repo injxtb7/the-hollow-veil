@@ -5788,14 +5788,15 @@ html[data-text] #art-card {
         }
       }
 
-      /* Interior '#' rocks are sprinkled as flat gray tiles — cover them with inked boulders. */
-      if (area) {
+      /* Interior '#' rocks are sprinkled as flat gray tiles — cover them with inked boulders.
+         Skip caves: those '#' tiles are walls, and a boulder on every wall is a pale rock grid. */
+      if (area && area.biome !== 'cave') {
         for (let ty = t0; ty < t1; ty++) {
           for (let tx = x0; tx < x1; tx++) {
             if (get(tx, ty) !== '#') continue;
             if (tx <= 0 || ty <= 0 || tx >= area.w - 1 || ty >= area.h - 1) continue;
             const x = tx * TILE - camX, y = ty * TILE - camY;
-            ctx.fillStyle = (area.biome === 'cave') ? '#252C33' : '#3C4F46';
+            ctx.fillStyle = '#3C4F46';
             ctx.fillRect(x - 1, y - 1, TILE + 2, TILE + 2);
             this.rock(ctx, x + 16, y + 18, (area.id || '') + ':' + tx + ':' + ty);
           }
@@ -8042,7 +8043,7 @@ html[data-text] #art-card {
       const n = 20;
       let wreathAt = null;
       for (let i = 0; i < n; i++) {
-        const h = HV.hash((b && b.kind || 'church') + ':gs:' + i + ':' + Math.round(px) + ':' + Math.round(py));
+        const h = HV.hash((b && b.kind || 'church') + ':gs:' + i + ':' + (b && b.x || 0) + ':' + (b && b.y || 0));
         const gx = px + 12 + (h % Math.max(8, tw - 24));
         const gy = py + th * 0.5 + ((h >> 4) % Math.max(8, (south - (py + th * 0.5) - 16)));
         if (gx > bx - 8 && gx < bx + bw + 8 && gy > by - 6 && gy < by + bh + 8) continue;
@@ -8309,7 +8310,7 @@ html[data-text] #art-card {
         by = py + th - bh;
         /* rubble field around the smaller mill */
         for (let i = 0; i < 10; i++) {
-          const h = HV.hash('millr' + i + Math.round(px));
+          const h = HV.hash('millr' + i + ':' + (b && b.x || 0) + ':' + (b && b.y || 0));
           const rx = px + 8 + (h % (tw - 16));
           const ry = py + th - 6 - ((h >> 4) % 18);
           if (rx > bx + 8 && rx < bx + bw - 8 && ry < by + bh - 8) continue;
@@ -8443,17 +8444,36 @@ html[data-text] #art-card {
       ctx.beginPath();
     },
 
-    herbMark(ctx, x, y, picked) {
+    herbMark(ctx, x, y, picked, t) {
       if (picked) return;
       const pal = PAL();
+      const time = (t != null) ? t : 0;
       ctx.save();
       ctx.translate(x, y);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      const stem = () => {
+        ctx.beginPath();
+        ctx.moveTo(0, 4); ctx.lineTo(0, -8);
+        ctx.moveTo(0, -2); ctx.quadraticCurveTo(-6, -6, -4, -10);
+        ctx.moveTo(0, -2); ctx.quadraticCurveTo(6, -6, 5, -10);
+      };
+      /* pale woodcut halo so the plant reads against grass */
+      ctx.strokeStyle = 'rgba(232, 222, 196, 0.88)';
+      ctx.lineWidth = 3.1;
+      stem();
+      ctx.stroke();
       ctx.strokeStyle = pal.forestLit;
-      ctx.lineWidth = 1.4;
+      ctx.lineWidth = 1.45;
+      stem();
+      ctx.stroke();
+      /* slow glint on one leaflet — not a sparkle */
+      const g = 0.12 + 0.32 * (0.5 + 0.5 * Math.sin(time * 1.55 + x * 0.04));
+      ctx.strokeStyle = 'rgba(248, 240, 214, ' + g.toFixed(3) + ')';
+      ctx.lineWidth = 1.1;
       ctx.beginPath();
-      ctx.moveTo(0, 4); ctx.lineTo(0, -8);
-      ctx.moveTo(0, -2); ctx.quadraticCurveTo(-6, -6, -4, -10);
-      ctx.moveTo(0, -2); ctx.quadraticCurveTo(6, -6, 5, -10);
+      ctx.moveTo(1, -3);
+      ctx.quadraticCurveTo(5, -6, 4.2, -9);
       ctx.stroke();
       ctx.restore();
     },
@@ -9128,12 +9148,16 @@ html[data-text] #art-card {
         return a + (b - a) * sx + (c - a) * sy + (d - b - c + a) * sx * sy;
       };
 
-      /* Marching squares of a blurred wet mask, then 6–14px low-frequency noise. Collision stays tile-based. */
+      /* Marching squares of a blurred wet mask, then 6–14px low-frequency noise. Collision stays tile-based.
+         Built once in world space and cached so the bank does not crawl when the camera moves. */
       const STEP = 8, ISO = 0.42;
-      const gx0 = Math.floor((camX - 48) / STEP);
-      const gy0 = Math.floor((camY - 48) / STEP);
-      const gw = Math.ceil((vw + 96) / STEP) + 1;
-      const gh = Math.ceil((vh + 96) / STEP) + 1;
+      let shores = area._orgShores;
+      if (!shores) {
+      const worldW = area.w * TILE, worldH = area.h * TILE;
+      const gx0 = Math.floor(-48 / STEP);
+      const gy0 = Math.floor(-48 / STEP);
+      const gw = Math.ceil((worldW + 96) / STEP) + 1;
+      const gh = Math.ceil((worldH + 96) / STEP) + 1;
       const grid = new Float32Array((gw + 1) * (gh + 1));
       const gi = (ix, iy) => iy * (gw + 1) + ix;
       for (let iy = 0; iy <= gh; iy++) {
@@ -9245,7 +9269,7 @@ html[data-text] #art-card {
         }
         return pts;
       };
-      const shores = [];
+      shores = [];
       for (let li = 0; li < loops.length; li++) {
         let pts = chaikin(chaikin(loops[li]));
         pts = densify(pts, 12);
@@ -9278,6 +9302,8 @@ html[data-text] #art-card {
         pts = smooth(outwardize(pts));
         outwardize(pts);
         if (pts.length >= 8) shores.push(pts);
+      }
+      area._orgShores = shores;
       }
 
       ctx.save();
@@ -9469,12 +9495,13 @@ html[data-text] #art-card {
       /* half-sunk log */
       if (bottoms || area.biome === 'river' || area.id === 'crooked_river' || area.id === 'drowned_shore' || area.id === 'ferry_crossing' || area.id === 'wisp_bottoms') {
         const lseed = HV.hash((area.id || '') + ':slog');
-        const lxTile = x0 + (lseed % Math.max(1, x1 - x0));
-        const lyTile = y0 + ((lseed >> 4) % Math.max(1, y1 - y0));
+        const lxTile = lseed % area.w;
+        const lyTile = (lseed >> 4) % area.h;
         let lx = lxTile, ly = lyTile, foundLog = false;
-        for (let k = 0; k < 40 && !foundLog; k++) {
-          const tx = x0 + ((lxTile + k) % Math.max(1, x1 - x0));
-          const ty = y0 + ((lyTile + (k * 3)) % Math.max(1, y1 - y0));
+        const span = area.w * area.h;
+        for (let k = 0; k < span && !foundLog; k++) {
+          const tx = (lxTile + k) % area.w;
+          const ty = (lyTile + Math.floor(k / area.w) * 3) % area.h;
           if (wet(tx, ty) && wet(tx + 1, ty)) { lx = tx; ly = ty; foundLog = true; }
         }
         if (foundLog) {
@@ -9507,12 +9534,12 @@ html[data-text] #art-card {
       /* low mist on bottoms water at dusk and night */
       const tmW = (HV.Game && HV.Game.state) ? (((HV.Game.state.world.time % 1) + 1) % 1) : 0.5;
       if (bottoms && (tmW < 0.32 || tmW > 0.66)) {
-        for (let i = 0; i < 6; i++) {
-          const h = HV.hash((area.id || '') + ':mist:' + i + ':' + Math.floor((t || 0) * 0.15));
-          const tx = x0 + ((h) % Math.max(1, x1 - x0));
-          const ty = y0 + ((h >> 5) % Math.max(1, y1 - y0));
+        for (let ty = y0; ty < y1; ty++) {
+          for (let tx = x0; tx < x1; tx++) {
           if (!wet(tx, ty)) continue;
-          const mx = tx * TILE + 16 - camX + Math.sin((t || 0) * 0.4 + i) * 10;
+          const h = HV.hash((area.id || '') + ':mist:' + tx + ':' + ty + ':' + Math.floor((t || 0) * 0.15));
+          if (h % 17 !== 0) continue;
+          const mx = tx * TILE + 16 - camX + Math.sin((t || 0) * 0.4 + tx) * 10;
           const my = ty * TILE + 12 - camY;
           const g = ctx.createRadialGradient(mx, my, 2, mx, my, 36);
           g.addColorStop(0, 'rgba(200, 210, 200, 0.14)');
@@ -9521,17 +9548,18 @@ html[data-text] #art-card {
           ctx.beginPath();
           ctx.ellipse(mx, my, 36, 14, 0, 0, Math.PI * 2);
           ctx.fill();
+          }
         }
       }
       /* gentle shimmer — short dashes that travel, gold at dusk/night, haint by day */
       const tm = (HV.Game && HV.Game.state) ? (((HV.Game.state.world.time % 1) + 1) % 1) : 0.5;
       const nightish = tm < 0.25 || tm > 0.7;
-      for (let i = 0; i < 18; i++) {
-        const swh = HV.hash((area.id || '') + ':ws:' + i);
-        const tx = x0 + (swh % Math.max(1, x1 - x0));
-        const ty = y0 + ((swh >> 6) % Math.max(1, y1 - y0));
+      for (let ty = y0; ty < y1; ty++) {
+        for (let tx = x0; tx < x1; tx++) {
         if (!wet(tx, ty)) continue;
-        const phase = t * (1.6 + (i % 5) * 0.2) + i;
+        const swh = HV.hash((area.id || '') + ':ws:' + tx + ':' + ty);
+        if (swh % 11 !== 0) continue;
+        const phase = t * (1.6 + (swh % 5) * 0.2) + (swh % 17);
         const dx = tx * TILE - camX + ((swh >> 3) % 24) + Math.sin(phase) * 6;
         const dy = ty * TILE - camY + ((swh >> 8) % 20) + Math.cos(phase * 0.7) * 1.4;
         ctx.strokeStyle = nightish ? pal.gold : pal.haint;
@@ -9541,6 +9569,7 @@ html[data-text] #art-card {
         ctx.moveTo(dx, dy);
         ctx.lineTo(dx + 5 + (swh % 4), dy - 0.6);
         ctx.stroke();
+        }
       }
       ctx.globalAlpha = 1;
       if (nightish) {
@@ -11423,7 +11452,8 @@ html[data-text] #art-card {
         for (let y = H - 9; y < H; y++) {
           for (let x = 0; x < W; x++) {
             const c = get(r, x, y);
-            if (x === mid && y >= H - 3) { set(r, x, y, ','); continue; }
+            /* Keep a mid-column ford (3 tiles wide) so the south exits stay reachable and visible. */
+            if (x >= mid - 1 && x <= mid + 1) { set(r, x, y, ','); continue; }
             if (c === '#' || c === '.' || c === 's' || c === 'd' || c === 'T' || c === 'C' || c === ' ') {
               set(r, x, y, y >= H - 4 ? 'w' : '~');
             }
@@ -11988,6 +12018,25 @@ html[data-text] #art-card {
   ensureExit('spanish_mine', 'under_karst', 40, 3, 6, 22);
   ensureExit('drowned_shore', 'underground_river', 28, 38, 6, 16);
   ensureExit('yocum_vault', 'lead_camp', 2, 18, 28, 4);
+  /* Punch a dry walk down the mid column if any water still blocks the south exits. */
+  (function connectDrownedShoreFord() {
+    const a = HV.AREAS.drowned_shore;
+    if (!a || !a.cells) return;
+    const ex = (a.exits || []).find((e) => e.to === 'underground_river') || { x: 28, y: 38 };
+    const dry = (ch) => ch && ch !== '~' && ch !== 'w' && ch !== ' ' && HV.tileWalkable(ch);
+    for (let dx = -1; dx <= 1; dx++) {
+      const x = ex.x + dx;
+      if (x < 1 || x >= a.w - 1) continue;
+      for (let y = ex.y; y >= 1; y--) {
+        const ch = a.cells[y][x];
+        if (dry(ch) && y < ex.y) break;
+        if (ch === '~' || ch === 'w') a.cells[y][x] = ',';
+      }
+      for (let y = ex.y + 1; y < a.h - 1; y++) {
+        if (a.cells[y][x] === '~' || a.cells[y][x] === 'w') a.cells[y][x] = ',';
+      }
+    }
+  })();
 
   function walkableNear(area, x, y) {
     if (!area || !area.cells) return { x: 4, y: 4 };
@@ -12002,6 +12051,25 @@ html[data-text] #art-card {
     }
     return area.start || { x: 4, y: 4 };
   }
+  /* Like walkableNear, but keep a gap from exits already on the map so signs do not stack. */
+  function walkableAway(area, x, y, existing) {
+    const minSep = 10;
+    const taken = (tx, ty) => (existing || []).some((e) => Math.hypot((e.x - tx), (e.y - ty)) < minSep);
+    const ok = (tx, ty) => tx >= 1 && ty >= 1 && tx < area.w - 1 && ty < area.h - 1 && HV.tileWalkable(area.cells[ty][tx]) && !taken(tx, ty);
+    if (ok(x, y)) return { x: x, y: y };
+    const preferEdge = x <= 3 || x >= area.w - 4 || y <= 3 || y >= area.h - 4;
+    let best = null, bestScore = 1e9;
+    for (let ty = 1; ty < area.h - 1; ty++) {
+      for (let tx = 1; tx < area.w - 1; tx++) {
+        if (!ok(tx, ty)) continue;
+        const dist = Math.hypot(tx - x, ty - y);
+        const edge = Math.min(tx, ty, area.w - 1 - tx, area.h - 1 - ty);
+        const score = dist + (preferEdge ? edge * 4 : 0);
+        if (score < bestScore) { bestScore = score; best = { x: tx, y: ty }; }
+      }
+    }
+    return best || walkableNear(area, x, y);
+  }
   /* Make every overworld (and dungeon) exit two-way so wandering the county does not dead-end. */
   Object.keys(HV.AREAS).forEach((srcId) => {
     const src = HV.AREAS[srcId];
@@ -12009,7 +12077,7 @@ html[data-text] #art-card {
       const dest = HV.AREAS[e.to];
       if (!dest) return;
       if ((dest.exits || []).some((x) => x.to === srcId)) return;
-      const at = walkableNear(dest, e.tx != null ? e.tx : (dest.start && dest.start.x) || (dest.w >> 1), e.ty != null ? e.ty : (dest.start && dest.start.y) || (dest.h >> 1));
+      const at = walkableAway(dest, e.tx != null ? e.tx : (dest.start && dest.start.x) || (dest.w >> 1), e.ty != null ? e.ty : (dest.start && dest.start.y) || (dest.h >> 1), dest.exits || []);
       ensureExit(e.to, srcId, at.x, at.y, e.x, e.y);
     });
   });
@@ -17942,7 +18010,7 @@ html[data-text] #art-card {
       });
       (this.area.herbs || []).forEach((hb) => {
         const picked = s.herbsPicked[this.area.id + ':' + hb.x + ',' + hb.y];
-        HV.Render.herbMark(ctx, hb.x * TILE + 16 - camX, hb.y * TILE + 16 - camY, picked);
+        HV.Render.herbMark(ctx, hb.x * TILE + 16 - camX, hb.y * TILE + 16 - camY, picked, now);
       });
       (this.area.props || []).forEach((pr) => {
         if (pr.kind === 'well') HV.Render.well(ctx, pr.x * TILE + 16 - camX, pr.y * TILE + 16 - camY);
