@@ -214,10 +214,10 @@ h1, h2, h3, .caps {
 
 #toast {
   position: absolute;
-  top: calc(var(--sat) + 86px);
+  top: calc(var(--sat) + 128px);
   left: 50%;
   transform: translateX(-50%);
-  width: min(340px, calc(100% - 24px));
+  width: min(280px, calc(100% - 24px));
   text-align: center;
   font-family: Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif;
   letter-spacing: 0.06em;
@@ -1591,6 +1591,103 @@ html[data-text] #art-card {
   mask-image: linear-gradient(to bottom, transparent 0, #000 14%);
 }
 
+
+/* Level-up / toasts sit under the minimap, not over it. */
+@media (orientation: landscape) and (max-height: 500px) {
+  #toast {
+    top: calc(var(--sat) + 10px);
+    width: min(240px, calc(100% - 360px));
+  }
+}
+
+.inv-group {
+  margin: 10px 0 4px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6A4A28;
+  border-bottom: 1px solid rgba(74,55,40,0.35);
+  padding-bottom: 2px;
+}
+.shop-row.is-selected {
+  background: rgba(201,162,39,0.22);
+  box-shadow: inset 0 0 0 1px #C9A227;
+}
+.skill-req {
+  font-size: 12px;
+  color: #6A4A28;
+  margin-top: 1px;
+}
+.skill-cost {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: #8A5A28;
+}
+.skill-locked { opacity: 0.78; }
+.skill-locked .ink-btn { opacity: 0.65; }
+
+.hv-worldmap {
+  display: flex;
+  flex-direction: column;
+  max-height: calc((100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) / var(--text-scale, 1));
+}
+.hv-worldmap .worldmap-sub {
+  font: 13px/1.35 Palatino, Georgia, serif;
+  color: #4A3728;
+  margin: 0 0 8px;
+  flex-shrink: 0;
+}
+.hv-worldmap .worldmap-stage {
+  flex: 1 1 auto;
+  min-height: 240px;
+  height: min(58vh, 520px);
+  position: relative;
+}
+.hv-worldmap .worldmap-stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #E8D9B8;
+  border: 2px solid #1A1410;
+  box-shadow: inset 0 0 0 3px #C4B49A;
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .hv-worldmap .worldmap-stage { height: min(62vh, 280px); min-height: 160px; }
+}
+
+/* Phone landscape: keep the movement pad and action buttons on opposite
+   corners so the canvas spell row can sit in the open middle. */
+@media (orientation: landscape) and (max-height: 500px) {
+  #touch-wrap {
+    padding: 6px calc(10px + var(--sar)) calc(8px + var(--sab)) calc(10px + var(--sal));
+    background: linear-gradient(180deg, transparent, rgba(11,12,10,0.35));
+    align-items: flex-end;
+  }
+  #pad { width: 108px; height: 108px; }
+  #pad .knob { width: 46px; height: 46px; left: 31px; top: 31px; }
+  #touch-acts { grid-template-columns: repeat(3, 52px); gap: 5px; }
+  #touch-acts button { width: 52px; height: 52px; font-size: 10px; }
+}
+
+#overlay-root.worldmap-mode {
+  align-items: stretch !important;
+  padding-top: calc(8px + var(--sat)) !important;
+  padding-bottom: calc(10px + var(--sab)) !important;
+  padding-left: calc(8px + var(--sal));
+  padding-right: calc(8px + var(--sar));
+}
+#overlay-root.worldmap-mode .hv-worldmap {
+  width: min(720px, 100%) !important;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+}
+#overlay-root.worldmap-mode .hv-worldmap .worldmap-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+
 </style>
 </head>
 <body>
@@ -2883,6 +2980,40 @@ html[data-text] #art-card {
     return v;
   };
 
+
+  HV.ITEM_GROUPS = [
+    { id: 'weapons', label: 'Weapons / Staves' },
+    { id: 'armor', label: 'Armor' },
+    { id: 'charms', label: 'Charms / Trinkets' },
+    { id: 'herbs', label: 'Herbs' },
+    { id: 'consumables', label: 'Consumables' },
+    { id: 'quest', label: 'Quest / Key' },
+    { id: 'misc', label: 'Misc' },
+  ];
+  HV.itemCategory = function (it) {
+    if (!it) return 'misc';
+    const def = (HV.ITEM_BY_ID && (HV.ITEM_BY_ID[it.id] || HV.ITEM_BY_ID[it.herbId])) || it;
+    if (it.herbId || def.herbId || (HV.HERB_BY_ID && (HV.HERB_BY_ID[it.herbId] || HV.HERB_BY_ID[it.id] || HV.HERB_BY_ID[def.id]))) return 'herbs';
+    const slot = it.slot || def.slot;
+    if (slot === 'staff') return 'weapons';
+    if (slot === 'coat' || slot === 'boots') return 'armor';
+    if (slot === 'charm' || slot === 'ring') return 'charms';
+    if (it.use || def.use || (HV.ITEM_BY_ID && HV.CONSUMABLES && HV.CONSUMABLES.some((c) => c.id === it.id || c.id === def.id))) return 'consumables';
+    if (it.quest || def.quest || it.key || def.key || def.questItem || it.questItem) return 'quest';
+    if (!slot) return 'quest';
+    return 'misc';
+  };
+  HV.groupedItems = function (list) {
+    const groups = HV.ITEM_GROUPS.map((g) => ({ id: g.id, label: g.label, items: [] }));
+    const by = {};
+    groups.forEach((g) => { by[g.id] = g; });
+    (list || []).forEach((it, i) => {
+      const id = HV.itemCategory(it);
+      (by[id] || by.misc).items.push({ it: it, i: i });
+    });
+    return groups.filter((g) => g.items.length);
+  };
+
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -2937,6 +3068,8 @@ html[data-text] #art-card {
     st.herbsPicked = st.herbsPicked || {};
     st.killCount = st.killCount || {};
     st.discovered = st.discovered || {};
+    /* Old saves: treat the current area (and anything already flagged) as visited. */
+    if (st.world && st.world.area) st.discovered[st.world.area] = true;
     st.unlocked = st.unlocked || {};
     st.settings = st.settings || {};
     if (st.settings.rhythmLatency == null) st.settings.rhythmLatency = 0;
@@ -3409,17 +3542,19 @@ html[data-text] #art-card {
     const have = HV.skillRank(hero, id);
     if (have >= def.max) return { ok: false, error: 'That skill is already fully learned.' };
     const pts = hero.skillPts || 0;
-    if (pts < def.cost) return { ok: false, error: 'Not enough skill marks.' };
-    if (hero.level < (def.req && def.req.level || 1)) return { ok: false, error: 'You are not far enough along the road yet.' };
+    if (pts < def.cost) return { ok: false, error: 'Costs ' + def.cost + ' mark' + (def.cost === 1 ? '' : 's') + ' (you have ' + pts + ').' };
+    if (hero.level < (def.req && def.req.level || 1)) return { ok: false, error: 'Requires level ' + def.req.level + '.' };
     if (def.req && def.req.node) {
       const need = def.req.rank || 1;
       if (HV.skillRank(hero, def.req.node) < need) {
         const other = HV.SKILL_BY_ID[def.req.node];
-        return { ok: false, error: 'Learn ' + (other ? other.name : def.req.node) + ' first.' };
+        const nm = other ? other.name : def.req.node;
+        return { ok: false, error: 'Requires ' + nm + (need > 1 ? (' ' + need) : '') + ' first.' };
       }
     }
     if (def.req && def.req.calling && hero.calling !== def.req.calling) {
-      return { ok: false, error: 'That calling does not take this road.' };
+      const c = HV.CALLINGS && HV.CALLINGS[def.req.calling];
+      return { ok: false, error: 'Requires the ' + ((c && c.name) || def.req.calling) + ' calling.' };
     }
     return { ok: true };
   };
@@ -3454,6 +3589,25 @@ html[data-text] #art-card {
   HV.activeSkills = function (hero) {
     const skills = (hero && hero.skills) || {};
     return HV.SKILLS.filter((s) => skills[s.id] && (s.type === 'active' || s.type === 'toggle'));
+  };
+
+
+  HV.skillReqText = function (hero, id) {
+    const def = HV.SKILL_BY_ID[id];
+    if (!def) return '';
+    const parts = [];
+    if (def.cost > 1) parts.push(def.cost + ' marks');
+    if (def.req && def.req.level) parts.push('level ' + def.req.level);
+    if (def.req && def.req.node) {
+      const other = HV.SKILL_BY_ID[def.req.node];
+      const need = def.req.rank || 1;
+      parts.push((other ? other.name : def.req.node) + (need > 1 ? (' ' + need) : ''));
+    }
+    if (def.req && def.req.calling) {
+      const c = HV.CALLINGS && HV.CALLINGS[def.req.calling];
+      parts.push((c && c.name) || def.req.calling);
+    }
+    return parts.length ? 'Requires ' + parts.join(', ') : '';
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
@@ -12150,6 +12304,334 @@ html[data-text] #art-card {
     a.trees = keep;
   })();
 
+
+  /* Pair every exit with its return sign, snap arrivals onto that sign,
+     and carve corridors so no entrance or boss pad is a dead end. */
+  (function repairAreaConnectivity() {
+    const MIN_SEP = 10;
+    function floorOf(area) {
+      return (area && (area.biome === 'cave' || area.dark)) ? 'g' : ',';
+    }
+    function inBounds(area, x, y) {
+      return area && x >= 1 && y >= 1 && x < area.w - 1 && y < area.h - 1;
+    }
+    function walkableAt(area, x, y) {
+      return inBounds(area, x, y) && HV.tileWalkable(HV.getTile(area, x, y));
+    }
+    function punch(area, x, y) {
+      if (!area || !area.cells || !inBounds(area, x, y)) return;
+      const ch = area.cells[y][x];
+      if (ch === 'H' || ch === 'f' || ch === '+' || ch === '=') return;
+      if (!HV.tileWalkable(ch) || ch === '~' || ch === 'w') area.cells[y][x] = floorOf(area);
+      if (area.trees) area.trees = area.trees.filter((t) => !(t.x === x && t.y === y));
+    }
+    function inwardOf(area, x, y) {
+      let nx = x, ny = y;
+      if (x <= 2) nx = Math.min(area.w - 2, x + 1);
+      else if (x >= area.w - 3) nx = Math.max(1, x - 1);
+      else if (y <= 2) ny = Math.min(area.h - 2, y + 1);
+      else if (y >= area.h - 3) ny = Math.max(1, y - 1);
+      else {
+        const cx = area.w >> 1, cy = area.h >> 1;
+        if (Math.abs(cx - x) >= Math.abs(cy - y)) nx = x + (cx >= x ? 1 : -1);
+        else ny = y + (cy >= y ? 1 : -1);
+      }
+      return { x: nx, y: ny };
+    }
+    function vestibule(area, ex) {
+      if (!ex) return;
+      punch(area, ex.x, ex.y);
+      const inn = inwardOf(area, ex.x, ex.y);
+      const dx = inn.x - ex.x, dy = inn.y - ex.y;
+      const depth = (area.biome === 'cave' || area.dark) ? 5 : 2;
+      for (let i = 0; i <= depth; i++) {
+        punch(area, ex.x + dx * i, ex.y + dy * i);
+        if (dx) { punch(area, ex.x + dx * i, ex.y + 1); punch(area, ex.x + dx * i, ex.y - 1); }
+        if (dy) { punch(area, ex.x + 1, ex.y + dy * i); punch(area, ex.x - 1, ex.y + dy * i); }
+      }
+    }
+    function arriveBeside(area, ex) {
+      vestibule(area, ex);
+      const inn = inwardOf(area, ex.x, ex.y);
+      punch(area, inn.x, inn.y);
+      if (walkableAt(area, inn.x, inn.y)) return inn;
+      if (walkableAt(area, ex.x, ex.y)) return { x: ex.x, y: ex.y };
+      const dirs = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+      for (let r = 1; r <= 6; r++) {
+        for (let i = 0; i < dirs.length; i++) {
+          const x = ex.x + dirs[i][0] * r, y = ex.y + dirs[i][1] * r;
+          punch(area, x, y);
+          if (walkableAt(area, x, y)) return { x: x, y: y };
+        }
+      }
+      return inn;
+    }
+    function pathCarve(area, x0, y0, x1, y1) {
+      if (!area || !area.cells) return;
+      const w = area.w, h = area.h;
+      const key = (x, y) => x + ',' + y;
+      const ok = (x, y) => x >= 1 && y >= 1 && x < w - 1 && y < h - 1;
+      const costAt = (x, y) => {
+        const ch = HV.getTile(area, x, y);
+        if (ch === 'H' || ch === 'f' || ch === '+') return 90;
+        if (ch === '#') return 8;
+        if (ch === 'T' || ch === 'C' || ch === '^') return 4;
+        if (ch === '~' || ch === 'w') return 5;
+        if (HV.tileWalkable(ch)) return 1;
+        return 8;
+      };
+      const open = [{ x: x0, y: y0, g: 0, f: Math.abs(x1 - x0) + Math.abs(y1 - y0) }];
+      const came = new Map();
+      const gBest = new Map();
+      gBest.set(key(x0, y0), 0);
+      let found = null;
+      let steps = 0;
+      while (open.length && steps++ < 8000) {
+        let bi = 0;
+        for (let i = 1; i < open.length; i++) if (open[i].f < open[bi].f) bi = i;
+        const cur = open.splice(bi, 1)[0];
+        if (cur.x === x1 && cur.y === y1) { found = cur; break; }
+        const nbs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        for (let i = 0; i < 4; i++) {
+          const nx = cur.x + nbs[i][0], ny = cur.y + nbs[i][1];
+          if (!ok(nx, ny)) continue;
+          const ng = cur.g + costAt(nx, ny);
+          const k = key(nx, ny);
+          if (gBest.has(k) && gBest.get(k) <= ng) continue;
+          gBest.set(k, ng);
+          came.set(k, cur);
+          open.push({ x: nx, y: ny, g: ng, f: ng + Math.abs(x1 - nx) + Math.abs(y1 - ny) });
+        }
+      }
+      const floor = floorOf(area);
+      const paint = (x, y) => {
+        if (!ok(x, y) || !area.cells[y]) return;
+        const ch = area.cells[y][x];
+        if (ch === 'H' || ch === 'f' || ch === '+' || ch === '=') return;
+        if (!(ch === ',' || ch === 'd' || ch === 'g' || ch === 'c' || ch === 's' || ch === '.' || ch === ';')) {
+          area.cells[y][x] = floor;
+        }
+        if (area.trees) area.trees = area.trees.filter((t) => !(t.x === x && t.y === y));
+      };
+      if (!found) {
+        pathTo(area.cells, x0, y0, x1, y1, floor);
+        return;
+      }
+      let p = found;
+      while (p) {
+        paint(p.x, p.y);
+        const prev = came.get(key(p.x, p.y));
+        if (!prev) break;
+        p = prev;
+      }
+    }
+    function floodFrom(area, sx, sy) {
+      const seen = new Set();
+      const q = [];
+      const add = (x, y) => {
+        const k = x + ',' + y;
+        if (seen.has(k) || !walkableAt(area, x, y)) return;
+        seen.add(k);
+        q.push({ x: x, y: y });
+      };
+      add(sx, sy);
+      if (!seen.size) {
+        for (let r = 1; r <= 3 && !seen.size; r++) {
+          for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) add(sx + dx, sy + dy);
+        }
+      }
+      for (let i = 0; i < q.length; i++) {
+        const p = q[i];
+        add(p.x + 1, p.y); add(p.x - 1, p.y); add(p.x, p.y + 1); add(p.x, p.y - 1);
+      }
+      return seen;
+    }
+    function largestSeed(area) {
+      const seenAll = new Set();
+      let best = null, bestN = 0, seed = area.start || { x: area.w >> 1, y: area.h >> 1 };
+      for (let y = 1; y < area.h - 1; y++) {
+        for (let x = 1; x < area.w - 1; x++) {
+          if (seenAll.has(x + ',' + y) || !walkableAt(area, x, y)) continue;
+          const fl = floodFrom(area, x, y);
+          fl.forEach((k) => seenAll.add(k));
+          if (fl.size > bestN) { bestN = fl.size; best = fl; seed = { x: x, y: y }; }
+        }
+      }
+      return { seed: seed, size: bestN, set: best };
+    }
+    function carveToNetwork(area, x, y) {
+      if (!area || !inBounds(area, x, y)) return;
+      punch(area, x, y);
+      const net = largestSeed(area);
+      if (net.set && net.set.has(x + ',' + y)) return;
+      if (!net.seed) return;
+      pathCarve(area, x, y, net.seed.x, net.seed.y);
+      punch(area, x, y);
+    }
+    function preferredEdge(dest, src, srcExit) {
+      if (!dest || !src || !srcExit) return null;
+      const dw = dest.w, dh = dest.h, sw = src.w, sh = src.h;
+      let x, y;
+      if (srcExit.x <= 2) { x = dw - 2; y = Math.max(2, Math.min(dh - 3, Math.round(srcExit.y * dh / sh))); }
+      else if (srcExit.x >= sw - 3) { x = 2; y = Math.max(2, Math.min(dh - 3, Math.round(srcExit.y * dh / sh))); }
+      else if (srcExit.y <= 2) { y = dh - 2; x = Math.max(2, Math.min(dw - 3, Math.round(srcExit.x * dw / sw))); }
+      else if (srcExit.y >= sh - 3) { y = 2; x = Math.max(2, Math.min(dw - 3, Math.round(srcExit.x * dw / sw))); }
+      else return null;
+      return { x: x, y: y };
+    }
+    function tooClose(area, x, y, skip) {
+      return (area.exits || []).some((e) => e !== skip && Math.hypot(e.x - x, e.y - y) < MIN_SEP);
+    }
+    function placeOnEdge(area, want, skip) {
+      if (!want) return null;
+      const cands = [];
+      const edge = [];
+      if (want.x <= 2) for (let y = 2; y < area.h - 2; y++) edge.push({ x: 2, y: y });
+      else if (want.x >= area.w - 3) for (let y = 2; y < area.h - 2; y++) edge.push({ x: area.w - 2, y: y });
+      else if (want.y <= 2) for (let x = 2; x < area.w - 2; x++) edge.push({ x: x, y: 2 });
+      else if (want.y >= area.h - 3) for (let x = 2; x < area.w - 2; x++) edge.push({ x: x, y: area.h - 2 });
+      edge.forEach((p) => {
+        const sep = tooClose(area, p.x, p.y, skip);
+        const dist = Math.hypot(p.x - want.x, p.y - want.y);
+        cands.push({ x: p.x, y: p.y, score: dist + (sep ? 1000 : 0) });
+      });
+      cands.sort((a, b) => a.score - b.score);
+      return cands[0] || want;
+    }
+
+    /* In caves and dungeons, slide a return onto the matching edge so the
+       sign you arrive at is the counterpart of the sign you just used. */
+    Object.keys(HV.AREAS).forEach((srcId) => {
+      const src = HV.AREAS[srcId];
+      (src.exits || []).forEach((e) => {
+        const dest = HV.AREAS[e.to];
+        if (!dest) return;
+        const ret = (dest.exits || []).find((x) => x.to === srcId);
+        if (!ret) return;
+        const dungeon = !!(dest.dark || dest.biome === 'cave');
+        if (!dungeon) return;
+        const want = preferredEdge(dest, src, e);
+        if (!want) return;
+        const onEdge = (want.x <= 2 && ret.x <= 2) || (want.x >= dest.w - 3 && ret.x >= dest.w - 3)
+          || (want.y <= 2 && ret.y <= 2) || (want.y >= dest.h - 3 && ret.y >= dest.h - 3);
+        if (onEdge && !tooClose(dest, ret.x, ret.y, ret)) return;
+        const at = placeOnEdge(dest, want, ret);
+        if (!at) return;
+        ret.x = at.x; ret.y = at.y;
+        vestibule(dest, ret);
+      });
+    });
+
+    /* Snap every exit's arrival to a walkable tile on or next to the return sign. */
+    Object.keys(HV.AREAS).forEach((srcId) => {
+      const src = HV.AREAS[srcId];
+      (src.exits || []).forEach((e) => {
+        const dest = HV.AREAS[e.to];
+        if (!dest) return;
+        let ret = (dest.exits || []).find((x) => x.to === srcId);
+        if (!ret) {
+          const at = arriveBeside(dest, { x: e.tx != null ? e.tx : (dest.start && dest.start.x) || (dest.w >> 1), y: e.ty != null ? e.ty : (dest.start && dest.start.y) || (dest.h >> 1) });
+          ensureExit(e.to, srcId, at.x, at.y, e.x, e.y);
+          ret = (dest.exits || []).find((x) => x.to === srcId);
+        }
+        if (!ret) return;
+        vestibule(dest, ret);
+        vestibule(src, e);
+        const land = arriveBeside(dest, ret);
+        e.tx = land.x; e.ty = land.y;
+        const back = arriveBeside(src, e);
+        ret.tx = back.x; ret.ty = back.y;
+        if (HV.AREAS[e.to]) e.label = HV.AREAS[e.to].name;
+        if (HV.AREAS[srcId]) ret.label = HV.AREAS[srcId].name;
+      });
+    });
+
+    /* Carve every entrance, exit, start, and boss pad into the main walkable net. */
+    Object.keys(HV.AREAS).forEach((id) => {
+      const a = HV.AREAS[id];
+      const pts = [];
+      if (a.start) pts.push(a.start);
+      (a.exits || []).forEach((e) => pts.push({ x: e.x, y: e.y }));
+      Object.keys(HV.AREAS).forEach((oid) => {
+        (HV.AREAS[oid].exits || []).forEach((e) => {
+          if (e.to === id && e.tx != null) pts.push({ x: e.tx, y: e.ty });
+        });
+      });
+      (a.spawns || []).forEach((sp) => { if (sp && (sp.boss || sp.id === 'under_stone')) pts.push({ x: sp.x, y: sp.y }); });
+      pts.forEach((p) => { if (p && p.x != null) carveToNetwork(a, p.x | 0, p.y | 0); });
+      (a.exits || []).forEach((e) => vestibule(a, e));
+    });
+
+    /* Second snap after carving, in case a corridor shifted a tile. */
+    Object.keys(HV.AREAS).forEach((srcId) => {
+      const src = HV.AREAS[srcId];
+      (src.exits || []).forEach((e) => {
+        const dest = HV.AREAS[e.to];
+        if (!dest) return;
+        const ret = (dest.exits || []).find((x) => x.to === srcId);
+        if (!ret) return;
+        const land = arriveBeside(dest, ret);
+        e.tx = land.x; e.ty = land.y;
+        const back = arriveBeside(src, e);
+        ret.tx = back.x; ret.ty = back.y;
+      });
+    });
+  })();
+
+  HV.layoutWorldMap = function () {
+    const ids = Object.keys(HV.AREAS);
+    const pos = {};
+    const seed = HV.AREAS.yarrow_crossing ? 'yarrow_crossing' : ids[0];
+    if (!seed) return {};
+    pos[seed] = { x: 0, y: 0 };
+    const q = [seed];
+    const taken = (x, y, skip) => ids.some((id) => id !== skip && pos[id] && pos[id].x === x && pos[id].y === y);
+    const DIR = { west: [-1, 0], east: [1, 0], north: [0, -1], south: [0, 1] };
+    while (q.length) {
+      const id = q.shift();
+      const a = HV.AREAS[id];
+      (a.exits || []).forEach((e) => {
+        if (!HV.AREAS[e.to] || pos[e.to]) return;
+        const dir = HV.compassDir(a, e);
+        const d = DIR[dir] || [0, 0];
+        let x = pos[id].x + (d[0] || 0);
+        let y = pos[id].y + (d[1] || 0);
+        if (!d[0] && !d[1]) { x += 1; }
+        let guard = 0;
+        while (taken(x, y, e.to) && guard++ < 40) {
+          if (d[1] || !d[0]) x += (guard % 2 ? 1 : -1);
+          else y += (guard % 2 ? 1 : -1);
+        }
+        pos[e.to] = { x: x, y: y };
+        q.push(e.to);
+      });
+    }
+    ids.forEach((id) => {
+      if (pos[id]) return;
+      let x = 0, y = 3, g = 0;
+      while (taken(x, y, id) && g++ < 80) { x += 1; if (x > 6) { x = 0; y += 1; } }
+      pos[id] = { x: x, y: y };
+    });
+    let minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity;
+    ids.forEach((id) => {
+      minx = Math.min(minx, pos[id].x); miny = Math.min(miny, pos[id].y);
+      maxx = Math.max(maxx, pos[id].x); maxy = Math.max(maxy, pos[id].y);
+    });
+    const dx = (maxx - minx) || 1, dy = (maxy - miny) || 1;
+    const out = {};
+    ids.forEach((id) => {
+      out[id] = {
+        id: id,
+        name: HV.AREAS[id].name,
+        nx: (pos[id].x - minx) / dx,
+        ny: (pos[id].y - miny) / dy,
+        x: pos[id].x,
+        y: pos[id].y,
+      };
+    });
+    return out;
+  };
+
   HV.exitAt = function (area, tx, ty) {
     if (!area) return null;
     return (area.exits || []).find((e) => Math.abs(e.x - tx) + Math.abs(e.y - ty) <= 1) || null;
@@ -15469,6 +15951,7 @@ html[data-text] #art-card {
       if (this.overlay) {
         this.overlay.classList.add('hidden');
         this.overlay.classList.remove('title-mode');
+        this.overlay.classList.remove('worldmap-mode');
         this.overlay.innerHTML = '';
       }
     },
@@ -15478,6 +15961,16 @@ html[data-text] #art-card {
       if (solid) this.overlay.classList.add('solid'); else this.overlay.classList.remove('solid');
       this.overlay.appendChild(node);
       this.overlay.classList.remove('hidden');
+    },
+    _scrollOf(sel) {
+      const n = this.overlay && this.overlay.querySelector(sel);
+      return n && typeof n.scrollTop === 'number' ? n.scrollTop : 0;
+    },
+    _restoreScroll(node, top) {
+      if (!node) return;
+      const apply = () => { node.scrollTop = top || 0; };
+      apply();
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(apply);
     },
 
     showTitle(handlers) {
@@ -15674,6 +16167,7 @@ html[data-text] #art-card {
       mk('#pmain', 'Resume', handlers.resume, 'gold');
       if (handlers.journal) mk('#pgrid', 'Journal', handlers.journal);
       if (handlers.skills) mk('#pgrid', 'Skills', handlers.skills);
+      if (handlers.worldMap) mk('#pgrid', 'World Map', handlers.worldMap);
       if (handlers.guide) mk('#pgrid', 'Guide', handlers.guide);
       mk('#pgrid', 'Settings', handlers.settings);
       if (state && (state.flags && (state.flags.jam_unlocked || state.flags.porch_jam_done) || (HV.Rhythm && HV.Rhythm.unlockedJam))) mk('#pgrid', 'Jam Mode', handlers.jam);
@@ -15939,6 +16433,7 @@ html[data-text] #art-card {
 
     showInventory(state, handlers) {
       const hero = state.hero;
+      const scrollTop = this._scrollOf('.hv-scroll-panel');
       const p = el('<div class="wood-panel hv-scroll-panel" style="width:min(720px,96vw);padding:20px 22px"></div>');
       let html = '<div class="hv-panel-head"><h2>PACK AND PERSON</h2><button class="ink-btn ghost hv-panel-x" id="close">Close</button></div><div style="margin-bottom:8px">Coin: <strong>' + (hero.gold || 0) + '</strong></div><div style="display:flex;gap:18px;flex-wrap:wrap">';
       html += '<div style="flex:1;min-width:220px"><div class="caps">Equipped</div>';
@@ -15947,8 +16442,13 @@ html[data-text] #art-card {
         html += '<div data-slot="' + s.id + '" class="eq-row" style="margin:6px 0;padding:6px;border:1px solid #4A3728;cursor:pointer"><strong>' + s.label + '</strong> — ' + itemLine(it) + '</div>';
       });
       html += '</div><div style="flex:1;min-width:220px"><div class="caps">Pack</div><div id="pack">';
-      (hero.inventory || []).forEach((it, i) => {
-        html += '<div data-inv="' + i + '" style="margin:4px 0;cursor:pointer">' + itemLine(it) + (it.flavor ? '<div style="font-size:12px;color:#4A3728">' + it.flavor + '</div>' : '') + '</div>';
+      const groups = (HV.groupedItems && HV.groupedItems(hero.inventory || [])) || [{ label: '', items: (hero.inventory || []).map((it, i) => ({ it: it, i: i })) }];
+      groups.forEach((g) => {
+        if (g.label) html += '<div class="inv-group">' + g.label + '</div>';
+        g.items.forEach((row) => {
+          const it = row.it;
+          html += '<div data-inv="' + row.i + '" class="inv-row" style="margin:4px 0;cursor:pointer">' + itemLine(it) + (it.flavor ? '<div style="font-size:12px;color:#4A3728">' + it.flavor + '</div>' : '') + '</div>';
+        });
       });
       if (!(hero.inventory || []).length) html += '<em>The pack is empty.</em>';
       html += '</div></div></div>';
@@ -15961,30 +16461,44 @@ html[data-text] #art-card {
         row.addEventListener('click', () => handlers.unequip(row.getAttribute('data-slot')));
       });
       this.showOverlay(p, false);
+      this._restoreScroll(p, scrollTop);
     },
 
     showShop(state, handlers) {
       const hero = state.hero;
+      const scrollTop = this._scrollOf('.shop-body');
+      const selected = this._shopSel;
       const p = el('<div class="wood-panel shop-panel" style="width:min(720px,96vw);padding:18px 20px 12px"></div>');
       let html = '<h2>OTTO\'S SHELF</h2><div style="margin-bottom:8px">Coin on hand: <strong>' + (hero.gold || 0) + '</strong></div>';
       html += '<div class="shop-body"><div style="display:flex;gap:18px;flex-wrap:wrap">';
       html += '<div style="flex:1;min-width:240px"><div class="caps">For Sale</div>';
-      HV.SHOP_STOCK.forEach((id) => {
-        const sample = HV.makeShopItem(id);
-        if (!sample) return;
-        const price = HV.buyPrice(sample, state);
-        const can = (hero.gold || 0) >= price;
-        html += '<div style="margin:6px 0;padding:6px;border:1px solid #4A3728;display:flex;gap:8px;align-items:center">'
-          + '<div style="flex:1">' + itemLine(sample)
-          + (sample.flavor ? '<div style="font-size:12px;color:#4A3728">' + sample.flavor + '</div>' : '')
-          + '</div><button class="ink-btn" data-buy="' + id + '"' + (can ? '' : ' disabled') + '>' + price + '¢</button></div>';
+      const stock = (HV.SHOP_STOCK || []).map((id) => HV.makeShopItem(id)).filter(Boolean);
+      const buyGroups = (HV.groupedItems && HV.groupedItems(stock)) || [{ label: '', items: stock.map((it, i) => ({ it: it, i: i })) }];
+      buyGroups.forEach((g) => {
+        if (g.label) html += '<div class="inv-group">' + g.label + '</div>';
+        g.items.forEach((row) => {
+          const sample = row.it;
+          const id = sample.id;
+          const price = HV.buyPrice(sample, state);
+          const can = (hero.gold || 0) >= price;
+          html += '<div class="shop-row" style="margin:6px 0;padding:6px;border:1px solid #4A3728;display:flex;gap:8px;align-items:center">'
+            + '<div style="flex:1">' + itemLine(sample)
+            + (sample.flavor ? '<div style="font-size:12px;color:#4A3728">' + sample.flavor + '</div>' : '')
+            + '</div><button class="ink-btn" data-buy="' + id + '"' + (can ? '' : ' disabled') + '>' + price + '¢</button></div>';
+        });
       });
       html += '</div><div style="flex:1;min-width:220px"><div class="caps">Sell from the Pack</div>';
-      (hero.inventory || []).forEach((it, i) => {
-        const price = HV.sellPrice(it, state);
-        html += '<div style="margin:6px 0;padding:6px;border:1px solid #4A3728;display:flex;gap:8px;align-items:center">'
-          + '<div style="flex:1">' + itemLine(it) + '</div>'
-          + '<button class="ink-btn ghost" data-sell="' + i + '">' + price + '¢</button></div>';
+      const sellGroups = (HV.groupedItems && HV.groupedItems(hero.inventory || [])) || [{ label: '', items: (hero.inventory || []).map((it, i) => ({ it: it, i: i })) }];
+      sellGroups.forEach((g) => {
+        if (g.label) html += '<div class="inv-group">' + g.label + '</div>';
+        g.items.forEach((row) => {
+          const it = row.it, i = row.i;
+          const price = HV.sellPrice(it, state);
+          const on = selected === i ? ' is-selected' : '';
+          html += '<div class="shop-row' + on + '" data-sel="' + i + '" style="margin:6px 0;padding:6px;border:1px solid #4A3728;display:flex;gap:8px;align-items:center">'
+            + '<div style="flex:1">' + itemLine(it) + '</div>'
+            + '<button class="ink-btn ghost" data-sell="' + i + '">' + price + '¢</button></div>';
+        });
       });
       if (!(hero.inventory || []).length) html += '<em>The pack is empty.</em>';
       html += '</div></div></div><div style="margin-top:12px;flex-shrink:0"><button class="ink-btn ghost" id="close">Close</button></div>';
@@ -15994,22 +16508,36 @@ html[data-text] #art-card {
         b.addEventListener('click', () => handlers.buy(b.getAttribute('data-buy')));
       });
       p.querySelectorAll('[data-sell]').forEach((b) => {
-        b.addEventListener('click', () => handlers.sell(+b.getAttribute('data-sell')));
+        b.addEventListener('click', () => {
+          const i = +b.getAttribute('data-sell');
+          this._shopSel = i;
+          handlers.sell(i);
+        });
       });
       this.showOverlay(p, false);
+      const body = p.querySelector('.shop-body');
+      this._restoreScroll(body, scrollTop);
     },
 
     showSkills(state, handlers) {
       const hero = state.hero;
+      const scrollTop = this._scrollOf('.hv-scroll-panel');
       const p = el('<div class="wood-panel hv-scroll-panel" style="width:min(860px,96vw);padding:20px 22px"></div>');
       let html = '<div class="hv-panel-head"><h2>MARKS AND MAKING</h2><button class="ink-btn ghost hv-panel-x" id="close">Close</button></div><div style="margin-bottom:8px">Marks to spend: <strong>' + (hero.skillPts || 0) + '</strong></div>';
       HV.TREES.forEach((tr) => {
         html += '<div class="caps" style="margin-top:12px;color:' + tr.color + '">' + tr.name + '</div>';
         HV.SKILLS.filter((s) => s.tree === tr.id).forEach((s) => {
           const r = HV.skillRank(hero, s.id);
-          html += '<div style="display:flex;gap:8px;align-items:center;margin:4px 0">'
-            + '<div style="flex:1"><strong>' + s.name + '</strong>  ' + r + '/' + s.max + '<div style="font-size:13px">' + s.desc + '</div></div>'
-            + '<button class="ink-btn" data-learn="' + s.id + '"' + (r >= s.max ? ' disabled' : '') + '>Learn</button></div>';
+          const gate = HV.canLearn(hero, s.id);
+          const req = (HV.skillReqText && HV.skillReqText(hero, s.id)) || '';
+          const locked = r < s.max && !gate.ok;
+          html += '<div class="skill-row' + (locked ? ' skill-locked' : '') + '" style="display:flex;gap:8px;align-items:center;margin:4px 0">'
+            + '<div style="flex:1"><strong>' + s.name + '</strong>  ' + r + '/' + s.max
+            + (s.cost > 1 ? '  <span class="skill-cost">' + s.cost + ' marks</span>' : '')
+            + '<div style="font-size:13px">' + s.desc + '</div>'
+            + (req ? '<div class="skill-req">' + req + (locked && gate.error ? ' — ' + gate.error : '') + '</div>' : (locked && gate.error ? '<div class="skill-req">' + gate.error + '</div>' : ''))
+            + '</div>'
+            + '<button class="ink-btn" data-learn="' + s.id + '"' + (r >= s.max || locked ? ' disabled' : '') + '>Learn</button></div>';
         });
       });
       p.innerHTML = html;
@@ -16018,6 +16546,151 @@ html[data-text] #art-card {
         b.addEventListener('click', () => handlers.learn(b.getAttribute('data-learn')));
       });
       this.showOverlay(p, false);
+      this._restoreScroll(p, scrollTop);
+    },
+
+    showWorldMap(state, handlers) {
+      const p = el('<div class="wood-panel hv-scroll-panel hv-worldmap" style="width:min(720px,96vw);padding:16px 16px 12px"></div>');
+      p.innerHTML = '<div class="hv-panel-head"><h2>THE COUNTY</h2><button class="ink-btn ghost hv-panel-x" id="close">Close</button></div>'
+        + '<div class="worldmap-sub">Places you have walked are written in. The rest is fog.</div>'
+        + '<div class="worldmap-stage"><canvas id="worldmap-cv"></canvas></div>';
+      const cv = p.querySelector('#worldmap-cv');
+      const draw = () => {
+        const stage = p.querySelector('.worldmap-stage');
+        if (!stage || !cv) return;
+        const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
+        const w = Math.max(280, stage.clientWidth || 320);
+        const h = Math.max(220, stage.clientHeight || 280);
+        cv.width = Math.round(w * dpr);
+        cv.height = Math.round(h * dpr);
+        cv.style.width = w + 'px';
+        cv.style.height = h + 'px';
+        const ctx = cv.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const pal = HV.PAL || {};
+        ctx.fillStyle = pal.parchment2 || '#E8D9B8';
+        ctx.fillRect(0, 0, w, h);
+        /* faint paper hatch */
+        ctx.save();
+        ctx.globalAlpha = 0.12;
+        ctx.strokeStyle = pal.bark || '#4A3728';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < w; x += 4) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+        ctx.restore();
+        ctx.strokeStyle = pal.ink || '#1A1410';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(2, 2, w - 4, h - 4);
+        ctx.lineWidth = 1;
+        ctx.strokeRect(7, 7, w - 14, h - 14);
+        const layout = (HV.layoutWorldMap && HV.layoutWorldMap()) || {};
+        const ids = Object.keys(layout);
+        const discovered = (state && state.discovered) || {};
+        const here = state && state.world && state.world.area;
+        const pad = 28;
+        const nodeAt = (id) => {
+          const n = layout[id];
+          if (!n) return null;
+          return { x: pad + n.nx * (w - pad * 2), y: pad + n.ny * (h - pad * 2), n: n };
+        };
+        /* roads */
+        ctx.lineWidth = 1.4;
+        ids.forEach((id) => {
+          const a = HV.AREAS[id];
+          const from = nodeAt(id);
+          if (!a || !from) return;
+          (a.exits || []).forEach((e) => {
+            const to = nodeAt(e.to);
+            if (!to) return;
+            const known = !!(discovered[id] || discovered[e.to]);
+            ctx.strokeStyle = known ? (pal.bark || '#4A3728') : 'rgba(74,55,40,0.22)';
+            ctx.setLineDash(known ? [] : [3, 4]);
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          });
+        });
+        const boxes = [];
+        const overlap = (a, b) => !(a.x + a.w < b.x || b.x + b.w < a.x || a.y + a.h < b.y || b.y + b.h < a.y);
+        const placeLabel = (ctx, text, px, py, prefer) => {
+          ctx.font = '11px Palatino, "Palatino Linotype", Georgia, serif';
+          const tw = Math.min(ctx.measureText(text).width, w - 16);
+          const th = 14;
+          const cands = prefer.concat([
+            { x: px - tw / 2, y: py + 10 },
+            { x: px - tw / 2, y: py - 22 },
+            { x: px + 10, y: py - 6 },
+            { x: px - tw - 10, y: py - 6 },
+            { x: px - tw / 2, y: py + 24 },
+            { x: px - tw / 2 + 18, y: py + 10 },
+            { x: px - tw / 2 - 18, y: py + 10 },
+          ]);
+          let best = cands[0], bestHits = 99;
+          cands.forEach((c) => {
+            c.x = Math.max(8, Math.min(w - 8 - tw, c.x));
+            c.y = Math.max(8, Math.min(h - 8 - th, c.y));
+            const box = { x: c.x - 2, y: c.y - 1, w: tw + 4, h: th };
+            const hits = boxes.filter((b) => overlap(box, b)).length;
+            if (hits < bestHits) { bestHits = hits; best = c; }
+          });
+          const box = { x: best.x - 2, y: best.y - 1, w: tw + 4, h: th };
+          boxes.push(box);
+          ctx.fillStyle = 'rgba(241,230,207,0.92)';
+          ctx.fillRect(box.x, box.y, box.w, box.h);
+          ctx.fillStyle = pal.ink || '#1A1410';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
+          ctx.fillText(text, best.x, best.y);
+        };
+        ids.forEach((id) => {
+          const pt = nodeAt(id);
+          if (!pt) return;
+          const seen = !!discovered[id];
+          const isHere = id === here;
+          boxes.push({ x: pt.x - 8, y: pt.y - 8, w: 16, h: 16 });
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, isHere ? 8 : 6, 0, Math.PI * 2);
+          if (seen) {
+            ctx.fillStyle = isHere ? (pal.gold || '#C9A227') : (pal.parchment || '#F1E6CF');
+            ctx.fill();
+            ctx.strokeStyle = pal.ink || '#1A1410';
+            ctx.lineWidth = isHere ? 2.4 : 1.6;
+            ctx.stroke();
+          } else {
+            ctx.fillStyle = 'rgba(43,34,28,0.55)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(26,20,16,0.45)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.save();
+            ctx.globalAlpha = 0.28;
+            ctx.fillStyle = '#5A4A3A';
+            ctx.beginPath();
+            ctx.arc(pt.x + 1, pt.y - 1, 11, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        });
+        ids.forEach((id) => {
+          const pt = nodeAt(id);
+          if (!pt || !discovered[id]) return;
+          const isHere = id === here;
+          const label = isHere ? (pt.n.name + '  ·  you are here') : pt.n.name;
+          ctx.font = (isHere ? 'bold ' : '') + '11px Palatino, "Palatino Linotype", Georgia, serif';
+          placeLabel(ctx, label, pt.x, pt.y, isHere ? [{ x: pt.x - 40, y: pt.y + 11 }] : []);
+        });
+      };
+      p.querySelector('#close').addEventListener('click', handlers.close);
+      this.showOverlay(p, false);
+      if (this.overlay) this.overlay.classList.add('worldmap-mode');
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(draw);
+      else draw();
+      if (typeof window !== 'undefined') {
+        const onR = () => { if (p.isConnected) draw(); };
+        window.addEventListener('resize', onR);
+        p._onWorldMapResize = onR;
+      }
     },
 
     showJournal(state, handlers) {
@@ -16766,6 +17439,7 @@ html[data-text] #art-card {
         resume: () => { HV.UI.hideOverlay(); self.mode = 'play'; },
         journal: () => { HV.UI.hideOverlay(); self.mode = 'play'; self.openJournal(); },
         skills: () => { HV.UI.hideOverlay(); self.mode = 'play'; self.openSkills(); },
+        worldMap: () => self.openWorldMap(true),
         saveSlots: () => self.showSlots(),
         exportSave: () => self.exportSave(),
         importSave: () => self.importSave(),
@@ -16901,6 +17575,7 @@ html[data-text] #art-card {
 
     mousedown(e) {
       if (this.hitHotbar(e.clientX, e.clientY)) return;
+      if (this.hitMinimap(e.clientX, e.clientY)) return;
       if (this.mode === 'rhythm' && HV.Rhythm.ended) { this.finishRhythm(); return; }
       if (this.mode === 'card') { this.hideArtCard(); return; }
       if (this.mode === 'play') this.attack();
@@ -16908,6 +17583,7 @@ html[data-text] #art-card {
     canvasTap(e) {
       const pt = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]) || e;
       if (this.hitHotbar(pt.clientX, pt.clientY)) { e.preventDefault(); return; }
+      if (this.hitMinimap(pt.clientX, pt.clientY)) { e.preventDefault(); return; }
       if (this.mode === 'rhythm' && HV.Rhythm && HV.Rhythm.ended) { e.preventDefault(); this.finishRhythm(); return; }
       if (this.mode === 'card') { e.preventDefault(); this.hideArtCard(); return; }
     },
@@ -16925,6 +17601,20 @@ html[data-text] #art-card {
           this.castHotbar(b.i);
           return true;
         }
+      }
+      return false;
+    },
+    hitMinimap(clientX, clientY) {
+      if (this.mode !== 'play') return false;
+      const box = this._mapBox;
+      if (!box || !this.canvas) return false;
+      const r = this.canvas.getBoundingClientRect();
+      if (!r.width) return false;
+      const x = (clientX - r.left) * (this.w / r.width);
+      const y = (clientY - r.top) * (this.h / r.height);
+      if (x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h) {
+        this.openWorldMap(false);
+        return true;
       }
       return false;
     },
@@ -16997,6 +17687,18 @@ html[data-text] #art-card {
       this.mode = 'journal';
       const self = this;
       HV.UI.showJournal(this.state, { close: () => { HV.UI.hideOverlay(); self.mode = 'play'; } });
+    },
+    openWorldMap(fromPause) {
+      const self = this;
+      this.mode = 'map';
+      if (HV.UI.hideOverlay) HV.UI.hideOverlay();
+      HV.UI.showWorldMap(this.state, {
+        close: () => {
+          HV.UI.hideOverlay();
+          self.mode = 'play';
+          if (fromPause) self.openPause();
+        },
+      });
     },
     openGuide() {
       const self = this;
@@ -18737,9 +19439,20 @@ html[data-text] #art-card {
       const hot = hero.hotbar || [];
       const slot = 46, gap = 6;
       const rowW = hot.length * (slot + gap) + 10;
-      const hx = bx - 6;
-      /* On a phone the left d-pad covers a bottom-left hotbar; dock it under the HUD panel instead. */
-      const hy = this.wantTouch ? (by + panelH + 6) : (h - slot - 14 - pad.b);
+      let hx = bx - 6;
+      /* On a phone the left d-pad covers a bottom-left hotbar; dock it under the HUD panel instead.
+         In landscape the pad and HUD stack on the left, so sit the spells in the open middle. */
+      const landscapePhone = !!(this.wantTouch && h < 500 && w > h);
+      let hy = this.wantTouch ? (by + panelH + 6) : (h - slot - 14 - pad.b);
+      if (landscapePhone) {
+        const padW = 108, actsW = 3 * 52 + 10;
+        const availL = pad.l + padW + 16;
+        const availR = w - pad.r - actsW - 16;
+        const mid = (availL + availR) / 2;
+        hx = Math.round(mid - Math.max(rowW, 80) / 2);
+        hx = Math.max(availL, Math.min(hx, availR - Math.max(rowW, 80)));
+        hy = h - slot - 12 - pad.b;
+      }
       this._hotRects = [];
       if (hot.length) this._ironFrame(ctx, hx, hy - 8, Math.max(rowW, 80), slot + 16);
       hot.forEach((id, i) => {
