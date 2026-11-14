@@ -4643,13 +4643,21 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       const ctx = this.ctx = new AC();
       const master = this.master = ctx.createGain();
       master.gain.value = this.volume;
-      master.connect(ctx.destination);
+      const limiter = this.limiter = ctx.createDynamicsCompressor();
+      limiter.threshold.value = -18;
+      limiter.knee.value = 8;
+      limiter.ratio.value = 12;
+      limiter.attack.value = 0.003;
+      limiter.release.value = 0.25;
+      master.connect(limiter);
+      limiter.connect(ctx.destination);
       this.sfx = ctx.createGain();
       this.sfx.gain.value = 0.9;
       this.sfx.connect(master);
       this.music = ctx.createGain();
       this.music.gain.value = 0.7;
       this.music.connect(master);
+      this._oscLive = 0;
       this._buildKsCache();
       return ctx;
     },
@@ -4675,6 +4683,22 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     now() {
       this.init();
       return this.ctx ? this.ctx.currentTime : 0;
+    },
+
+    /* Every oscillator / buffer source must stop and disconnect so voices cannot pile up. */
+    _releaseOnEnd() {
+      const nodes = Array.prototype.slice.call(arguments).filter(Boolean);
+      if (!nodes.length) return nodes[0];
+      const src = nodes[0];
+      this._oscLive = (this._oscLive || 0) + 1;
+      const done = () => {
+        if (src._released) return;
+        src._released = true;
+        nodes.forEach((n) => { try { n.disconnect(); } catch (e) { /* already */ } });
+        this._oscLive = Math.max(0, (this._oscLive || 1) - 1);
+      };
+      try { src.onended = done; } catch (e) { /* ignore */ }
+      return src;
     },
 
     _buildKsCache() {
@@ -4714,6 +4738,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       const t = Math.max(this.ctx.currentTime, when == null ? this.ctx.currentTime : when);
       src.start(t);
       src.stop(t + buf.duration);
+      this._releaseOnEnd(src, g);
       return src;
     },
 
@@ -4733,6 +4758,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
         o.connect(g); g.connect(this.music);
         o.start(t); o.stop(t + 0.2);
+        this._releaseOnEnd(o, g);
       } else {
         const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.05), ctx.sampleRate);
         const ch = buf.getChannelData(0);
@@ -4747,6 +4773,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         g.gain.value = 0.16;
         src.connect(f); f.connect(g); g.connect(this.music);
         src.start(t);
+        src.stop(t + 0.08);
+        this._releaseOnEnd(src, f, g);
       }
     },
 
@@ -4766,6 +4794,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       g.connect(dest || this.sfx);
       o.start(t);
       o.stop(t + (dur || 0.15) + 0.05);
+      this._releaseOnEnd(o, g);
     },
 
     sfxHit() { const t = this.now(); this.tone(180, t, 0.07, 'square', 0.07); this.tone(90, t, 0.09, 'sine', 0.08); },
@@ -4804,6 +4833,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     stopWind() {
       if (!this._wind) return;
       try { this._wind.src.stop(); } catch (e) { /* already stopped */ }
+      try { this._wind.src.disconnect(); } catch (e) { /* already */ }
+      if (this._wind.g) { try { this._wind.g.disconnect(); } catch (e) { /* already */ } }
       this._wind = null;
     },
   };
@@ -4885,6 +4916,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       src.buffer = this._bufSilent || this.ctx.createBuffer(1, 1, this.ctx.sampleRate);
       src.connect(this.ctx.destination);
       src.start(0);
+      try { src.stop(0.05); } catch (e) { /* already */ }
+      if (this._releaseOnEnd) this._releaseOnEnd(src);
     } catch (e) { /* ignore */ }
     this._unlocked = true;
     if (this._wantArea) this.setArea(this._wantArea, this._wantNight, this._wantTime);
@@ -5131,12 +5164,12 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     if (kind === 'town') {
       const air = addNoise(this._bufPink, 'lowpass', 450, 0.7, 0.028);
       addLfo(air.f.frequency, 0.07, 80, 450);
-      layers.insects = addNoise(this._bufWhite, 'bandpass', 4200, 4, 0.012 * nightG).g;
+      layers.insects = addNoise(this._bufWhite, 'bandpass', 2800, 1.5, 0.007 * nightG).g;
     } else if (kind === 'woods' || kind === 'woods_dark' || kind === 'cabin') {
       const leaf = addNoise(this._bufPink, 'bandpass', kind === 'cabin' ? 700 : 900, 0.8, kind === 'woods_dark' ? 0.04 : 0.05);
       addLfo(leaf.f.frequency, 0.11, 220, kind === 'cabin' ? 700 : 900);
-      const bugs = addNoise(this._bufWhite, 'bandpass', 4800, 6, 0.03 * nightG);
-      addLfo(bugs.g.gain, 13, 0.012 * (isNight ? 1 : 0), 0.018 * nightG);
+      const bugs = addNoise(this._bufWhite, 'bandpass', 3000, 1.6, 0.014 * nightG);
+      addLfo(bugs.g.gain, 8, 0.006 * (isNight ? 1 : 0), 0.008 * nightG);
       layers.insects = bugs.g;
       if (kind === 'woods_dark') {
         layers.drone = addDrone(52, 0.02, 'sine').g;
@@ -5150,7 +5183,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       const flow = addNoise(this._bufBrown, 'bandpass', 520, 0.7, kind === 'cave_river' ? 0.05 : 0.07);
       addLfo(flow.f.frequency, 0.08, 140, 520);
       const hiss = addNoise(this._bufPink, 'highpass', 1800, 0.6, 0.018);
-      layers.insects = addNoise(this._bufWhite, 'bandpass', 2400, 3, 0.016 * nightG).g;
+      layers.insects = addNoise(this._bufWhite, 'bandpass', 2200, 1.4, 0.01 * nightG).g;
       if (kind === 'cave_river') {
         layers.drone = addDrone(46, 0.025, 'sine').g;
         addDrone(69, 0.012, 'triangle');
@@ -5158,8 +5191,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     } else if (kind === 'bottoms') {
       const wet = addNoise(this._bufBrown, 'lowpass', 600, 0.7, 0.045);
       addLfo(wet.f.frequency, 0.07, 100, 600);
-      const bugs = addNoise(this._bufWhite, 'bandpass', 3600, 5, 0.04 * Math.max(nightG, 0.35));
-      addLfo(bugs.g.gain, 8, 0.012, 0.022);
+      const bugs = addNoise(this._bufWhite, 'bandpass', 2600, 1.6, 0.018 * Math.max(nightG, 0.25));
+      addLfo(bugs.g.gain, 6, 0.006, 0.01);
       layers.insects = bugs.g;
     } else if (kind === 'bluff') {
       const wind = addNoise(this._bufPink, 'bandpass', 1100, 0.6, 0.055);
@@ -5201,8 +5234,50 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     };
   };
 
+  A._reapGraph = function (graph) {
+    if (!graph || graph._reaped) return;
+    graph._reaped = true;
+    if (graph._fadeTimer) { clearTimeout(graph._fadeTimer); graph._fadeTimer = 0; }
+    (graph.stoppers || []).forEach((n) => { try { n.stop(); } catch (e) { /* already */ } });
+    (graph.nodes || []).forEach((n) => { try { n.disconnect(); } catch (e) { /* already */ } });
+    try { if (graph.out) graph.out.disconnect(); } catch (e) { /* already */ }
+  };
+
+  A._reapFading = function (all) {
+    this._fading = this._fading || [];
+    if (all) {
+      this._fading.forEach((g) => this._reapGraph(g));
+      this._fading = [];
+      return;
+    }
+    /* never keep more than one fading bed — stacked beds were the machine-whine leak */
+    while (this._fading.length > 1) this._reapGraph(this._fading.shift());
+    this._fading = this._fading.filter((g) => g && !g._reaped);
+  };
+
+  A._flushStops = function () {
+    this._reapFading(true);
+    this._clearEvents();
+  };
+
+  A.graphCount = function () {
+    const fading = this._fading || [];
+    const nodeN = (g) => (g ? ((g.nodes && g.nodes.length) || 0) + ((g.stoppers && g.stoppers.length) || 0) : 0);
+    return {
+      liveBed: this._live && !this._live._reaped ? 1 : 0,
+      fadingBeds: fading.filter((g) => g && !g._reaped).length,
+      beds: (this._live && !this._live._reaped ? 1 : 0) + fading.filter((g) => g && !g._reaped).length,
+      bedNodes: (this._live ? nodeN(this._live) : 0) + fading.reduce((n, g) => n + nodeN(g), 0),
+      oscLive: this._oscLive || 0,
+      voices: (HV.Sound47 && HV.Sound47._voices && HV.Sound47._voices.length) || 0,
+      evTimer: this._evtTimer ? 1 : 0,
+    };
+  };
+
   A._stopGraph = function (graph, when) {
     if (!graph || !this.ctx) return;
+    this._fading = this._fading || [];
+    this._reapFading(false);
     const t = when != null ? when : this.ctx.currentTime;
     try {
       graph.out.gain.cancelScheduledValues(t);
@@ -5212,11 +5287,9 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       graph.out.gain.value = 0;
     }
     const self = this;
-    setTimeout(() => {
-      graph.stoppers.forEach((n) => { try { n.stop(); } catch (e) { /* already */ } });
-      graph.nodes.forEach((n) => { try { n.disconnect(); } catch (e) { /* already */ } });
-      try { graph.out.disconnect(); } catch (e) { /* already */ }
-      self._fading = self._fading.filter((g) => g !== graph);
+    graph._fadeTimer = setTimeout(() => {
+      self._reapGraph(graph);
+      self._fading = (self._fading || []).filter((g) => g !== graph);
     }, 1300);
   };
 
@@ -5249,10 +5322,10 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     this.init();
     if (!this.ctx || !this._unlocked) return;
     const kind = this.bedFor(areaId, isNight);
-    if (this._live && this._bedId === kind) {
+    if (this._live && !this._live._reaped && this._bedId === kind) {
       this._bedNight = !!isNight;
       this._applyDaypart(this._live, isNight);
-      this._kickEvents();
+      if (!this._evtTimer) this._kickEvents();
       return;
     }
     const next = this._buildBed(kind, isNight);
@@ -5323,6 +5396,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     const off = Math.random() * Math.max(0, buf.duration - 0.05);
     try { src.start(t, off); } catch (e) { src.start(t); }
     src.stop(t + dur + 0.03);
+    if (self._releaseOnEnd) self._releaseOnEnd(src, f, g);
   }
   function chirp(self, t, freq, freqEnd, dur, gain, type, dest) {
     if (!self.ctx) return;
@@ -5338,6 +5412,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     try { g.gain.exponentialRampToValueAtTime(0.0001, t + dur); } catch (e) { g.gain.linearRampToValueAtTime(0, t + dur); }
     o.connect(g); g.connect(dest || self.sfx);
     o.start(t); o.stop(t + dur + 0.04);
+    if (self._releaseOnEnd) self._releaseOnEnd(o, g);
   }
 
   /* —— ambient events —— */
@@ -5439,11 +5514,11 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     }
   }
   function evKatydid(self, t) {
-    chirp(self, t, 3400, 3000, 0.05, 0.02, 'square', self.amb);
-    chirp(self, t + 0.09, 3000, 2600, 0.06, 0.016, 'square', self.amb);
+    chirp(self, t, 2400, 2100, 0.05, 0.012, 'triangle', self.amb);
+    chirp(self, t + 0.09, 2100, 1800, 0.06, 0.01, 'triangle', self.amb);
   }
   function evDrip(self, t) {
-    burst(self, self._bufWhite, self.amb, t, 0.08, 0.045, 'bandpass', 3200, 6, 1800);
+    burst(self, self._bufWhite, self.amb, t, 0.08, 0.03, 'bandpass', 2200, 1.8, 1400);
     chirp(self, t, 1800, 900, 0.07, 0.02, 'sine', self.amb);
     /* cave echo: a quieter late tick */
     burst(self, self._bufWhite, self.amb, t + 0.11, 0.1, 0.018, 'bandpass', 2400, 5, 1400);
@@ -29877,7 +29952,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   const HV = root.HV = root.HV || {};
   const A = HV.Audio;
   if (!A) return;
-  const S = HV.Sound47 = { KEY: 'HV_SOUND', MAX_VOICES: 28, boss: false };
+  const S = HV.Sound47 = { KEY: 'HV_SOUND', MAX_VOICES: 12, boss: false };
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const rnd = (a, b) => a + Math.random() * (b - a);
 
@@ -29938,6 +30013,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     src.connect(f); f.connect(g); g.connect(dest || A.sfx);
     try { src.start(t, Math.random() * Math.max(0, src.buffer.duration - dur - 0.05)); } catch (e) { src.start(t); }
     src.stop(t + dur + 0.05);
+    if (A._releaseOnEnd) A._releaseOnEnd(src, f, g);
   }
   /* pitched tone with a glide */
   function tn(t, dur, gain, type, f0, f1, dest, attack) {
@@ -29945,6 +30021,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     o.frequency.setValueAtTime(f0, t); if (f1) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
     const g = c.createGain(); env(g, t, attack || 0.005, gain, dur);
     o.connect(g); g.connect(dest || A.sfx); o.start(t); o.stop(t + dur + 0.05);
+    if (A._releaseOnEnd) A._releaseOnEnd(o, g);
     return o;
   }
   /* tone through a lowpass (warmer, distant) */
@@ -29954,6 +30031,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = lp || 800;
     const g = c.createGain(); env(g, t, attack || 0.01, gain, dur);
     o.connect(f); f.connect(g); g.connect(dest || A.sfx); o.start(t); o.stop(t + dur + 0.05);
+    if (A._releaseOnEnd) A._releaseOnEnd(o, f, g);
     return o;
   }
   S.prim = { nz, tn, tnLp };
@@ -30186,15 +30264,10 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       ? (function () { const out = c.createGain(); out.gain.value = 0; out.connect(A.amb); return { kind: kind, night: isNight, out: out, nodes: [], layers: {}, stoppers: [] }; })()
       : _build.call(this, kind, isNight);
     const out = graph.out;
-    if (kind === 'woods' || kind === 'cabin' || kind === 'bottoms') {
-      /* a cricket trill: a high tone gated fast (the chirp) and slow (the phrases) */
-      const cr = osc(c, out, 'square', 4300, 0, graph);
-      const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 4300; bp.Q.value = 8;
-      cr.o.disconnect(); cr.o.connect(bp); bp.connect(cr.g); graph.nodes.push(bp);
-      cr.g.gain.value = isNight ? 0.006 : 0.004;
-      mod(c, cr.g.gain, 28, isNight ? 0.006 : 0.004, graph);
-      graph.layers.crickets = cr.g;
-    }
+    /* no continuous high-frequency square/cricket bed: a 4300 Hz square
+       through a Q=8 bandpass (plus a 28 Hz gain LFO that never fully closed)
+       stacked into a piercing machine-like tone on iPad. Insect color stays
+       on the softer filtered-noise layers in 16-audio, plus spaced one-shots. */
     if (kind === 'cave' || kind === 'karst' || kind === 'cave_river') {
       const w = loopNoise(c, out, A._bufPink, 'bandpass', 320, 3, 0.03, graph);   /* low wind moaning through the passage */
       mod(c, w.f.frequency, 0.05, 120, graph); mod(c, w.g.gain, 0.08, 0.015, graph);
@@ -30233,7 +30306,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   const amb = () => A.amb;
   S.EV = {
     howlFar(self, t) { const o = tnLp(t, 2.4, 0.022, 'sawtooth', 280, 0, 700, amb(), 0.5); o.frequency.setValueAtTime(280, t); o.frequency.linearRampToValueAtTime(520, t + 0.7); o.frequency.linearRampToValueAtTime(470, t + 1.8); o.frequency.linearRampToValueAtTime(330, t + 2.4); },
-    katydidDay(self, t) { for (let i = 0; i < 3; i++) tn(t + i * 0.11, 0.05, 0.012, 'square', 3600, 3300, amb()); },
+    katydidDay(self, t) { for (let i = 0; i < 2; i++) tn(t + i * 0.12, 0.05, 0.006, 'triangle', 2400, 2100, amb()); },
     clink(self, t) { for (let i = 0; i < 2; i++) { const ti = t + i * 0.55; tn(ti, 0.5, 0.012, 'sine', 1870, 0, amb()); tn(ti, 0.4, 0.008, 'sine', 2790, 0, amb()); nz(ti, 0.03, 0.02, 'bandpass', 3000, 0, 3, amb()); } },
     hammer(self, t) { for (let i = 0; i < 3; i++) { nz(t + i * 0.42, 0.06, 0.03, 'bandpass', 500, 300, 3, amb(), A._bufBrown); tn(t + i * 0.42, 0.08, 0.02, 'triangle', 200, 140, amb()); } },
     hen(self, t) { for (let i = 0; i < 3; i++) tnLp(t + i * 0.16, 0.1, 0.014, 'sawtooth', 700, 520, 1800, amb()); },
@@ -30275,7 +30348,9 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   const _resume = A.resume;
   A.resume = function () {
     _resume.call(this);
-    if (this._live && this._unlocked) this._kickEvents();   /* event timers stop while hidden */
+    /* never rebuild the bed on visibility resume — that stacked a second
+       cricket/insect graph on top of the still-running one */
+    if (this._live && this._unlocked && !this._evtTimer) this._kickEvents();
   };
   const _unlockFn = A.unlock;
   A.unlock = function () {
@@ -32758,13 +32833,10 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       add(out, 'vulture', id === 'the_gallows' ? 1 : 0);
     }
     if (part === 'night' || part === 'dusk') {
-      if (biome === 'town' || id === 'ila_cabin') add(out, 'moth', 4, true);
-      else if (biome !== 'cave') add(out, 'moth', 2);
+      /* moths are not batch-planned: at most 1-2 rare wanderers spawn later from the edge */
       if (biome === 'woods' || biome === 'bottoms' || biome === 'river' || biome === 'bluff') add(out, 'firefly', 3);
       if (biome !== 'cave' && biome !== 'town') add(out, 'whip', 1);
     }
-    /* always a few moths around Lara's lantern at night */
-    if (part === 'night' || part === 'dusk') add(out, 'moth', 2);
     return out;
   }
 
@@ -32880,6 +32952,9 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
 
   Life.enter = function (game) {
     Life._game = game;
+    Life._shot = null;
+    Life._mothWait = 20 + Math.random() * 20;
+    Life._mothAng = null;
     rebuild(game, false);
   };
 
@@ -32888,6 +32963,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     Life._areaId = '';
     Life._sites = null;
     Life._shot = null;
+    Life._mothWait = 0;
+    Life._mothAng = null;
   };
 
   function heroPos(game) {
@@ -33005,7 +33082,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     if (WATER_KINDS[c.kind] && game.area && !nearWater(game.area, c.x, c.y, 3) && c.kind !== 'heron' && c.kind !== 'turtle') {
       c.partHide = true;
     } else c.partHide = !ok;
-    const wantA = (c.partHide || c.hidden) ? 0 : 1;
+    const wantA = (c.partHide || c.hidden || (c.kind === 'moth' && c.pose === 'drift')) ? 0 : 1;
     c.alpha = lerp(c.alpha, wantA, 1 - Math.pow(0.02, dt));
     if (c.alpha < 0.03 && c.partHide) return;
     if (c.partHide) return; /* do not hop, flush or jitter while fading out of season */
@@ -33181,13 +33258,31 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         break;
       }
       case 'moth': {
-        /* follow Lara's lantern at night, plus any nearby building light */
-        const lx = h.x + Math.cos(c.orbit || 0) * (16 + (c.seed % 1) * 10);
-        const ly = h.y - 18 + Math.sin((c.orbit || 0) * 1.3) * 8;
-        c.orbit = (c.orbit || 0) + dt * (1.4 + c.seed);
-        c.x = lerp(c.x, lx, 1 - Math.pow(0.08, dt));
-        c.y = lerp(c.y, ly, 1 - Math.pow(0.08, dt));
-        c.z = 34 + Math.sin(c.phase * 3) * 5;
+        /* wander and flutter around the lantern, then drift off — never lockstep follow */
+        c.orbit = (c.orbit || 0) + dt * (0.55 + (c.seed % 1) * 0.7);
+        c.flutter = (c.flutter || 0) + dt * (8 + (c.seed % 1) * 7);
+        const age = Life._t - (c.born || 0);
+        if (c.pose !== 'drift' && c.pose !== 'arrive' && age > (c.linger || 14)) {
+          c.pose = 'drift';
+          c.driftAng = c.driftAng != null ? c.driftAng : ((c.orbit || 0) + Math.PI * 0.7);
+        }
+        if (c.pose === 'arrive' && Math.hypot(c.x - h.x, c.y - (h.y - 16)) < 46) c.pose = 'wander';
+        if (c.pose === 'drift') {
+          const ang = c.driftAng || 0;
+          c.x += Math.cos(ang) * 48 * dt;
+          c.y += Math.sin(ang) * 34 * dt;
+          c.z = 30 + Math.sin(c.flutter) * 6;
+          if ((c.alpha || 0) < 0.04 || age > (c.linger || 14) + 10) c._mothGone = true;
+          break;
+        }
+        const R = 20 + (c.seed % 1) * 22;
+        const tx = h.x + Math.cos(c.orbit) * R + Math.sin(c.flutter) * 8;
+        const ty = h.y - 16 + Math.sin(c.orbit * 0.85 + c.seed * 3) * (12 + (c.seed % 1) * 8) + Math.cos(c.flutter * 1.2) * 6;
+        const rate = c.pose === 'arrive' ? 1.15 : 0.7;
+        const k = 1 - Math.pow(0.22, dt * rate);
+        c.x = lerp(c.x, tx, k);
+        c.y = lerp(c.y, ty, k);
+        c.z = 32 + Math.sin(c.flutter) * 5 + Math.sin((c.phase || 0) * 2) * 3;
         break;
       }
       case 'butterfly':
@@ -33484,8 +33579,85 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         if (c.kind === 'squirrel') { c.x = c.homeX; c.y = c.homeY; }
       }
     });
+    tickMoths(game, dt);
     tickSounds(game, dt);
   };
+
+  /* ——— moths: rare, 1-2 at a time, from varied edges, then drift off ——— */
+  const MAX_MOTHS = 2;
+  Life.MAX_MOTHS = MAX_MOTHS;
+
+  function spawnMoth(game, opts) {
+    opts = opts || {};
+    if (!game || !game.area) return null;
+    const part = partNow(game);
+    const night = part === 'night' || part === 'dusk';
+    if (!night && !opts.force) return null;
+    if ((game.area.biome === 'cave') && !opts.force) return null;
+    const live = Life.list.filter((c) => c.kind === 'moth' && !c._mothGone);
+    if (live.length >= MAX_MOTHS && !opts.force) return null;
+    const h = heroPos(game);
+    let ang = opts.ang;
+    if (ang == null) {
+      const last = Life._mothAng;
+      let tries = 0;
+      do {
+        ang = Math.random() * Math.PI * 2;
+        tries++;
+      } while (last != null && Math.abs(Math.atan2(Math.sin(ang - last), Math.cos(ang - last))) < 1.15 && tries < 8);
+    }
+    Life._mothAng = ang;
+    const dist = opts.dist != null ? opts.dist : (150 + Math.random() * 70);
+    const c = alloc();
+    c.kind = 'moth';
+    c.phase = Math.random() * Math.PI * 2;
+    c.seed = Math.random();
+    c.noticeR = 0;
+    c.x = h.x + Math.cos(ang) * dist;
+    c.y = h.y + Math.sin(ang) * dist * 0.7;
+    c.homeX = c.x; c.homeY = c.y;
+    c.z = 32 + Math.random() * 8;
+    c.orbit = ang + Math.PI;
+    c.pose = 'arrive';
+    c.alpha = 0;
+    c.born = Life._t;
+    c.linger = opts.linger != null ? opts.linger : (10 + Math.random() * 16);
+    c.driftAng = ang + Math.PI + (Math.random() - 0.5) * 1.2;
+    c.facing = Math.cos(ang) >= 0 ? -1 : 1;
+    Life.list.push(c);
+    return c;
+  }
+  Life.spawnMoth = spawnMoth;
+
+  function tickMoths(game, dt) {
+    if (Life._shot) return;
+    const part = partNow(game);
+    const night = part === 'night' || part === 'dusk';
+    const biome = game.area && game.area.biome;
+    for (let i = Life.list.length - 1; i >= 0; i--) {
+      const c = Life.list[i];
+      if (c.kind !== 'moth' || c._shotLock) continue;
+      if (!night || biome === 'cave') {
+        if (c.pose !== 'drift') c.pose = 'drift';
+      }
+      if (c._mothGone || ((c.alpha || 0) < 0.03 && (c.pose === 'drift' || c.partHide))) {
+        Life.list.splice(i, 1);
+        release(c);
+      }
+    }
+    if (!night || biome === 'cave') {
+      Life._mothWait = 0;
+      return;
+    }
+    if (Life._mothWait == null) Life._mothWait = 20 + Math.random() * 20;
+    Life._mothWait -= dt;
+    const around = Life.list.filter((c) => c.kind === 'moth' && !c._mothGone && c.pose !== 'drift').length;
+    if (Life._mothWait <= 0) {
+      Life._mothWait = 20 + Math.random() * 20;
+      if (around < MAX_MOTHS) spawnMoth(game);
+    }
+  }
+  Life.tickMoths = tickMoths;
 
   /* ——— sounds: quiet, spaced, Wildlife bus, respect mute + master ——— */
   function ensureLifeBus() {
@@ -33509,10 +33681,16 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     }
     if (!A.ctx) { try { A.init && A.init(); } catch (e) { /* no AudioContext in tests */ } }
     if (!A.ctx) return null;
+    if (!A.master && A.init) { try { A.init(); } catch (e) { /* tests */ } }
     if (!A.life) {
       A.life = A.ctx.createGain();
       A.life.gain.value = (A.muted ? 0 : 1) * A.lifeVol;
       A.life.connect(A.master || A.ctx.destination);
+      A._lifeHooked = true;
+    } else if (A.master && !A._lifeHooked) {
+      try { A.life.disconnect(); } catch (e) { /* fresh */ }
+      A.life.connect(A.master);
+      A._lifeHooked = true;
     }
     return A.life;
   }
@@ -33565,6 +33743,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     catch (e) { g.gain.linearRampToValueAtTime(0, t + dur); }
     o.connect(g); g.connect(dest);
     o.start(t); o.stop(t + dur + 0.04);
+    if (A._releaseOnEnd) A._releaseOnEnd(o, g);
   }
   function noiseTo(A, dest, t, dur, gain, type, f0, q, attack) {
     if (!A._bufPink && !A._bufWhite && !A._bufBrown) return;
@@ -33582,6 +33761,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     src.connect(f); f.connect(g); g.connect(dest);
     try { src.start(t, Math.random() * 0.2); } catch (e) { src.start(t); }
     src.stop(t + dur + 0.04);
+    if (A._releaseOnEnd) A._releaseOnEnd(src, f, g);
   }
 
   function playKind(A, t, dest, kind, g0) {
@@ -33598,14 +33778,14 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       toneTo(A, dest, t + 0.14, 0.11, 'sine', 720, 640, g0 * 0.95);
       toneTo(A, dest, t + 0.3, 0.18, 'sine', 1100, 900, g0 * 1.15);
     } else if (kind === 'cicada') {
-      noiseTo(A, dest, t, 1.15, g0 * 0.55, 'bandpass', 4200, 4, 0.08);
-      toneTo(A, dest, t, 1.1, 'square', 3100, 3000, g0 * 0.22, 0.08);
+      noiseTo(A, dest, t, 0.9, g0 * 0.4, 'bandpass', 2600, 1.4, 0.08);
+      toneTo(A, dest, t, 0.85, 'triangle', 2100, 1900, g0 * 0.14, 0.08);
     } else if (kind === 'peeper') {
-      const n = 2 + (Math.random() * 3) | 0;
-      for (let i = 0; i < n; i++) toneTo(A, dest, t + i * 0.14, 0.05, 'sine', 3400 + Math.random() * 600, 3000, g0 * 0.55);
+      const n = 1 + (Math.random() * 2) | 0;
+      for (let i = 0; i < n; i++) toneTo(A, dest, t + i * 0.16, 0.05, 'sine', 2200 + Math.random() * 400, 1900, g0 * 0.35);
     } else if (kind === 'katydid') {
-      toneTo(A, dest, t, 0.05, 'square', 3400, 3000, g0 * 0.4);
-      toneTo(A, dest, t + 0.09, 0.05, 'square', 3000, 2600, g0 * 0.32);
+      toneTo(A, dest, t, 0.05, 'triangle', 2400, 2100, g0 * 0.22);
+      toneTo(A, dest, t + 0.09, 0.05, 'triangle', 2100, 1800, g0 * 0.18);
     } else if (kind === 'cluck') {
       toneTo(A, dest, t, 0.08, 'triangle', 720, 500, g0 * 0.7);
       toneTo(A, dest, t + 0.1, 0.07, 'triangle', 640, 480, g0 * 0.5);
