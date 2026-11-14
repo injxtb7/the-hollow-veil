@@ -9569,6 +9569,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       if (picked) return;
       const pal = PAL();
       const time = (t != null) ? t : 0;
+      const night = HV.Game && typeof HV.Game.isNight === 'function' && HV.Game.isNight();
       ctx.save();
       ctx.translate(x, y);
       ctx.lineCap = 'round';
@@ -9579,13 +9580,13 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         ctx.moveTo(0, -2); ctx.quadraticCurveTo(-6, -6, -4, -10);
         ctx.moveTo(0, -2); ctx.quadraticCurveTo(6, -6, 5, -10);
       };
-      /* pale woodcut halo so the plant reads against grass */
-      ctx.strokeStyle = 'rgba(232, 222, 196, 0.88)';
-      ctx.lineWidth = 3.1;
+      /* pale / white outline so the little green sprig reads on grass, a touch stronger at night */
+      ctx.strokeStyle = night ? 'rgba(248, 242, 220, 0.96)' : 'rgba(232, 222, 196, 0.9)';
+      ctx.lineWidth = night ? 3.7 : 3.2;
       stem();
       ctx.stroke();
       ctx.strokeStyle = pal.forestLit;
-      ctx.lineWidth = 1.45;
+      ctx.lineWidth = night ? 1.65 : 1.5;
       stem();
       ctx.stroke();
       /* slow glint on one leaflet — not a sparkle */
@@ -32266,36 +32267,12 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     }
   }
 
-  if (HV.Render && HV.Render.herbMark && !HV.Render.herbMark._kettle) {
-    const _hm = HV.Render.herbMark;
-    HV.Render.herbMark = function (ctx, x, y, picked, t, herb) {
-      if (picked) return;
-      const id = herb && herb.id;
-      const pal = HV.PAL || {};
-      const time = (t != null) ? t : 0;
-      ctx.save();
-      ctx.translate(x, y);
-      if (id) inkHerb(ctx, id, pal);
-      else { ctx.restore(); return _hm.call(this, ctx, x, y, picked, t); }
-      const artId = herb.art || ((HV.HERB_BY_ID[id] && HV.HERB_BY_ID[id].art));
-      if (artId && HV.Art && HV.Art.drawContain) {
-        ctx.save();
-        ctx.globalAlpha = 0.95;
-        const ok = HV.Art.drawContain(ctx, artId, -11, -30, 22, 22);
-        if (ok) {
-          ctx.strokeStyle = pal.ink || '#1A1410';
-          ctx.lineWidth = 1.2;
-          ctx.strokeRect(-11, -30, 22, 22);
-        }
-        ctx.restore();
-      }
-      const g = 0.14 + 0.34 * (0.5 + 0.5 * Math.sin(time * 1.55 + x * 0.04));
-      ctx.strokeStyle = 'rgba(248, 240, 214, ' + g.toFixed(3) + ')';
-      ctx.lineWidth = 1.15;
-      ctx.beginPath(); ctx.moveTo(2, -4); ctx.quadraticCurveTo(6, -8, 5, -12); ctx.stroke();
-      ctx.restore();
-    };
-    HV.Render.herbMark._kettle = true;
+  /* World marks stay the original green sprig in a pale outline (05-render.herbMark).
+     hv50 stamped Kettle Book woodcuts (and per-kind ink plants) onto the ground;
+     those plates belong in the book and menus only. */
+  if (HV.Render && HV.Render.herbMark) {
+    HV.Render.herbMark._kettle = false;
+    HV.Render.herbMark._worldSprig = true;
   }
 
   function installPluck() {
