@@ -4635,6 +4635,9 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     volume: 0.85,
     _ks: {},
     _unlocked: false,
+    /* peak-only safety: threshold sits above a normal amb/music bed so it
+       does not pump. Fast attack + short release at -18 / 12:1 was chugging. */
+    LIM: { threshold: -4, knee: 8, ratio: 3, attack: 0.008, release: 0.85 },
 
     init() {
       if (this.ctx) return this.ctx;
@@ -4644,11 +4647,12 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       const master = this.master = ctx.createGain();
       master.gain.value = this.volume;
       const limiter = this.limiter = ctx.createDynamicsCompressor();
-      limiter.threshold.value = -18;
-      limiter.knee.value = 8;
-      limiter.ratio.value = 12;
-      limiter.attack.value = 0.003;
-      limiter.release.value = 0.25;
+      const lim = this.LIM || { threshold: -4, knee: 8, ratio: 3, attack: 0.008, release: 0.85 };
+      limiter.threshold.value = lim.threshold;
+      limiter.knee.value = lim.knee;
+      limiter.ratio.value = lim.ratio;
+      limiter.attack.value = lim.attack;
+      limiter.release.value = lim.release;
       master.connect(limiter);
       limiter.connect(ctx.destination);
       this.sfx = ctx.createGain();
@@ -5068,9 +5072,9 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   A._ensureBuffers = function () {
     if (!this.ctx || this._bufWhite) return;
     const ctx = this.ctx;
-    this._bufWhite = makeWhite(ctx, 2);
-    this._bufPink = makePink(ctx, 2);
-    this._bufBrown = makeBrown(ctx, 2.4);
+    this._bufWhite = makeWhite(ctx, 4);
+    this._bufPink = makePink(ctx, 4);
+    this._bufBrown = makeBrown(ctx, 4.5);
     this._bufSilent = ctx.createBuffer(1, 1, ctx.sampleRate);
   };
 
@@ -5162,25 +5166,23 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     const dayG = isNight ? 0.0001 : 1;
 
     if (kind === 'town') {
-      const air = addNoise(this._bufPink, 'lowpass', 450, 0.7, 0.028);
+      const air = addNoise(this._bufPink, 'lowpass', 450, 0.7, 0.008);
       addLfo(air.f.frequency, 0.07, 80, 450);
       layers.insects = addNoise(this._bufWhite, 'bandpass', 2800, 1.5, 0.007 * nightG).g;
     } else if (kind === 'woods' || kind === 'woods_dark' || kind === 'cabin') {
-      const leaf = addNoise(this._bufPink, 'bandpass', kind === 'cabin' ? 700 : 900, 0.8, kind === 'woods_dark' ? 0.04 : 0.05);
-      addLfo(leaf.f.frequency, 0.11, 220, kind === 'cabin' ? 700 : 900);
-      const bugs = addNoise(this._bufWhite, 'bandpass', 3000, 1.6, 0.014 * nightG);
-      addLfo(bugs.g.gain, 8, 0.006 * (isNight ? 1 : 0), 0.008 * nightG);
-      layers.insects = bugs.g;
+      /* faint smooth air only — no gain LFO. A loud leaf/spring bed plus an
+         8 Hz insect-gain LFO read as a train chugging under the owls. */
+      const airF = kind === 'cabin' ? 520 : 620;
+      const airG = kind === 'cabin' ? 0.005 : (kind === 'woods_dark' ? 0.007 : 0.006);
+      const air = addNoise(this._bufPink, 'lowpass', airF, 0.6, airG);
+      addLfo(air.f.frequency, 0.04, 35, airF);
+      layers.insects = addNoise(this._bufWhite, 'bandpass', 2700, 1.2, 0.0012 * nightG).g;
       if (kind === 'woods_dark') {
-        layers.drone = addDrone(52, 0.02, 'sine').g;
-        addDrone(78.5, 0.01, 'triangle');
-      }
-      if (kind === 'cabin') {
-        const spring = addNoise(this._bufBrown, 'lowpass', 380, 0.8, 0.02);
-        addLfo(spring.f.frequency, 0.09, 60, 380);
+        layers.drone = addDrone(52, 0.008, 'sine').g;
+        addDrone(78.5, 0.004, 'triangle');
       }
     } else if (kind === 'river' || kind === 'cave_river') {
-      const flow = addNoise(this._bufBrown, 'bandpass', 520, 0.7, kind === 'cave_river' ? 0.05 : 0.07);
+      const flow = addNoise(this._bufBrown, 'bandpass', 520, 0.7, kind === 'cave_river' ? 0.035 : 0.045);
       addLfo(flow.f.frequency, 0.08, 140, 520);
       const hiss = addNoise(this._bufPink, 'highpass', 1800, 0.6, 0.018);
       layers.insects = addNoise(this._bufWhite, 'bandpass', 2200, 1.4, 0.01 * nightG).g;
@@ -5189,15 +5191,13 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         addDrone(69, 0.012, 'triangle');
       }
     } else if (kind === 'bottoms') {
-      const wet = addNoise(this._bufBrown, 'lowpass', 600, 0.7, 0.045);
-      addLfo(wet.f.frequency, 0.07, 100, 600);
-      const bugs = addNoise(this._bufWhite, 'bandpass', 2600, 1.6, 0.018 * Math.max(nightG, 0.25));
-      addLfo(bugs.g.gain, 6, 0.006, 0.01);
-      layers.insects = bugs.g;
+      const wet = addNoise(this._bufBrown, 'lowpass', 600, 0.7, 0.012);
+      addLfo(wet.f.frequency, 0.05, 50, 600);
+      layers.insects = addNoise(this._bufWhite, 'bandpass', 2400, 1.3, 0.003 * Math.max(nightG, 0.15)).g;
     } else if (kind === 'bluff') {
-      const wind = addNoise(this._bufPink, 'bandpass', 1100, 0.6, 0.055);
-      addLfo(wind.f.frequency, 0.13, 400, 1100);
-      addLfo(wind.g.gain, 0.06, 0.015, 0.045);
+      const wind = addNoise(this._bufPink, 'bandpass', 1100, 0.6, 0.012);
+      addLfo(wind.f.frequency, 0.07, 120, 1100);
+      addLfo(wind.g.gain, 0.05, 0.003, 0.01);
     } else if (kind === 'cave' || kind === 'karst') {
       const air = addNoise(this._bufBrown, 'lowpass', kind === 'karst' ? 500 : 280, 0.8, kind === 'karst' ? 0.03 : 0.035);
       layers.drone = addDrone(kind === 'karst' ? 58 : 44, kind === 'karst' ? 0.014 : 0.028, 'sine').g;
@@ -5211,14 +5211,14 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       addLfo(wind.f.frequency, 0.1, 200, 700);
       layers.drone = addDrone(49, 0.012, 'sine').g;
     } else if (kind === 'road' || kind === 'crossroads') {
-      const wind = addNoise(this._bufPink, 'bandpass', kind === 'crossroads' ? 500 : 850, 0.7, kind === 'crossroads' ? 0.048 : 0.04);
-      addLfo(wind.f.frequency, kind === 'crossroads' ? 0.05 : 0.12, kind === 'crossroads' ? 160 : 260, kind === 'crossroads' ? 500 : 850);
+      const wind = addNoise(this._bufPink, 'bandpass', kind === 'crossroads' ? 500 : 850, 0.7, kind === 'crossroads' ? 0.012 : 0.01);
+      addLfo(wind.f.frequency, kind === 'crossroads' ? 0.04 : 0.06, kind === 'crossroads' ? 60 : 80, kind === 'crossroads' ? 500 : 850);
       if (kind === 'crossroads') {
-        layers.drone = addDrone(41, 0.022, 'sine').g;
-        addDrone(61.8, 0.014, 'triangle');
+        layers.drone = addDrone(41, 0.01, 'sine').g;
+        addDrone(61.8, 0.006, 'triangle');
       }
     } else {
-      addNoise(this._bufPink, 'lowpass', 700, 0.7, 0.035);
+      addNoise(this._bufPink, 'lowpass', 700, 0.7, 0.01);
     }
     /* day/night references kept so setDaypart can morph insects without rebuild */
     layers.dayScale = dayG;
@@ -5270,7 +5270,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       bedNodes: (this._live ? nodeN(this._live) : 0) + fading.reduce((n, g) => n + nodeN(g), 0),
       oscLive: this._oscLive || 0,
       voices: (HV.Sound47 && HV.Sound47._voices && HV.Sound47._voices.length) || 0,
-      evTimer: this._evtTimer ? 1 : 0,
+      evTimer: (this._evtTimer || ((this._evtTimers || []).some(Boolean))) ? 1 : 0,
     };
   };
 
@@ -5298,7 +5298,10 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       clearTimeout(this._evtTimer);
       this._evtTimer = 0;
     }
+    (this._evtTimers || []).forEach((id) => { if (id) clearTimeout(id); });
+    this._evtTimers = [];
   };
+
 
   A.stopAmbience = function () {
     this._wantArea = null;
@@ -5362,7 +5365,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     const bugs = graph.layers.insects;
     if (bugs && this.ctx) {
       const t = this.ctx.currentTime;
-      const target = isNight ? (graph.kind === 'bottoms' ? 0.04 : 0.03) : (graph.kind === 'bottoms' ? 0.014 : 0.0001);
+      const target = isNight ? (graph.kind === 'bottoms' ? 0.003 : 0.0012) : 0.0001;
       try {
         bugs.gain.cancelScheduledValues(t);
         bugs.gain.setValueAtTime(Math.max(0.0001, bugs.gain.value), t);
@@ -5425,32 +5428,36 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       push('murmur', 12, 28, evMurmur);
     }
     if (kind === 'cabin') {
-      push('creak', 8, 20, evCreak);
-      if (!isNight) push('bird', 8, 18, evBird);
-      if (isNight) push('owl', 16, 36, evOwl);
+      push('creak', 14, 30, evCreak);
+      if (!isNight) push('bird', 5, 14, evBird);
+      if (isNight) {
+        push('cricket', 3, 8, evCricket);
+        push('owl', 10, 22, evOwl);
+      }
     }
     if (kind === 'woods' || kind === 'woods_dark') {
       if (!isNight) {
         push('bird', 3.5, 11, evBird);
-        push('gust', 10, 22, evGust);
+        push('gust', 14, 28, evGust);
+        push('cricket', 8, 18, evCricket);
       } else {
+        push('cricket', 3, 8, evCricket);
         push('whip', 14, 34, evWhippoorwill);
-        push('owl', 12, 30, evOwl);
-        push('katydid', 5, 12, evKatydid);
+        push('owl', 10, 24, evOwl);
       }
     }
     if (kind === 'river' || kind === 'bottoms' || kind === 'cave_river') {
       if (isNight) push('frog', 3, 9, evFrog);
-      if (kind !== 'cave_river' && !isNight) push('bird', 10, 22, evBird);
+      if (kind !== 'cave_river' && !isNight) push('bird', 8, 18, evBird);
     }
     if (kind === 'bottoms') {
       push('drip', 4, 11, evDrip);
-      if (isNight) push('insect', 6, 14, evKatydid);
+      if (isNight) push('cricket', 3, 9, evCricket);
     }
     if (kind === 'bluff') {
-      push('gust', 6, 16, evGust);
-      if (!isNight) push('hawk', 14, 32, evHawk);
-      if (isNight) push('owl', 18, 40, evOwl);
+      push('gust', 10, 22, evGust);
+      if (!isNight) { push('hawk', 14, 32, evHawk); push('bird', 8, 18, evBird); }
+      if (isNight) { push('cricket', 4, 10, evCricket); push('owl', 12, 28, evOwl); }
     }
     if (kind === 'cave' || kind === 'cave_river' || kind === 'karst') {
       push('drip', 1.6, 5.5, evDrip);
@@ -5460,8 +5467,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       push('gust', 8, 18, evGust);
     }
     if (kind === 'road') {
-      push('gust', 8, 20, evGust);
-      if (!isNight) push('bird', 10, 22, evBird);
+      push('gust', 12, 24, evGust);
+      if (!isNight) push('bird', 6, 16, evBird);
     }
     if (kind === 'crossroads') {
       push('gust', 5, 14, evGust);
@@ -5472,19 +5479,33 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   };
 
   function evBird(self, t) {
+    const dest = self.amb;
     const base = 2200 + Math.random() * 1800;
-    chirp(self, t, base, base * (0.7 + Math.random() * 0.5), 0.09, 0.035);
-    if (Math.random() < 0.7) chirp(self, t + 0.11, base * 1.15, base * 0.85, 0.08, 0.028);
-    if (Math.random() < 0.35) chirp(self, t + 0.22, base * 0.9, base * 1.05, 0.07, 0.022);
+    chirp(self, t, base, base * (0.7 + Math.random() * 0.5), 0.1, 0.055, 'sine', dest);
+    if (Math.random() < 0.75) chirp(self, t + 0.12, base * 1.15, base * 0.85, 0.09, 0.042, 'sine', dest);
+    if (Math.random() < 0.4) chirp(self, t + 0.24, base * 0.9, base * 1.05, 0.08, 0.032, 'sine', dest);
   }
   function evOwl(self, t) {
-    chirp(self, t, 420, 260, 0.28, 0.05, 'sine');
-    chirp(self, t + 0.38, 390, 240, 0.32, 0.042, 'sine');
+    const dest = self.amb;
+    chirp(self, t, 420, 260, 0.32, 0.075, 'sine', dest);
+    chirp(self, t + 0.4, 390, 240, 0.36, 0.062, 'sine', dest);
   }
   function evWhippoorwill(self, t) {
-    chirp(self, t, 980, 860, 0.09, 0.04);
-    chirp(self, t + 0.14, 720, 640, 0.1, 0.036);
-    chirp(self, t + 0.3, 1100, 900, 0.16, 0.04);
+    const dest = self.amb;
+    chirp(self, t, 980, 860, 0.1, 0.055, 'sine', dest);
+    chirp(self, t + 0.14, 720, 640, 0.11, 0.048, 'sine', dest);
+    chirp(self, t + 0.3, 1100, 900, 0.18, 0.055, 'sine', dest);
+  }
+  function evCricket(self, t) {
+    /* a short irregular phrase, never a steady trill */
+    const dest = self.amb;
+    const n = 2 + (Math.random() * 3) | 0;
+    const base = 2100 + Math.random() * 700;
+    const gap = 0.07 + Math.random() * 0.05;
+    for (let i = 0; i < n; i++) {
+      const f = base + (Math.random() - 0.5) * 80;
+      chirp(self, t + i * gap, f, f * 0.9, 0.045 + Math.random() * 0.02, 0.034, 'triangle', dest);
+    }
   }
   function evHawk(self, t) {
     chirp(self, t, 1680, 720, 0.55, 0.045, 'sawtooth');
@@ -5514,8 +5535,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     }
   }
   function evKatydid(self, t) {
-    chirp(self, t, 2400, 2100, 0.05, 0.012, 'triangle', self.amb);
-    chirp(self, t + 0.09, 2100, 1800, 0.06, 0.01, 'triangle', self.amb);
+    evCricket(self, t);
   }
   function evDrip(self, t) {
     burst(self, self._bufWhite, self.amb, t, 0.08, 0.03, 'bandpass', 2200, 1.8, 1400);
@@ -5524,7 +5544,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     burst(self, self._bufWhite, self.amb, t + 0.11, 0.1, 0.018, 'bandpass', 2400, 5, 1400);
   }
   function evGust(self, t) {
-    burst(self, self._bufPink, self.amb, t, 1.4, 0.05, 'bandpass', 600, 0.7, 1400);
+    burst(self, self._bufPink, self.amb, t, 1.4, 0.02, 'bandpass', 600, 0.7, 1400);
   }
   function evEmber(self, t) {
     burst(self, self._bufWhite, self.amb, t, 0.06, 0.04, 'bandpass', 2200 + Math.random() * 2000, 3);
@@ -5537,23 +5557,23 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   A._kickEvents = function () {
     this._clearEvents();
     const self = this;
-    const tick = function () {
-      self._evtTimer = 0;
-      if (!self._live || self._hidden || !self.ctx) return;
-      const list = self._evtSpecs(self._bedId, self._bedNight);
-      if (list.length && !self._ducked) {
-        const ev = list[(Math.random() * list.length) | 0];
-        try { ev.fn(self, self.ctx.currentTime + 0.02); } catch (e) { /* ignore */ }
-        const wait = (ev.min + Math.random() * (ev.max - ev.min)) * 1000;
-        self._evtTimer = setTimeout(tick, wait);
-      } else {
-        self._evtTimer = setTimeout(tick, 2500);
-      }
-    };
     const list = this._evtSpecs(this._bedId, this._bedNight);
-    const first = list[0];
-    const wait = first ? (first.min * 400 + Math.random() * 2000) : 2000;
-    this._evtTimer = setTimeout(tick, wait);
+    this._evtTimers = [];
+    list.forEach((ev, idx) => {
+      const tick = function () {
+        self._evtTimers[idx] = 0;
+        if (!self._live || self._hidden || !self.ctx) return;
+        if (!self._ducked) {
+          try { ev.fn(self, self.ctx.currentTime + 0.02); } catch (e) { /* ignore */ }
+        }
+        const span = Math.max(0.2, ev.max - ev.min);
+        const wait = (ev.min + Math.random() * span) * 1000;
+        self._evtTimers[idx] = setTimeout(tick, wait);
+      };
+      const first = 700 + Math.random() * (ev.min * 700 + 1800);
+      self._evtTimers[idx] = setTimeout(tick, first);
+    });
+    this._evtTimer = list.length ? 1 : 0;
   };
 
   /* —— SFX —— */
@@ -30269,16 +30289,16 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
        stacked into a piercing machine-like tone on iPad. Insect color stays
        on the softer filtered-noise layers in 16-audio, plus spaced one-shots. */
     if (kind === 'cave' || kind === 'karst' || kind === 'cave_river') {
-      const w = loopNoise(c, out, A._bufPink, 'bandpass', 320, 3, 0.03, graph);   /* low wind moaning through the passage */
-      mod(c, w.f.frequency, 0.05, 120, graph); mod(c, w.g.gain, 0.08, 0.015, graph);
+      const w = loopNoise(c, out, A._bufPink, 'bandpass', 320, 3, 0.012, graph);
+      mod(c, w.f.frequency, 0.05, 80, graph); mod(c, w.g.gain, 0.06, 0.003, graph);
     }
     if (kind === 'churchyard') {
-      const w = loopNoise(c, out, A._bufPink, 'bandpass', 520, 0.8, 0.035, graph); mod(c, w.f.frequency, 0.07, 160, graph);
+      const w = loopNoise(c, out, A._bufPink, 'bandpass', 520, 0.8, 0.012, graph); mod(c, w.f.frequency, 0.05, 80, graph);
       osc(c, out, 'sine', 220, 0.006, graph); osc(c, out, 'sine', 221.4, 0.006, graph);   /* a slow beating hum */
       osc(c, out, 'sine', 55, 0.016, graph);
     }
     if (kind === 'gallows') {
-      const w = loopNoise(c, out, A._bufPink, 'bandpass', 700, 0.7, 0.05, graph); mod(c, w.f.frequency, 0.11, 300, graph); mod(c, w.g.gain, 0.05, 0.02, graph);
+      const w = loopNoise(c, out, A._bufPink, 'bandpass', 700, 0.7, 0.014, graph); mod(c, w.f.frequency, 0.06, 100, graph); mod(c, w.g.gain, 0.05, 0.003, graph);
       osc(c, out, 'sine', 41, 0.02, graph); osc(c, out, 'triangle', 61.7, 0.008, graph);
     }
     if (kind === 'boss') {
@@ -30290,7 +30310,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       const tr = osc(c, out, 'sawtooth', 220, 0.0, graph);           /* trembling strings */
       const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 1.5;
       tr.o.disconnect(); tr.o.connect(bp); bp.connect(tr.g); graph.nodes.push(bp);
-      tr.g.gain.value = 0.006; mod(c, tr.g.gain, 7, 0.005, graph);
+      tr.g.gain.value = 0.006; mod(c, tr.g.gain, 0.15, 0.003, graph);
       void d;
     }
     /* bed trim: the 16-audio beds sat ~30 dB under the hits; lift them to sit ~12-18 dB under */
@@ -30299,14 +30319,16 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     out.connect(trim); trim.connect(A.amb); graph.nodes.push(trim);
     return graph;
   };
-  S.TRIM = { woods: 3.6, woods_dark: 3.0, cabin: 3.0, river: 4.2, bottoms: 3.0, town: 3.6, road: 3.0, bluff: 2.6, ruins: 2.6, crossroads: 2.2,
-    cave: 1.5, karst: 2.0, cave_river: 2.2, churchyard: 1.9, gallows: 2.0, boss: 1.8 };
+  /* beds used to be boosted ~3x to sit near the hits; that made the wind
+     bed louder than the owl. Keep trim near unity so amb sits under music/SFX. */
+  S.TRIM = { woods: 1.0, woods_dark: 1.0, cabin: 1.0, river: 1.15, bottoms: 1.0, town: 1.0, road: 1.0, bluff: 1.0, ruins: 1.0, crossroads: 1.0,
+    cave: 1.0, karst: 1.0, cave_river: 1.0, churchyard: 1.0, gallows: 1.0, boss: 1.15 };
 
   /* extra ambient events */
   const amb = () => A.amb;
   S.EV = {
     howlFar(self, t) { const o = tnLp(t, 2.4, 0.022, 'sawtooth', 280, 0, 700, amb(), 0.5); o.frequency.setValueAtTime(280, t); o.frequency.linearRampToValueAtTime(520, t + 0.7); o.frequency.linearRampToValueAtTime(470, t + 1.8); o.frequency.linearRampToValueAtTime(330, t + 2.4); },
-    katydidDay(self, t) { for (let i = 0; i < 2; i++) tn(t + i * 0.12, 0.05, 0.006, 'triangle', 2400, 2100, amb()); },
+    katydidDay(self, t) { for (let i = 0; i < 2 + ((Math.random() * 2) | 0); i++) tn(t + i * (0.08 + Math.random() * 0.06), 0.05, 0.028, 'triangle', 2100 + Math.random() * 600, 1900, amb()); },
     clink(self, t) { for (let i = 0; i < 2; i++) { const ti = t + i * 0.55; tn(ti, 0.5, 0.012, 'sine', 1870, 0, amb()); tn(ti, 0.4, 0.008, 'sine', 2790, 0, amb()); nz(ti, 0.03, 0.02, 'bandpass', 3000, 0, 3, amb()); } },
     hammer(self, t) { for (let i = 0; i < 3; i++) { nz(t + i * 0.42, 0.06, 0.03, 'bandpass', 500, 300, 3, amb(), A._bufBrown); tn(t + i * 0.42, 0.08, 0.02, 'triangle', 200, 140, amb()); } },
     hen(self, t) { for (let i = 0; i < 3; i++) tnLp(t + i * 0.16, 0.1, 0.014, 'sawtooth', 700, 520, 1800, amb()); },
