@@ -6871,17 +6871,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
             ctx.quadraticCurveTo(x + 14, y + 2, x + 18, y + 1);
             ctx.stroke();
           } else if (kind === 4) {
-            /* soft, slightly lit fog — not a flat gray disc */
-            const rw = 42 + (h % 22), rh = 14 + (h % 8);
-            const fg = ctx.createRadialGradient(x - 6, y - 3, 2, x, y, rw);
-            fg.addColorStop(0, 'rgba(210,200,170,0.22)');
-            fg.addColorStop(0.45, 'rgba(160,186,176,0.14)');
-            fg.addColorStop(1, 'rgba(140,160,150,0)');
-            ctx.fillStyle = fg;
-            ctx.beginPath();
-            ctx.ellipse(x, y, rw, rh, 0, 0, Math.PI * 2);
-            ctx.fill();
-            hatch(ctx, x - rw, y - rh, rw * 2, rh * 2, 'rgba(244,232,208,0.06)', 6, 12, 1);
+            /* was a pale cream fog ellipse; it read as a mysterious oval on the grass, especially at midday, so it is no longer drawn */
           } else if (kind === 5 && ch === '.') {
             /* fern, rare */
             ctx.strokeStyle = 'rgba(20,28,22,0.85)';
@@ -9894,6 +9884,102 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       ctx.restore();
     },
 
+    /* A thin gold courting-ring in the ditch — a band and a glint, not a pale disc. */
+    hitchRing(ctx, x, y, now) {
+      const pal = PAL();
+      const t = (now || 0) / 380;
+      const glint = 0.5 + 0.5 * Math.abs(Math.sin(t));
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = 'rgba(26,20,16,0.32)';
+      ctx.beginPath();
+      ctx.ellipse(0, 4, 9, 2.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.rotate(-0.4);
+      ctx.lineWidth = 2.4;
+      ctx.strokeStyle = pal.goldDeep || '#B8860B';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 7, 3.1, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.lineWidth = 1.15;
+      ctx.strokeStyle = pal.gold || '#E8C547';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 5.2, 2.1, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 0.9;
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = pal.ink;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 7, 3.1, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = glint;
+      ctx.strokeStyle = '#F4E8D0';
+      ctx.lineWidth = 1.35;
+      ctx.beginPath();
+      ctx.moveTo(5.2, -3.6); ctx.lineTo(8.4, -7.2);
+      ctx.moveTo(4.4, -6.2); ctx.lineTo(9.2, -5.4);
+      ctx.stroke();
+      ctx.restore();
+    },
+
+    /* Wooden pier boards drawn after water so a dock is not swallowed by the shoreline. */
+    drawDocks(ctx, area, camX, camY, vw, vh) {
+      if (!area || !area.cells) return;
+      const pal = PAL();
+      const x0 = Math.max(0, Math.floor(camX / TILE));
+      const x1 = Math.min(area.w, Math.ceil((camX + (vw || TILE * 20)) / TILE) + 1);
+      const y0 = Math.max(0, Math.floor(camY / TILE));
+      const y1 = Math.min(area.h, Math.ceil((camY + (vh || TILE * 20)) / TILE) + 1);
+      const at = (tx, ty) => (area.cells[ty] && area.cells[ty][tx]) || '';
+      const wet = (tx, ty) => { const c = at(tx, ty); return c === '~' || c === 'w'; };
+      for (let ty = y0; ty < y1; ty++) {
+        for (let tx = x0; tx < x1; tx++) {
+          if (at(tx, ty) !== '=') continue;
+          const x = tx * TILE - camX, y = ty * TILE - camY;
+          const ew = at(tx + 1, ty) === '=' || at(tx - 1, ty) === '=' || wet(tx + 1, ty) || wet(tx - 1, ty);
+          ctx.save();
+          ctx.fillStyle = pal.bark || '#4A3728';
+          ctx.fillRect(x + 1, y + 4, TILE - 2, TILE - 8);
+          if (typeof hatch === 'function') hatch(ctx, x + 1, y + 4, TILE - 2, TILE - 8, 'rgba(26,20,16,0.42)', 4, ew ? 0 : 90, 1);
+          ctx.strokeStyle = pal.ink;
+          ctx.lineWidth = 1.6;
+          if (ew) {
+            ctx.beginPath();
+            ctx.moveTo(x + 1, y + 4); ctx.lineTo(x + TILE - 1, y + 4);
+            ctx.moveTo(x + 1, y + TILE - 4); ctx.lineTo(x + TILE - 1, y + TILE - 4);
+            ctx.stroke();
+            ctx.lineWidth = 1.15;
+            ctx.beginPath();
+            ctx.moveTo(x + 11, y + 4); ctx.lineTo(x + 11, y + TILE - 4);
+            ctx.moveTo(x + 21, y + 4); ctx.lineTo(x + 21, y + TILE - 4);
+            ctx.stroke();
+          } else {
+            ctx.beginPath();
+            ctx.moveTo(x + 4, y + 1); ctx.lineTo(x + 4, y + TILE - 1);
+            ctx.moveTo(x + TILE - 4, y + 1); ctx.lineTo(x + TILE - 4, y + TILE - 1);
+            ctx.stroke();
+            ctx.lineWidth = 1.15;
+            ctx.beginPath();
+            ctx.moveTo(x + 4, y + 11); ctx.lineTo(x + TILE - 4, y + 11);
+            ctx.moveTo(x + 4, y + 21); ctx.lineTo(x + TILE - 4, y + 21);
+            ctx.stroke();
+          }
+          /* posts where the plank meets open water */
+          [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach((d) => {
+            if (!wet(tx + d[0], ty + d[1])) return;
+            const px = x + TILE / 2 + d[0] * 14;
+            const py = y + TILE / 2 + d[1] * 14;
+            ctx.fillStyle = '#3A2A1C';
+            ctx.fillRect(px - 2, py - 2, 4, 10);
+            ctx.strokeStyle = pal.ink;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(px - 2, py - 2, 4, 10);
+          });
+          ctx.restore();
+        }
+      }
+    },
+
     /* Shared icon / splash / title backdrop: Howler on a ridge against a pale moon.
        Readable at small sizes. No text unless opt.title is set. */
     howlerMoon(ctx, w, h, opt) {
@@ -10511,6 +10597,13 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         const ch = area.cells[ty] && area.cells[ty][tx];
         return ch === '~' || ch === 'w';
       };
+      /* A one-tile wooden dock or bridge ('=') is land, but a 5x5 wet blur would
+         paint water over it and leave only a dirt notch at the bank. Force those
+         planks dry, and weight them so the shore goes around the pier. */
+      const isDock = (tx, ty) => {
+        const ch = area.cells[ty] && area.cells[ty][tx];
+        return ch === '=';
+      };
       const deep = (tx, ty) => {
         const ch = area.cells[ty] && area.cells[ty][tx];
         return ch === 'w';
@@ -10535,10 +10628,12 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
 
       const fieldAt = (wx, wy) => {
         const tx = Math.floor(wx / TILE), ty = Math.floor(wy / TILE);
+        if (isDock(tx, ty)) return 0;
         let acc = 0, wt = 0;
         for (let j = -2; j <= 2; j++) {
           for (let i = -2; i <= 2; i++) {
             const wgt = 1 / (1 + i * i + j * j);
+            if (isDock(tx + i, ty + j)) { wt += wgt * 3; continue; }
             acc += (wet(tx + i, ty + j) ? 1 : 0) * wgt;
             wt += wgt;
           }
@@ -16472,8 +16567,9 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     glass_blower: {
       name: 'The Witch Ball',
       stages: [
-        { id: 'ask', journal: 'Len at the inn has a glass witch ball that rolled off the mantel the night the marks failed. He wants it blessed at the church and hung again — or kept by someone who will wear it.' },
-        { id: 'done', journal: 'The witch ball amulet is warm, as if it already caught something.' },
+        { id: 'ask', journal: 'Len gave me his glass witch ball, the one that rolled off the mantel the night the marks failed. Preacher Cald in Yarrow will say the old words over it.' },
+        { id: 'blessed', journal: 'Cald blessed the witch ball. It is warm now, as if it already caught something. Take it back to Len at the inn.' },
+        { id: 'done', journal: 'I took the blessed ball back to Len. He would not hang it again — he let me keep it, set as an amulet, warm as if it already caught something.' },
       ],
     },
     town_under_lake: {
@@ -16486,8 +16582,9 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     promenade_hitch: {
       name: 'The Hitch',
       stages: [
-        { id: 'ask', journal: 'Josie swears she gave a ride to a girl on the Promenade who was gone at the next turn, and a thin gold ring was left in the ditch.' },
-        { id: 'done', journal: 'The vanishing hitch\'s courting-ring is cold, and it is never quite warm.' },
+        { id: 'ask', journal: 'Josie gave a ride to a girl on the Promenade who was gone at the next turn, and a thin gold ring was left in the ditch. After dark the Hitch still walks that gravel road. I am to find the ring where she fades, and show it to Josie, so it is not still lying there.' },
+        { id: 'have', journal: 'I found the hitch\'s thin gold ring in the ditch where she faded. It is never quite warm. I should show it to Josie, so she knows it is not still lying there.' },
+        { id: 'done', journal: 'I showed Josie the ring. She would not wear it — it is never quite warm — but she was glad it was not still in the ditch. She let me keep it.' },
       ],
     },
     old_christmas: {
@@ -16734,6 +16831,103 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     return 'Talk to folks in Yarrow Crossing (look for the ! over them).';
   };
 
+
+
+  /* Len's witch ball: Cald blesses it, then Len sets it as an amulet. Mid-quest saves may lack the item. */
+  const WitchBall = HV.WitchBall = {
+    QUEST: 'glass_blower',
+    ITEM: 'glass_witch_ball',
+    REWARD: 'witch_ball_amulet',
+    started(s) { return !!(s && s.quests && s.quests[WitchBall.QUEST]); },
+    done(s) { return !!(HV.questDone && HV.questDone(s, WitchBall.QUEST)); },
+    blessed(s) { return !!(s && s.flags && s.flags.witch_ball_blessed); },
+    hasBall(s) { return !!(HV.hasItem && HV.hasItem(s, WitchBall.ITEM)); },
+    ensureBall(s) {
+      if (!s || WitchBall.done(s) || WitchBall.blessed(s) || !WitchBall.started(s)) return false;
+      if (WitchBall.hasBall(s)) return false;
+      return !!(HV.giveUnique && HV.giveUnique(s, WitchBall.ITEM));
+    },
+    readyToBless(s) {
+      if (!s || WitchBall.done(s) || WitchBall.blessed(s)) return false;
+      return WitchBall.started(s);
+    },
+    readyToReturn(s) {
+      return !!(s && WitchBall.started(s) && WitchBall.blessed(s) && !WitchBall.done(s));
+    },
+  };
+
+  /* The Hitch on Devil's Promenade: she leaves a ring in the ditch. Annie in Hanging Hollow is a different girl. */
+  const HitchRing = HV.HitchRing = {
+    AREA: 'devil_promenade',
+    ITEM: 'hitch_courting_ring',
+    QUEST: 'promenade_hitch',
+    josieWith(s) {
+      if (!s) return false;
+      if (HV.Followers && HV.Followers.current && HV.Followers.current(s) === 'josie') return true;
+      return !!(HV.Companions && HV.Companions.following && HV.Companions.following(s).indexOf('josie') >= 0);
+    },
+    hasRing(s) { return !!(HV.hasItem && HV.hasItem(s, HitchRing.ITEM)); },
+    done(s) { return !!(HV.questDone && HV.questDone(s, HitchRing.QUEST)); },
+    readyToShow(s) {
+      if (!s || HitchRing.done(s)) return false;
+      return HitchRing.hasRing(s) || !!(s.flags && s.flags.hitch_ring_found);
+    },
+    canDrop(s, areaId, enId) {
+      if (!s || enId !== 'hitch_girl' || areaId !== HitchRing.AREA) return false;
+      if (HitchRing.done(s) || HitchRing.hasRing(s) || (s.flags && s.flags.hitch_ring_ground) || (s.flags && s.flags.hitch_ring_found)) return false;
+      return true;
+    },
+    drop(s, x, y) {
+      if (!s) return false;
+      s.flags = s.flags || {};
+      s.flags.hitch_ring_ground = { x: x, y: y };
+      if (HV.UI && HV.UI.toast) HV.UI.toast('Where she faded, a thin gold ring is glinting in the ditch.', 4000);
+      return true;
+    },
+    pending(s, areaId) {
+      const g = s && s.flags && s.flags.hitch_ring_ground;
+      if (!g || HitchRing.hasRing(s) || HitchRing.done(s)) return null;
+      if (areaId && areaId !== HitchRing.AREA) return null;
+      return g;
+    },
+    skipSpawn(areaId, enId, s) {
+      if (enId !== 'hitch_girl' || areaId !== HitchRing.AREA || !s) return false;
+      return !!(HitchRing.done(s) || HitchRing.hasRing(s) || (s.flags && (s.flags.hitch_ring_ground || s.flags.hitch_ring_found)));
+    },
+    tryPick(game) {
+      if (!game || !game.state || !game.area) return false;
+      const s = game.state;
+      const g = HitchRing.pending(s, game.area.id);
+      if (!g) return false;
+      const dist = Math.hypot((s.world.x || 0) - g.x, (s.world.y || 0) - g.y);
+      if (dist > 48) return false;
+      delete s.flags.hitch_ring_ground;
+      s.flags.hitch_ring_found = true;
+      if (HV.startQuest) HV.startQuest(s, HitchRing.QUEST);
+      if (HV.giveUnique) HV.giveUnique(s, HitchRing.ITEM);
+      if (HV.questStage(s, HitchRing.QUEST) < 1) HV.advanceQuest(s, HitchRing.QUEST, 1);
+      if (HV.Audio && HV.Audio.sfxPickup) HV.Audio.sfxPickup();
+      const withJosie = HitchRing.josieWith(s);
+      if (withJosie && game.openDialog) {
+        game.interactLock = 0.4;
+        game.openDialog('josie');
+      } else if (HV.UI && HV.UI.toast) {
+        HV.UI.toast('The ring is cold in your hand, and never quite warm. Josie will want to know it is not still lying in the ditch.', 4000);
+      }
+      return true;
+    },
+    tryTalkJosie(game) {
+      if (!game || !game.state) return false;
+      if (!HitchRing.readyToShow(game.state) || !HitchRing.josieWith(game.state)) return false;
+      if (game.openDialog) {
+        game.interactLock = 0.4;
+        game.openDialog('josie');
+        return true;
+      }
+      return false;
+    },
+  };
+
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -16862,7 +17056,11 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   };
 
   D.cald = {
-    start: (s) => s.flags.met_cald ? 'later' : 'first',
+    start: (s) => {
+      if (HV.WitchBall) HV.WitchBall.ensureBall(s);
+      if ((HV.WitchBall && HV.WitchBall.readyToBless(s)) || (s.flags && s.flags.met_cald)) return 'later';
+      return 'first';
+    },
     first: node('Preacher Cald', 'You picked a thin week to come home. I\'ve been preaching by more lamplight than scripture lately. Ila will tell you to mend them old witch-marks. I\'ll tell you straight: they\'ve failed, and fire\'s cleaner than thread.', [
       { t: 'I\'ll hear both of you.', next: null, set: { met_cald: true } },
       { t: 'Fire has a cost.', next: 'cost', set: { met_cald: true } },
@@ -16883,6 +17081,10 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         if (s.flags.hymn_book && !HV.questDone(s, 'congregation_lamp')) c.push({ t: 'I brought a hymn-book from the drowned shore.', next: 'lamppay' });
         if (!s.quests.old_christmas) c.push({ t: 'You keep Old Christmas?', next: 'oc' });
         if (s.flags.cedar_bough && !HV.questDone(s, 'old_christmas')) c.push({ t: 'I brought a cedar bough from the High Ledge.', next: 'ocpay' });
+        if (HV.WitchBall && HV.WitchBall.readyToBless(s)) {
+          HV.WitchBall.ensureBall(s);
+          c.push({ t: 'I have a witch ball of Len\'s that wants blessing.', next: 'witchball' });
+        }
         c.push({ t: 'Good day, preacher.', next: null });
         return c;
       },
@@ -16895,6 +17097,9 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     ]),
     ocpay: node('Preacher Cald', 'Sharp-smelling, cut honest. Wear this band. It holds a lantern\'s heat on the older holy night.', [
       { t: 'Thank you, preacher.', next: null, give: 'old_christmas_band', take: 'cedar_bough', advance: { id: 'old_christmas', to: 1 } },
+    ]),
+    witchball: node('Preacher Cald', 'Len\'s witch ball. I have seen these hung in a window to catch a wandering hex. I will not call it scripture, but I will say the old words over glass. There. It is warm now, as if it already caught something. Take it back to Len. A man likes to know his mantel is minded.', [
+      { t: 'I\'ll take it back to Len.', next: null, set: { witch_ball_blessed: true, met_cald: true }, advance: { id: 'glass_blower', to: 1 } },
     ]),
   };
 
@@ -16958,10 +17163,31 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   };
 
   D.len = {
-    start: (s) => 'inn',
-    inn: node('Len the Innkeep', 'Rooms, stew, and a glass ball that rolled clean off my mantel the night the marks failed. Ila called it a witch ball. I\'d like it blessed at the church, or carried by somebody braver than me.', [
-      { t: 'I can take the witch ball.', next: null, startQuest: 'glass_blower' },
-      { t: 'A room, later. Just passing.', next: null },
+    start: (s) => {
+      if (HV.WitchBall) HV.WitchBall.ensureBall(s);
+      if (HV.WitchBall && HV.WitchBall.readyToReturn(s)) return 'blessed';
+      if (s.quests && s.quests.glass_blower && !HV.questDone(s, 'glass_blower')) return 'waiting';
+      return 'inn';
+    },
+    inn: {
+      who: 'Len the Innkeep',
+      textFn: (s) => (s.quests && s.quests.glass_blower)
+        ? 'Rooms and stew, same as always. The mantel\'s quiet now, and I sleep better for it.'
+        : 'Rooms, stew, and a glass ball that rolled clean off my mantel the night the marks failed. Ila called it a witch ball. I\'d like it blessed by Preacher Cald, or carried by somebody braver than me.',
+      choicesFn: (s) => {
+        const c = [];
+        if (!(s.quests && s.quests.glass_blower)) {
+          c.push({ t: 'I can take the witch ball.', next: null, startQuest: 'glass_blower', give: 'glass_witch_ball' });
+        }
+        c.push({ t: 'A room, later. Just passing.', next: null });
+        return c;
+      },
+    },
+    waiting: node('Len the Innkeep', 'You still have it, don\'t you? If it slipped your pack, take it again. Preacher Cald, there by the church door in town, will say the old words over glass. Then bring it home to me.', [
+      { t: 'I\'ll take it to the preacher.', next: null },
+    ]),
+    blessed: node('Len the Innkeep', 'You had it blessed. I can feel the warmth off it from here. Hang it again? No — you wear it. You walked it to the preacher and back, and I sleep better knowing a braver soul has it on them. I had a setting made, in case the glass should travel.', [
+      { t: 'I\'ll wear it, then.', next: null, take: 'glass_witch_ball', give: 'witch_ball_amulet', advance: { id: 'glass_blower', to: 2 } },
     ]),
   };
 
@@ -16978,6 +17204,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
 
   D.josie = {
     start: (s) => {
+      if (HV.HitchRing && HV.HitchRing.readyToShow(s)) return 'hitch_pay';
       if (s.flags && s.flags.porch_jam_done) {
         return HV.questDone(s, 'crossroads_letter') ? 'after_tunes' : (s.flags.has_banjo ? 'go_tunes' : 'ask_tunes');
       }
@@ -16995,6 +17222,9 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     hitch: node('Josie Fiddler', 'I gave a ride to a girl on the Promenade who was gone at the next turn. A thin gold ring was left in the ditch. I would not wear it, but I would like to know it is not still lying there.', [
       { t: 'I\'ll look for the ring.', next: null, startQuest: 'promenade_hitch' },
       { t: 'About that banjo...', next: 'where' },
+    ]),
+    hitch_pay: node('Josie Fiddler', 'You found it. I can see it from here, and I will not put it on. It is never quite warm, is it? I am glad it is not still lying in that ditch. You keep it. A thing like that ought to be carried by someone who has already seen her fade.', [
+      { t: 'I\'ll keep it, then.', next: null, advance: { id: 'promenade_hitch', to: 2 }, approve: { josie: 8 } },
     ]),
     go: node('Josie Fiddler', 'The strings warm, do they? The fork is waiting after dark. Hold the break, if you can. Or we can keep a little time on the porch first, so the fork is not your first song of the night.', [
       { t: 'I\'m going.', next: null },
@@ -21517,6 +21747,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         if (sp.id === 'whitey' && !(HV.oakLaid && HV.oakLaid(this.state))) return;
         if (sp.id === 'ridge_howler' && HV.storyBossBeaten && HV.storyBossBeaten(this.state, 'ridge_howler')) return;
         if (sp.id === 'hitch_girl' && this.area.id === 'hanging_hollow' && this.state.flags && this.state.flags.annie_shade_down) return;
+        if (HV.HitchRing && HV.HitchRing.skipSpawn(this.area.id, sp.id, this.state)) return;
         if (sp.id === 'castle_keeper' && this.area.id === 'harthall_hearth' && this.state.flags && (this.state.flags.hearth_keeper_down || this.state.flags.hearth_read)) return;
         const en = HV.spawnEnemy(sp.id, sp.x * TILE + 16, sp.y * TILE + 16, { difficulty: diff, ngplus: this.state.ngplus });
         if (en) this.entities.push(en);
@@ -21843,6 +22074,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       }
       const npc = (area.npcs || []).find((n) => near(n.x, n.y) && (HV.npcIsPresent ? HV.npcIsPresent(n, this.state, this.isNight()) : (!n.atNight || this.isNight())) && (!n.ngplusOnly || (this.state.ngplus > 0)) && !(n.id === 'jonas_peck' && (this.state.flags.chose_peck || this.state.flags.peck_hostile || HV.questDone(this.state, 'peck_problem'))));
       if (npc) { this.openDialog(npc.dialog || npc.id); return; }
+      if (HV.HitchRing && HV.HitchRing.tryTalkJosie(this)) return;
 
       const chest = (area.chests || []).find((c) => near(c.x, c.y) && !s.chestsOpened[c.id]);
       if (chest) {
@@ -21862,7 +22094,12 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         s.cachesOpened[cache.id] = true;
         const loot = HV.rollLoot({ rng: HV.rng(cache.id), table: cache.table || 'cache', area: area.id });
         if (loot) s.hero.inventory.push(loot);
-        if (cache.id.indexOf('glade') >= 0 || cache.id.indexOf('oil') >= 0 || area.id === 'cedar_glade') s.flags.mara_oil = true;
+        if (cache.id.indexOf('glade') >= 0 || cache.id.indexOf('oil') >= 0 || area.id === 'cedar_glade') {
+          s.flags.mara_oil = true;
+          if (s.quests.widows_lantern && !HV.questDone(s, 'widows_lantern') && HV.questStage(s, 'widows_lantern') < 1) {
+            HV.advanceQuest(s, 'widows_lantern', 1);
+          }
+        }
         const coins = Math.ceil((6 + ((HV.hash(cache.id) >> 2) % 16)) * HV.COIN_BUMP);
         s.hero.gold = (s.hero.gold || 0) + coins;
         this.floater('Cache: ' + (loot ? loot.name : 'odds') + '  +' + coins + '¢', s.world.x, s.world.y - 20, HV.PAL.gold);
@@ -21934,6 +22171,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         HV.UI.toast('The witch-hazel rod tugs in your hand.');
         return;
       }
+      if (HV.HitchRing && HV.HitchRing.tryPick(this)) return;
       const howler = (this.entities || []).find((en) => en.alive && en.id === 'ridge_howler' && Math.hypot(en.x - s.world.x, en.y - s.world.y) < 70);
       if (howler && s.quests.howler_hunt && !s.flags.howler_choice) {
         this.openDialog('howler');
@@ -22318,6 +22556,9 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         this.state.flags.met_walker = true;
         HV.giveUnique(this.state, 'momo_stone');
         HV.advanceQuest(this.state, 'bottoms_walker', 1);
+      }
+      if (HV.HitchRing && this.area && HV.HitchRing.canDrop(this.state, this.area.id, en.id)) {
+        HV.HitchRing.drop(this.state, en.x, en.y);
       }
       if (en.boss && HV.maybeChapterCompleteToast) {
         const chap = HV.maybeChapterCompleteToast(this.state, en.id);
@@ -22867,6 +23108,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
 
       if (HV.Render.drawGroundDecals) HV.Render.drawGroundDecals(ctx, this.area, camX, camY, x0, x1, t0, t1, now);
       HV.Render.drawWater(ctx, this.area, camX, camY, zw, zh, now);
+      if (HV.Render.drawDocks) HV.Render.drawDocks(ctx, this.area, camX, camY, zw, zh);
 
       const d = s.hero._derived || {};
       const canSee = HV.hasEffect(d.effects || [], 'revealCaches');
@@ -22880,6 +23122,10 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
           HV.Render.cacheMark(ctx, c.x * TILE + 16 - camX, c.y * TILE + 16 - camY, true);
         }
       });
+      if (HV.HitchRing && HV.Render.hitchRing) {
+        const ring = HV.HitchRing.pending(s, this.area && this.area.id);
+        if (ring) HV.Render.hitchRing(ctx, ring.x - camX, ring.y - camY, now);
+      }
       (this.area.herbs || []).forEach((hb) => {
         const up = HV.herbIsUp ? HV.herbIsUp(s, this.area.id, hb.x, hb.y) : !s.herbsPicked[this.area.id + ':' + hb.x + ',' + hb.y];
         if (up) HV.Render.herbMark(ctx, hb.x * TILE + 16 - camX, hb.y * TILE + 16 - camY, false, now, hb);
@@ -24353,31 +24599,31 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   };
 
   HV.COMPANIONS = [
-    { id: 'josie', name: 'Josie Fiddler', portrait: 'portrait_josie', canFollow: true, start: 20, questAt: 60, questId: 'josie_string',
+    { id: 'josie', name: 'Josie Fiddler', portrait: 'portrait_josie', canFollow: true, start: 20, questAt: 20, questId: 'josie_string',
       role: 'Fiddler of Yarrow',
       blurb: 'She keeps the porch and knows the fork. A friend who would rather play than preach.',
       home: 'yarrow_crossing' },
-    { id: 'ila', name: 'Granny Ila', portrait: 'portrait_granny_ila', start: 25, questAt: 60, questId: 'ila_book',
+    { id: 'ila', name: 'Granny Ila', portrait: 'portrait_granny_ila', start: 25, questAt: 25, questId: 'ila_book',
       role: 'Yarb woman of the spring',
       blurb: 'She wrote the letter that called you home. The marks, and the kettle, are her work.',
       home: 'ila_cabin' },
-    { id: 'mara', name: 'Widow Mara', portrait: 'portrait_widow_mara', start: 18, questAt: 60, questId: 'mara_bluff',
+    { id: 'mara', name: 'Widow Mara', portrait: 'portrait_widow_mara', start: 18, questAt: 18, questId: 'mara_bluff',
       role: 'Keeper of the porch light',
       blurb: 'Her lantern failed the night the river turned. She still watches the bluff road.',
       home: 'yarrow_crossing' },
-    { id: 'cald', name: 'Preacher Cald', portrait: 'portrait_preacher_cald', start: 16, questAt: 60, questId: 'cald_pew',
+    { id: 'cald', name: 'Preacher Cald', portrait: 'portrait_preacher_cald', start: 16, questAt: 16, questId: 'cald_pew',
       role: 'Lantern Congregation',
       blurb: 'He would rather burn a thin place shut than leave it mended with thread.',
       home: 'yarrow_crossing' },
-    { id: 'peck', name: 'Jonas Peck', portrait: 'portrait_jonas_peck', start: 10, questAt: 55, questId: 'peck_name',
+    { id: 'peck', name: 'Jonas Peck', portrait: 'portrait_jonas_peck', start: 10, questAt: 10, questId: 'peck_name',
       role: 'Bald Knobber rider',
       blurb: 'He talks like a lawman and rides like a knobber. The ridge has not forgotten him.',
       home: 'bald_knob' },
-    { id: 'wren', name: 'Sheriff Wren', portrait: null, start: 18, questAt: 60, questId: 'wren_report',
+    { id: 'wren', name: 'Sheriff Wren', portrait: null, start: 18, questAt: 18, questId: 'wren_report',
       role: 'Sheriff of Yarrow County',
       blurb: 'He wants a quiet month and will not write Howler in a report. He will believe you at the door.',
       home: 'yarrow_crossing' },
-    { id: 'cole', name: 'Ferryman Cole', portrait: null, start: 16, questAt: 60, questId: 'cole_crossing',
+    { id: 'cole', name: 'Ferryman Cole', portrait: null, start: 16, questAt: 16, questId: 'cole_crossing',
       role: 'Cable-ferry man',
       blurb: 'He will not run the Promenade after dusk, unless someone gives him a reason to.',
       home: 'ferry_crossing' },
@@ -25068,7 +25314,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     { id: 'ila_book', area: 'stillhouse_hollow', x: 24, y: 22, needQuest: 'ila_book', flag: 'ila_book_found', advance: { id: 'ila_book', to: 1 },
       toast: 'Ila\'s midwife book, the pages only a little stained.',
       item: { id: 'ila_midwife_book', name: 'The Midwife\'s Book', flavor: 'Recipes in a hand you know, lent and nearly lost in the hollow.' } },
-    { id: 'mara_wick', area: 'widows_bluff', x: 22, y: 16, needQuest: 'mara_bluff', flag: 'mara_wick_found', advance: { id: 'mara_bluff', to: 1 },
+    { id: 'mara_wick', area: 'widows_bluff', x: 28, y: 32, needQuest: 'mara_bluff', flag: 'mara_wick_found', advance: { id: 'mara_bluff', to: 1 },
       toast: 'A tin of wick and oil, still sealed, under the lip of the bluff.',
       item: { id: 'mara_bluff_wick', name: 'A Sealed Wick-Tin', flavor: 'Her late husband left it under the scored mark, for nights the porch went dark.' } },
     { id: 'nell_ribbon', area: 'drowned_shore', x: 18, y: 20, needQuest: 'cald_pew', flag: 'nell_ribbon_found', advance: { id: 'cald_pew', to: 1 },
@@ -25105,6 +25351,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     if (D.josie) {
       const start = D.josie.start;
       D.josie.start = function (s) {
+        if (HV.HitchRing && HV.HitchRing.readyToShow(s)) return start(s);
         if (HV.questDone(s, 'josie_string')) return start(s);
         if (s.flags && s.flags.josie_string_found) return 'string_pay';
         return start(s);
@@ -25179,7 +25426,11 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         choices: [{ t: 'I will climb the bluff for it.', next: null, startQuest: 'mara_bluff', approve: { mara: 6 } }] };
       D.mara.bluff_dusk = { who: 'Widow Mara', text: 'You found it. Sit a while. The wick takes a steady hand, and I have been short of one. When it is lit, this step is yours, if the road has been too long.',
         choices: [{ t: 'I will sit with you.', next: null, take: 'mara_bluff_wick', advance: { id: 'mara_bluff', to: 3 }, set: { mara_porch_open: true }, approve: { mara: 14 } }] };
-      wrap(D.mara.done, (s, c) => { addChoice(c, { t: 'You look like you have something more to ask.', next: 'bluff_ask' }, C.canOfferQuest(s, 'mara')); });
+      wrap(D.mara.done, (s, c) => {
+        if (C.canOfferQuest(s, 'mara')) {
+          c.unshift({ t: 'You look like you have something more to ask.', next: 'bluff_ask' });
+        }
+      });
     }
 
     if (D.cald && D.cald.later) {
@@ -27145,9 +27396,23 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     spook_light: [g('devil_promenade', 'Walk Devil\'s Promenade after dusk and watch the light.'), g('devil_promenade', 'Catch a piece of the light on the Promenade, then tell Ferryman Cole.')],
     congregation_lamp: [g('pine_churchyard', 'Quiet the Pine Churchyard at night and bring a hymn-book from Drowned Shore to Preacher Cald.')],
     talk_the_fire: [g('ila_cabin', 'Learn the fire charm from Ila at her cabin, then use it on Beek the smith in Yarrow.')],
-    glass_blower: [g('pine_churchyard', 'Take Len\'s witch ball to be blessed at the Pine Churchyard.')],
+    glass_blower: function (s) {
+      if (s && s.flags && s.flags.witch_ball_blessed && !HV.questDone(s, 'glass_blower')) {
+        return g('yarrow_crossing', 'Take the blessed witch ball back to Len at the inn.');
+      }
+      return g('yarrow_crossing', 'Take Len\'s witch ball to Preacher Cald in Yarrow to be blessed.');
+    },
     town_under_lake: [g('drowned_shore', 'Search the church-step at Drowned Shore for something with a name on it, then see The Sexton.')],
-    promenade_hitch: [g('devil_promenade', 'Look for the vanishing girl and her ring on Devil\'s Promenade.')],
+    promenade_hitch: function (s) {
+      if (HV.HitchRing && HV.HitchRing.readyToShow(s)) {
+        if (HV.HitchRing.josieWith(s)) return g((s.world && s.world.area) || 'yarrow_crossing', 'Show Josie the ring (tap USE while she is with you).');
+        return g('yarrow_crossing', 'Show Josie the ring in Yarrow.');
+      }
+      if (HV.HitchRing && HV.HitchRing.pending(s, 'devil_promenade')) {
+        return g('devil_promenade', 'Pick up the thin gold ring in the ditch where the Hitch faded (tap USE).');
+      }
+      return g('devil_promenade', 'Walk Devil\'s Promenade after dark, put the Hitch down, and find the ring in the ditch where she fades. Then show Josie.');
+    },
     old_christmas: [g('high_ledge', 'Cut a cedar bough on the High Ledge for Preacher Cald.')],
     bottoms_walker: [g('wisp_bottoms', 'Find the Bottoms Walker in Wisp Bottoms, then tell Cole.')],
     crossroads_letter: [g('the_crossroads', 'Dig the banjo on the west side of The Crossroads (tap USE).'), g('the_crossroads', 'Meet the Man in the Dark Hat at The Crossroads after dark.')],
