@@ -1746,6 +1746,13 @@ html[data-text] #art-card {
   height: auto;
 }
 
+/* hv47 sound row: on/off and a master volume, barnwood style, at the top of Settings */
+.settings-panel .sound-head { margin-top: 4px; }
+.settings-panel .sound-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 6px 0 2px; }
+.settings-panel .sound-row .text-size-row { flex: 0 0 150px; margin: 0; }
+.settings-panel .sound-row .sound-vol { flex: 1 1 160px; display: flex; align-items: center; gap: 8px; margin: 0; }
+.settings-panel .sound-row .sound-vol .wood-slider { flex: 1 1 auto; min-width: 0; }
+
 /* ================================================================
    THE HOLLOW VEIL: rustic menus
    Barnwood frames with iron nails, burned-in headers, plank buttons,
@@ -19506,7 +19513,10 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       const p = el('<div class="wood-panel settings-panel" style="width:min(420px,92vw);padding:20px 22px"></div>');
       const lat0 = (rhythm && rhythm.loadLatency) ? rhythm.loadLatency() : Math.round(((rhythm && rhythm.latency) || 0) * 1000);
       p.innerHTML = '<div class="settings-head"><h2>SETTINGS</h2><button class="ink-btn ghost settings-x" id="settings-x" aria-label="Close settings">Close</button></div>'
-        + '<label>Music <input id="vol-music" class="wood-slider" type="range" min="0" max="1" step="0.05"></label>'
+        + '<div class="caps sound-head">Sound</div>'
+        + '<div class="sound-row"><div id="snd-opts" class="text-size-row"></div>'
+        + '<label class="sound-vol">Volume <input id="vol-master" class="wood-slider" type="range" min="0" max="1" step="0.05"></label></div>'
+        + '<label style="display:block;margin-top:12px">Music <input id="vol-music" class="wood-slider" type="range" min="0" max="1" step="0.05"></label>'
         + '<label style="display:block;margin-top:12px">Ambience <input id="vol-amb" class="wood-slider" type="range" min="0" max="1" step="0.05"></label>'
         + '<label style="display:block;margin-top:12px">Effects <input id="vol-sfx" class="wood-slider" type="range" min="0" max="1" step="0.05"></label>'
         + '<label style="display:block;margin-top:14px">Rhythm latency <span id="latv">' + lat0 + '</span> ms'
@@ -19521,7 +19531,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         + '<div style="margin-top:16px" class="caps">Effects</div>'
         + '<p style="margin:4px 0 8px;font-size:13px;opacity:0.8">Light draws the world at a lower resolution for a smoother picture on older phones and iPads. Full is the default.</p>'
         + '<div id="fx-opts" class="text-size-row"></div>'
-        + '<div style="margin-top:14px"><button class="ink-btn" id="mute">Mute</button> <button class="ink-btn ghost" id="back">Back</button></div>'
+        + '<div style="margin-top:14px"><button class="ink-btn ghost" id="back">Back</button></div>'
         + '';
       const size0 = this.textSize || 'normal';
       const sizeBox = p.querySelector('#text-sizes');
@@ -19538,6 +19548,26 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         elv.value = val != null ? val : fallback;
         elv.addEventListener('input', () => fn && fn(+elv.value));
       };
+      bindVol('#vol-master', audio && audio.volume, handlers.volume, 0.85);
+      const sndBox = p.querySelector('#snd-opts');
+      if (sndBox) {
+        const on0 = !(audio && audio.muted);
+        [['on', 'On'], ['off', 'Off']].forEach((pair) => {
+          const b = document.createElement('button');
+          b.className = 'ink-btn text-size-btn' + ((pair[0] === 'on') === on0 ? ' gold' : ' ghost');
+          b.setAttribute('data-snd', pair[0]);
+          b.textContent = pair[1];
+          sndBox.appendChild(b);
+          b.addEventListener('click', () => {
+            if (handlers.sound) handlers.sound(pair[0] === 'on');
+            sndBox.querySelectorAll('button').forEach((x) => {
+              const on = x.getAttribute('data-snd') === pair[0];
+              x.classList.toggle('gold', on);
+              x.classList.toggle('ghost', !on);
+            });
+          });
+        });
+      }
       bindVol('#vol-music', audio && audio.musicVol, handlers.music, 0.7);
       bindVol('#vol-amb', audio && audio.ambVol, handlers.ambience, 0.62);
       bindVol('#vol-sfx', audio && audio.sfxVol, handlers.effects, 0.9);
@@ -19598,7 +19628,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
           });
         });
       }
-      p.querySelector('#mute').addEventListener('click', handlers.mute);
+      const mb = p.querySelector('#mute'); if (mb) mb.addEventListener('click', handlers.mute);
       const sx = p.querySelector('#settings-x');
       if (sx) sx.addEventListener('click', () => { const b = p.querySelector('#back'); if (b) b.click(); });
       p.querySelector('#back').addEventListener('click', handlers.back);
@@ -20808,6 +20838,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         ambience: (v) => HV.Audio.setAmbVolume && HV.Audio.setAmbVolume(v),
         effects: (v) => HV.Audio.setSfxVolume && HV.Audio.setSfxVolume(v),
         mute: () => { HV.Audio.toggleMute(); HV.UI.toast(HV.Audio.muted ? 'Muted' : 'Unmuted'); },
+        sound: (on) => { if (HV.Audio.setMuted) HV.Audio.setMuted(!on); else if (!!HV.Audio.muted === !!on) HV.Audio.toggleMute(); },
         latency: (ms) => { if (HV.Rhythm && HV.Rhythm.setLatency) HV.Rhythm.setLatency(ms); },
         textSize: (id) => {
           if (HV.UI && HV.UI.applyTextSize) HV.UI.applyTextSize(id);
@@ -21091,7 +21122,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         const coins = Math.ceil((4 + ((HV.hash(chest.id) >> 3) % 12)) * HV.COIN_BUMP);
         s.hero.gold = (s.hero.gold || 0) + coins;
         this.floater('Found ' + (loot ? loot.name : 'something') + '  +' + coins + '¢', s.world.x, s.world.y - 20, HV.RARITY[(loot && loot.rarity) || 'common'].ink);
-        HV.Audio.sfxPickup();
+        if (HV.Audio.sfxChest) HV.Audio.sfxChest(); else HV.Audio.sfxPickup();
         return;
       }
       const derived = s.hero._derived || HV.refreshDerived(s);
@@ -21105,7 +21136,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         const coins = Math.ceil((6 + ((HV.hash(cache.id) >> 2) % 16)) * HV.COIN_BUMP);
         s.hero.gold = (s.hero.gold || 0) + coins;
         this.floater('Cache: ' + (loot ? loot.name : 'odds') + '  +' + coins + '¢', s.world.x, s.world.y - 20, HV.PAL.gold);
-        HV.Audio.sfxPickup();
+        if (HV.Audio.sfxCoin) { HV.Audio.sfxPickup(); HV.Audio.sfxCoin(3); } else HV.Audio.sfxPickup();
         return;
       }
       const herb = (area.herbs || []).find((h) => near(h.x, h.y) && !s.herbsPicked[area.id + ':' + h.x + ',' + h.y]);
@@ -26669,7 +26700,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         fx.wob = 0.28;
         if (fx.hp > 0) {
           game.burst(px, py - 10, (KINDS[p.kind] || KINDS.crate).chip[0], 5, 'spark');
-          if (HV.Audio && HV.Audio.sfxHit) HV.Audio.sfxHit();
+          if (HV.Audio && HV.Audio.sfxPropHit) HV.Audio.sfxPropHit(p.kind); else if (HV.Audio && HV.Audio.sfxHit) HV.Audio.sfxHit();
           return;
         }
         B.smash(game, p);
@@ -29352,6 +29383,440 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     if (typeof window !== 'undefined') window.addEventListener('resize', () => setTimeout(TitleEye.run, 60));
   }
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ==== 35-sound47.js ==== */
+/* THE HOLLOW VEIL — hv47 immersive sound pass (extends 04-audio + 16-audio).
+   Everything is synthesized with WebAudio from the shared noise buffers: no audio files.
+   - richer ambience beds: woods crickets/katydids by day, owls and far howls by night;
+     running water; cave drips and low wind; town life; eerie churchyard and gallows;
+     a tension bed while a boss is up. Beds crossfade (16-audio) and follow day/night.
+   - weapon-typed hits, enemy hurt/death voices, surface footsteps, barnwood menu creaks,
+     smashing props, chest hinge and coins.
+   - a remembered master volume + sound on/off (localStorage HV_SOUND).
+   - iOS: starts on first tap, resumes after background/interruption, events restart.
+   Cost: one-shots are 2-6 short-lived nodes, capped by a voice limiter; beds are 6-14
+   nodes; no per-frame audio work at all. */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const A = HV.Audio;
+  if (!A) return;
+  const S = HV.Sound47 = { KEY: 'HV_SOUND', MAX_VOICES: 28, boss: false };
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const rnd = (a, b) => a + Math.random() * (b - a);
+
+  /* ================= persistence ================= */
+  const store = () => { try { return typeof localStorage !== 'undefined' ? localStorage : null; } catch (e) { return null; } };
+  S.load = function () {
+    const ls = store(); if (!ls) return null;
+    let j = null;
+    try { j = JSON.parse(ls.getItem(S.KEY) || 'null'); } catch (e) { j = null; }
+    if (!j || typeof j !== 'object') return null;
+    if (typeof j.vol === 'number') A.volume = clamp(j.vol, 0, 1);
+    if (typeof j.music === 'number') A.musicVol = clamp(j.music, 0, 1);
+    if (typeof j.amb === 'number') A.ambVol = clamp(j.amb, 0, 1);
+    if (typeof j.sfx === 'number') A.sfxVol = clamp(j.sfx, 0, 1);
+    A.muted = !!j.muted;
+    if (A._applyBusses) A._applyBusses();
+    return j;
+  };
+  S.save = function () {
+    const ls = store(); if (!ls) return;
+    try { ls.setItem(S.KEY, JSON.stringify({ vol: A.volume, music: A.musicVol, amb: A.ambVol, sfx: A.sfxVol, muted: !!A.muted })); } catch (e) { /* private mode */ }
+  };
+  ['setVolume', 'setMusicVolume', 'setAmbVolume', 'setSfxVolume', 'toggleMute'].forEach((k) => {
+    const f = A[k]; if (!f || f._s47) return;
+    A[k] = function () { const r = f.apply(this, arguments); S.save(); return r; };
+    A[k]._s47 = true;
+  });
+  A.setMuted = function (m) { if (!!A.muted !== !!m) A.toggleMute(); return A.muted; };
+  S.load();
+
+  /* ================= primitives (all take an explicit start time) ================= */
+  S._voices = [];
+  S.voiceOk = function (t) {   /* never more than MAX_VOICES one-shots alive in 0.3 s */
+    const v = S._voices; while (v.length && v[0] < t - 0.3) v.shift();
+    if (v.length >= S.MAX_VOICES) return false;
+    v.push(t); return true;
+  };
+  const ok = () => { A.init(); return !!(A.ctx && !A._hidden); };
+  const now = () => A.ctx.currentTime;
+  function env(g, t, a, peak, dur) {
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(Math.max(0.0002, peak), t + a);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  }
+  /* filtered noise grain */
+  function nz(t, dur, gain, type, f0, f1, q, dest, buf, attack) {
+    const c = A.ctx, src = c.createBufferSource();
+    src.buffer = buf || A._bufWhite;
+    const f = c.createBiquadFilter(); f.type = type || 'bandpass';
+    f.frequency.setValueAtTime(f0, t); if (f1) f.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur);
+    f.Q.value = q || 1;
+    const g = c.createGain(); env(g, t, attack || 0.004, gain, dur);
+    src.connect(f); f.connect(g); g.connect(dest || A.sfx);
+    try { src.start(t, Math.random() * Math.max(0, src.buffer.duration - dur - 0.05)); } catch (e) { src.start(t); }
+    src.stop(t + dur + 0.05);
+  }
+  /* pitched tone with a glide */
+  function tn(t, dur, gain, type, f0, f1, dest, attack) {
+    const c = A.ctx, o = c.createOscillator(); o.type = type || 'sine';
+    o.frequency.setValueAtTime(f0, t); if (f1) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    const g = c.createGain(); env(g, t, attack || 0.005, gain, dur);
+    o.connect(g); g.connect(dest || A.sfx); o.start(t); o.stop(t + dur + 0.05);
+    return o;
+  }
+  /* tone through a lowpass (warmer, distant) */
+  function tnLp(t, dur, gain, type, f0, f1, lp, dest, attack) {
+    const c = A.ctx, o = c.createOscillator(); o.type = type || 'sawtooth';
+    o.frequency.setValueAtTime(f0, t); if (f1) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = lp || 800;
+    const g = c.createGain(); env(g, t, attack || 0.01, gain, dur);
+    o.connect(f); f.connect(g); g.connect(dest || A.sfx); o.start(t); o.stop(t + dur + 0.05);
+    return o;
+  }
+  S.prim = { nz, tn, tnLp };
+
+  /* ================= weapons ================= */
+  S.weaponType = function (item) {
+    const id = (item && (item.id || item)) || '';
+    if (/carbine|rifle|gun/.test(id)) return 'gun';
+    if (/banjo|fiddle|bow/.test(id)) return 'string';
+    if (/ironwood|fang|spile|hickory/.test(id)) return 'heavy';
+    if (/dowsing|talking|survey|snakeroot/.test(id)) return 'spirit';
+    return 'wood';
+  };
+  S.heroWeapon = function () {
+    const s = HV.Game && HV.Game.state, eq = s && s.hero && s.hero.equipped;
+    return S.weaponType(eq && eq.staff);
+  };
+  S.HIT = {
+    wood(t, k) { tn(t, 0.16, 0.16 * k, 'sine', 150, 52); nz(t, 0.09, 0.12 * k, 'lowpass', 1600, 220, 0.8); nz(t, 0.05, 0.06 * k, 'bandpass', 640, 0, 4); },
+    heavy(t, k) { tn(t, 0.22, 0.2 * k, 'sine', 110, 38); nz(t, 0.12, 0.15 * k, 'lowpass', 1200, 160, 0.9, null, A._bufBrown); nz(t, 0.06, 0.07 * k, 'bandpass', 2200, 900, 1.6); },
+    gun(t, k) { nz(t, 0.06, 0.18 * k, 'highpass', 1800, 0, 0.7); tn(t, 0.12, 0.1 * k, 'sine', 160, 50); nz(t + 0.03, 0.5, 0.03 * k, 'bandpass', 900, 300, 0.8, null, A._bufPink, 0.02); },
+    string(t, k) { S.HIT.wood(t, k * 0.8); tn(t, 0.45, 0.05 * k, 'triangle', 392, 388); tn(t, 0.35, 0.025 * k, 'triangle', 588, 584); },
+    spirit(t, k) { S.HIT.wood(t, k * 0.8); tn(t, 0.32, 0.04 * k, 'sine', 880, 1320); tn(t + 0.04, 0.3, 0.025 * k, 'sine', 1320, 1760); },
+  };
+  A.sfxHit = function (type, when, crit) {
+    if (!ok()) return; const t = when != null ? when : now(); if (!S.voiceOk(t)) return;
+    const k = crit ? 1.25 : 1;
+    (S.HIT[type && S.HIT[type] ? type : S.heroWeapon()] || S.HIT.wood)(t, k);
+    if (crit) { nz(t, 0.09, 0.08, 'bandpass', 3200, 1200, 2); tn(t + 0.02, 0.14, 0.04, 'triangle', 1200, 1600); }
+  };
+  const _crit = A.sfxCrit;
+  A.sfxCrit = function () { A.sfxHit(null, null, true); };
+  A.sfxSwing = function (when) {
+    if (!ok()) return; const t = when != null ? when : now(); if (!S.voiceOk(t)) return;
+    nz(t, 0.14, 0.05, 'bandpass', 700, 2400, 1.2, null, A._bufPink, 0.03);
+  };
+
+  /* ================= enemy voices ================= */
+  S.voiceFor = function (en) {
+    const id = (en && en.id) || '', tags = (en && en.tags) || (HV.ENEMIES && HV.ENEMIES[id] && HV.ENEMIES[id].tags) || [];
+    if (/stone|construct/.test(id) || tags.indexOf('construct') >= 0) return 'stone';
+    if (/snake|cottonmouth|joint|fiddleback|lurker|creeper|fish/.test(id)) return 'hiss';
+    if (tags.indexOf('beast') >= 0) return 'beast';
+    if (tags.indexOf('haint') >= 0) return 'haint';
+    return 'man';
+  };
+  S.HURT = {
+    beast(t, big) { const b = big ? 0.6 : 1; tnLp(t, 0.22, 0.07, 'sawtooth', 340 * b, 190 * b, 1400); nz(t, 0.2, 0.04, 'bandpass', 500 * b, 300 * b, 2, null, A._bufBrown); },
+    hiss(t) { nz(t, 0.28, 0.06, 'highpass', 3800, 2600, 0.8); },
+    haint(t) { tn(t, 0.4, 0.04, 'sine', 620, 340); tn(t, 0.4, 0.03, 'sine', 633, 350); nz(t, 0.35, 0.035, 'bandpass', 1400, 500, 1.5, null, A._bufPink, 0.04); },
+    man(t) { tnLp(t, 0.16, 0.07, 'sawtooth', 190, 120, 900); nz(t, 0.12, 0.03, 'bandpass', 700, 400, 2.5, null, A._bufPink); },
+    stone(t) { nz(t, 0.18, 0.1, 'bandpass', 1800, 700, 1.2); tn(t, 0.2, 0.1, 'sine', 90, 40); nz(t + 0.05, 0.25, 0.04, 'lowpass', 900, 200, 0.8, null, A._bufBrown); },
+  };
+  S.DIE = {
+    beast(t, big) { const b = big ? 0.55 : 1; tnLp(t, 0.7, 0.08, 'sawtooth', 300 * b, 90 * b, 1100, null, 0.02); nz(t + 0.35, 0.3, 0.08, 'lowpass', 500, 120, 0.8, null, A._bufBrown); },
+    hiss(t) { nz(t, 0.6, 0.06, 'highpass', 3400, 1500, 0.8, null, null, 0.03); nz(t + 0.2, 0.2, 0.05, 'lowpass', 600, 150, 0.8, null, A._bufBrown); },
+    haint(t) { tn(t, 1.2, 0.045, 'sine', 700, 180, null, 0.04); tn(t, 1.2, 0.035, 'sine', 712, 186, null, 0.04); nz(t, 1.0, 0.04, 'bandpass', 2000, 300, 1.2, null, A._bufPink, 0.08); },
+    man(t) { tnLp(t, 0.5, 0.07, 'sawtooth', 170, 80, 800, null, 0.02); nz(t + 0.3, 0.25, 0.09, 'lowpass', 600, 120, 0.8, null, A._bufBrown); },
+    stone(t) { for (let i = 0; i < 5; i++) { nz(t + i * 0.09, 0.3, 0.07, 'bandpass', rnd(600, 1800), 300, 1.2, null, A._bufBrown); } tn(t, 0.9, 0.12, 'sine', 70, 30); },
+  };
+  A.sfxEnemyHurt = function (en, when) {
+    if (!ok()) return; const t = when != null ? when : now(); if (!S.voiceOk(t)) return;
+    (S.HURT[S.voiceFor(en)] || S.HURT.man)(t + 0.03, !!(en && en.boss));
+  };
+  A.sfxEnemyDie = function (en, when) {
+    if (!ok()) return; const t = when != null ? when : now(); if (!S.voiceOk(t)) return;
+    (S.DIE[S.voiceFor(en)] || S.DIE.man)(t + 0.04, !!(en && en.boss));
+  };
+  if (HV.Feel && HV.Feel.onStrike && !HV.Feel.onStrike._s47) {
+    const _os = HV.Feel.onStrike;
+    HV.Feel.onStrike = function (game, attacker, target, res) {
+      const r = _os.apply(this, arguments);
+      try {
+        if (game && game.state && attacker === game.state.hero && target && res && res.dmg > 0) {
+          if (res.killed) { target._s47d = true; A.sfxEnemyDie(target); } else A.sfxEnemyHurt(target);
+          if (res.crit) A.sfxCrit();
+        }
+      } catch (e) { /* sound never breaks a fight */ }
+      return r;
+    };
+    HV.Feel.onStrike._s47 = true;
+  }
+  const G = HV.Game;
+  if (G && G.onKill && !G.onKill._s47) {
+    const _ok = G.onKill;
+    G.onKill = function (en) {
+      try { if (en && !en._s47d) { en._s47d = true; A.sfxEnemyDie(en); } } catch (e) { /* ignore */ }
+      return _ok.apply(this, arguments);
+    };
+    Object.keys(_ok).forEach((k) => { G.onKill[k] = _ok[k]; });
+    G.onKill._s47 = true;
+  }
+
+  /* ================= footsteps ================= */
+  const _surf = A.surfaceFor;
+  A.surfaceFor = function (ch) {
+    const s = _surf ? _surf(ch) : 'grass';
+    const area = HV.Game && HV.Game.area;
+    if (s === 'grass' && (ch === 'c' || (area && /cave|karst/.test(area.biome || '')))) return 'stone';
+    return s;
+  };
+  S.FOOT = {
+    grass(t, k) { nz(t, 0.09, 0.03 * k, 'highpass', 2600, 0, 0.7, null, A._bufPink); tn(t, 0.06, 0.02 * k, 'sine', 120, 70); },
+    dirt(t, k) { nz(t, 0.08, 0.045 * k, 'bandpass', 900, 400, 1.0, null, A._bufBrown); nz(t + 0.01, 0.05, 0.015 * k, 'highpass', 3000, 0, 0.8); tn(t, 0.06, 0.02 * k, 'sine', 110, 60); },
+    wood(t, k) { nz(t, 0.06, 0.04 * k, 'bandpass', 420, 300, 3.0, null, A._bufBrown); tn(t, 0.09, 0.04 * k, 'triangle', 190, 150); },
+    stone(t, k) { nz(t, 0.04, 0.035 * k, 'bandpass', 2600, 1800, 2.2); tn(t, 0.05, 0.022 * k, 'sine', 150, 90); nz(t + 0.09, 0.05, 0.008 * k, 'bandpass', 2200, 0, 2.5); },
+    water(t, k) { nz(t, 0.22, 0.05 * k, 'bandpass', 1200, 380, 0.9, null, A._bufPink, 0.01); tn(t + 0.04, 0.07, 0.012 * k, 'sine', 600, 1300); },
+  };
+  A.sfxFoot = function (surface, when) {
+    if (!ok()) return;
+    const t = when != null ? when : now();
+    const gap = surface === 'water' ? 0.44 : surface === 'wood' ? 0.3 : surface === 'stone' ? 0.29 : 0.33;
+    if (when == null) { if (t - (this._footAt || 0) < gap) return; this._footAt = t; }
+    if (!S.voiceOk(t)) return;
+    (S.FOOT[surface] || S.FOOT.grass)(t, 1.6 * (0.85 + Math.random() * 0.3));
+  };
+
+  /* ================= barnwood menus ================= */
+  S.MENU = {
+    open(t) { tn(t, 0.34, 0.033, 'triangle', 300, 190, null, 0.04); tn(t + 0.05, 0.28, 0.021, 'triangle', 340, 230, null, 0.04); nz(t, 0.32, 0.03, 'bandpass', 760, 520, 7, null, A._bufPink, 0.05); nz(t + 0.3, 0.08, 0.05, 'bandpass', 300, 180, 2.4, null, A._bufBrown); tn(t + 0.3, 0.1, 0.035, 'sine', 130, 80); },
+    close(t) { tn(t, 0.18, 0.016, 'triangle', 220, 320, null, 0.03); nz(t + 0.12, 0.07, 0.055, 'bandpass', 280, 170, 2.4, null, A._bufBrown); tn(t + 0.12, 0.09, 0.04, 'sine', 120, 75); },
+    tap(t) { nz(t, 0.045, 0.065, 'bandpass', 1100, 700, 5, null, A._bufBrown); tn(t, 0.05, 0.032, 'triangle', 430, 300); },
+  };
+  ['open', 'close', 'tap'].forEach((k) => {
+    A['sfxMenu' + k[0].toUpperCase() + k.slice(1)] = function (when) {
+      if (!ok()) return; const t = when != null ? when : now(); if (!S.voiceOk(t)) return; S.MENU[k](t);
+    };
+  });
+  A.sfxUi = function () { A.sfxMenuTap(); };
+  S._menuAt = -1;
+  S.bindMenus = function () {
+    const UI = HV.UI; if (!UI || UI._s47 || typeof document === 'undefined') return;
+    UI._s47 = true;
+    const _show = UI.showOverlay, _hide = UI.hideOverlay;
+    UI.showOverlay = function (node) {
+      const was = this.overlay && !this.overlay.classList.contains('hidden');
+      const r = _show.apply(this, arguments);
+      if (!was && !(this.overlay && this.overlay.classList.contains('title-mode')) && A._unlocked) { S._menuAt = Date.now(); A.sfxMenuOpen(); }
+      return r;
+    };
+    UI.hideOverlay = function () {
+      const was = this.overlay && !this.overlay.classList.contains('hidden') && !this.overlay.classList.contains('title-mode');
+      const r = _hide.apply(this, arguments);
+      if (was && A._unlocked) A.sfxMenuClose();
+      return r;
+    };
+    let tapAt = 0;
+    document.addEventListener('pointerdown', (e) => {
+      const b = e.target && e.target.closest && e.target.closest('button, .ink-btn, [role="button"]');
+      if (!b || !A._unlocked) return;
+      if (b.closest('#touch-controls, .hud-btn, .act-btn')) return;   /* combat buttons stay quiet */
+      const n = Date.now(); if (n - tapAt < 70 || n - S._menuAt < 120) return; tapAt = n;
+      A.sfxMenuTap();
+    }, { capture: true, passive: true });
+  };
+
+  /* ================= props, chests, coins ================= */
+  S.SMASH = {
+    barrel(t) { tn(t, 0.2, 0.16, 'sine', 120, 45); for (let i = 0; i < 4; i++) nz(t + i * 0.03, 0.12, 0.08, 'bandpass', rnd(700, 1500), 300, 1.6, null, A._bufBrown); tn(t + 0.05, 0.4, 0.03, 'square', 520, 500); tn(t + 0.05, 0.35, 0.02, 'square', 790, 770); },
+    crate(t) { tn(t, 0.16, 0.14, 'sine', 140, 55); for (let i = 0; i < 5; i++) nz(t + i * 0.025 + rnd(0, 0.02), 0.06, 0.08, 'bandpass', rnd(1400, 3200), 900, 2.2); nz(t, 0.2, 0.06, 'lowpass', 1200, 200, 0.8, null, A._bufBrown); },
+    crock(t) { tn(t, 0.1, 0.1, 'sine', 200, 90); nz(t, 0.25, 0.08, 'bandpass', 3600, 2000, 1.4); for (let i = 0; i < 7; i++) tn(t + 0.02 + i * rnd(0.02, 0.05), 0.08, 0.025, 'sine', rnd(2400, 4800), 0); },
+    jug(t) { S.SMASH.crock(t); nz(t + 0.04, 0.45, 0.05, 'lowpass', 700, 250, 1.2, null, A._bufBrown, 0.03); },
+    hay(t) { tn(t, 0.14, 0.08, 'sine', 110, 60); nz(t, 0.4, 0.06, 'highpass', 2200, 0, 0.6, null, A._bufPink, 0.02); nz(t + 0.1, 0.3, 0.03, 'bandpass', 1500, 800, 0.9, null, A._bufPink); },
+  };
+  A.sfxSmash = function (kind, when) {
+    if (!ok()) return; const t = when != null ? when : now(); if (!S.voiceOk(t)) return;
+    (S.SMASH[kind] || S.SMASH.crate)(t);
+  };
+  A.sfxPropHit = function (kind, when) {
+    if (!ok()) return; const t = when != null ? when : now(); if (!S.voiceOk(t)) return;
+    if (kind === 'crock' || kind === 'jug') { tn(t, 0.09, 0.06, 'sine', 420, 300); nz(t, 0.05, 0.03, 'bandpass', 2600, 0, 3); }
+    else if (kind === 'hay') nz(t, 0.15, 0.04, 'highpass', 2000, 0, 0.6, null, A._bufPink);
+    else { nz(t, 0.07, 0.07, 'bandpass', 520, 300, 3, null, A._bufBrown); tn(t, 0.1, 0.07, 'triangle', 170, 110); }
+  };
+  A.sfxCoin = function (n, when) {
+    if (!ok()) return; const t0 = when != null ? when : now();
+    const c = clamp(n || 1, 1, 5);
+    for (let i = 0; i < c; i++) {
+      const t = t0 + i * 0.075 + rnd(0, 0.02); if (!S.voiceOk(t)) return;
+      const f = rnd(1900, 2300);
+      tn(t, 0.22, 0.03, 'sine', f, 0); tn(t, 0.18, 0.018, 'sine', f * 1.34, 0); tn(t + 0.05, 0.25, 0.02, 'sine', f * 1.5, 0);
+    }
+  };
+  A.sfxChest = function (when) {
+    if (!ok()) return; const t = when != null ? when : now(); if (!S.voiceOk(t)) return;
+    nz(t, 0.04, 0.05, 'bandpass', 2400, 0, 4);                                   /* latch */
+    tn(t + 0.06, 0.5, 0.022, 'triangle', 260, 430, null, 0.05); tn(t + 0.1, 0.45, 0.014, 'triangle', 300, 470, null, 0.05);   /* hinge */
+    nz(t + 0.06, 0.48, 0.022, 'bandpass', 800, 1300, 8, null, A._bufPink, 0.05);
+    nz(t + 0.55, 0.1, 0.07, 'bandpass', 260, 160, 2.2, null, A._bufBrown); tn(t + 0.55, 0.12, 0.05, 'sine', 110, 70);     /* lid falls back */
+    A.sfxCoin(4, t + 0.6);
+  };
+  if (HV.Breakables) {
+    HV.Breakables.sfxBreak = function (kind) { A.sfxSmash(kind); A.sfxCoin(3, (A.ctx ? A.ctx.currentTime : 0) + 0.35); };
+  }
+
+  /* ================= ambience: new beds and richer layers ================= */
+  const _bedFor = A.bedFor;
+  A.bedFor = function (areaId, isNight) {
+    if (S.boss) return 'boss';
+    if (areaId === 'pine_churchyard') return 'churchyard';
+    if (areaId === 'the_gallows') return 'gallows';
+    return _bedFor.call(this, areaId, isNight);
+  };
+  ['churchyard', 'gallows', 'boss'].forEach((k) => { if (A.BED_IDS.indexOf(k) < 0) A.BED_IDS.push(k); });
+  function loopNoise(c, out, buf, type, freq, q, gain, keep) {
+    const s = c.createBufferSource(); s.buffer = buf; s.loop = true;
+    const f = c.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+    const g = c.createGain(); g.gain.value = gain;
+    s.connect(f); f.connect(g); g.connect(out); s.start();
+    keep.nodes.push(s, f, g); keep.stoppers.push(s);
+    return { s, f, g };
+  }
+  function osc(c, out, type, freq, gain, keep) {
+    const o = c.createOscillator(); o.type = type; o.frequency.value = freq;
+    const g = c.createGain(); g.gain.value = gain;
+    o.connect(g); g.connect(out); o.start();
+    keep.nodes.push(o, g); keep.stoppers.push(o);
+    return { o, g };
+  }
+  function mod(c, param, rate, depth, keep) {
+    const o = c.createOscillator(); o.frequency.value = rate;
+    const g = c.createGain(); g.gain.value = depth;
+    o.connect(g); g.connect(param); o.start();
+    keep.nodes.push(o, g); keep.stoppers.push(o);
+  }
+  const _build = A._buildBed;
+  A._buildBed = function (kind, isNight) {
+    const c = this.ctx;
+    const graph = (kind === 'churchyard' || kind === 'gallows' || kind === 'boss')
+      ? (function () { const out = c.createGain(); out.gain.value = 0; out.connect(A.amb); return { kind: kind, night: isNight, out: out, nodes: [], layers: {}, stoppers: [] }; })()
+      : _build.call(this, kind, isNight);
+    const out = graph.out;
+    if (kind === 'woods' || kind === 'cabin' || kind === 'bottoms') {
+      /* a cricket trill: a high tone gated fast (the chirp) and slow (the phrases) */
+      const cr = osc(c, out, 'square', 4300, 0, graph);
+      const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 4300; bp.Q.value = 8;
+      cr.o.disconnect(); cr.o.connect(bp); bp.connect(cr.g); graph.nodes.push(bp);
+      cr.g.gain.value = isNight ? 0.006 : 0.004;
+      mod(c, cr.g.gain, 28, isNight ? 0.006 : 0.004, graph);
+      graph.layers.crickets = cr.g;
+    }
+    if (kind === 'cave' || kind === 'karst' || kind === 'cave_river') {
+      const w = loopNoise(c, out, A._bufPink, 'bandpass', 320, 3, 0.03, graph);   /* low wind moaning through the passage */
+      mod(c, w.f.frequency, 0.05, 120, graph); mod(c, w.g.gain, 0.08, 0.015, graph);
+    }
+    if (kind === 'churchyard') {
+      const w = loopNoise(c, out, A._bufPink, 'bandpass', 520, 0.8, 0.035, graph); mod(c, w.f.frequency, 0.07, 160, graph);
+      osc(c, out, 'sine', 220, 0.006, graph); osc(c, out, 'sine', 221.4, 0.006, graph);   /* a slow beating hum */
+      osc(c, out, 'sine', 55, 0.016, graph);
+    }
+    if (kind === 'gallows') {
+      const w = loopNoise(c, out, A._bufPink, 'bandpass', 700, 0.7, 0.05, graph); mod(c, w.f.frequency, 0.11, 300, graph); mod(c, w.g.gain, 0.05, 0.02, graph);
+      osc(c, out, 'sine', 41, 0.02, graph); osc(c, out, 'triangle', 61.7, 0.008, graph);
+    }
+    if (kind === 'boss') {
+      const d = loopNoise(c, out, A._bufBrown, 'lowpass', 180, 0.9, 0.05, graph);
+      const s1 = osc(c, out, 'sawtooth', 55, 0, graph), s2 = osc(c, out, 'sawtooth', 77.8, 0, graph);
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 260; lp.Q.value = 2;
+      [s1, s2].forEach((s) => { s.o.disconnect(); s.o.connect(lp); }); lp.connect(s1.g); s1.g.gain.value = 0.03; graph.nodes.push(lp);
+      mod(c, lp.frequency, 0.13, 90, graph);
+      const tr = osc(c, out, 'sawtooth', 220, 0.0, graph);           /* trembling strings */
+      const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 1.5;
+      tr.o.disconnect(); tr.o.connect(bp); bp.connect(tr.g); graph.nodes.push(bp);
+      tr.g.gain.value = 0.006; mod(c, tr.g.gain, 7, 0.005, graph);
+      void d;
+    }
+    /* bed trim: the 16-audio beds sat ~30 dB under the hits; lift them to sit ~12-18 dB under */
+    const trim = c.createGain(); trim.gain.value = S.TRIM[kind] || 2.5;
+    try { out.disconnect(); } catch (e) { /* fresh */ }
+    out.connect(trim); trim.connect(A.amb); graph.nodes.push(trim);
+    return graph;
+  };
+  S.TRIM = { woods: 3.6, woods_dark: 3.0, cabin: 3.0, river: 4.2, bottoms: 3.0, town: 3.6, road: 3.0, bluff: 2.6, ruins: 2.6, crossroads: 2.2,
+    cave: 1.5, karst: 2.0, cave_river: 2.2, churchyard: 1.9, gallows: 2.0, boss: 1.8 };
+
+  /* extra ambient events */
+  const amb = () => A.amb;
+  S.EV = {
+    howlFar(self, t) { const o = tnLp(t, 2.4, 0.022, 'sawtooth', 280, 0, 700, amb(), 0.5); o.frequency.setValueAtTime(280, t); o.frequency.linearRampToValueAtTime(520, t + 0.7); o.frequency.linearRampToValueAtTime(470, t + 1.8); o.frequency.linearRampToValueAtTime(330, t + 2.4); },
+    katydidDay(self, t) { for (let i = 0; i < 3; i++) tn(t + i * 0.11, 0.05, 0.012, 'square', 3600, 3300, amb()); },
+    clink(self, t) { for (let i = 0; i < 2; i++) { const ti = t + i * 0.55; tn(ti, 0.5, 0.012, 'sine', 1870, 0, amb()); tn(ti, 0.4, 0.008, 'sine', 2790, 0, amb()); nz(ti, 0.03, 0.02, 'bandpass', 3000, 0, 3, amb()); } },
+    hammer(self, t) { for (let i = 0; i < 3; i++) { nz(t + i * 0.42, 0.06, 0.03, 'bandpass', 500, 300, 3, amb(), A._bufBrown); tn(t + i * 0.42, 0.08, 0.02, 'triangle', 200, 140, amb()); } },
+    hen(self, t) { for (let i = 0; i < 3; i++) tnLp(t + i * 0.16, 0.1, 0.014, 'sawtooth', 700, 520, 1800, amb()); },
+    burble(self, t) { for (let i = 0; i < 4; i++) tn(t + i * rnd(0.04, 0.12), 0.06, 0.012, 'sine', rnd(350, 600), rnd(800, 1300), amb()); },
+    bell(self, t) { [[196, 0.03], [392, 0.014], [470, 0.01], [588, 0.008]].forEach((p) => tn(t, 4, p[1], 'sine', p[0], 0, amb(), 0.01)); },
+    crow(self, t) { for (let i = 0; i < 3; i++) tnLp(t + i * 0.36, 0.22, 0.02, 'sawtooth', 620, 480, 1400, amb(), 0.02); },
+    rope(self, t) { tn(t, 0.9, 0.018, 'triangle', 240, 190, amb(), 0.2); nz(t, 0.9, 0.014, 'bandpass', 600, 420, 9, amb(), A._bufPink, 0.25); },
+    heart(self, t) { tn(t, 0.16, 0.06, 'sine', 62, 38, amb()); tn(t + 0.26, 0.14, 0.045, 'sine', 58, 36, amb()); },
+    stab(self, t) { tnLp(t, 1.6, 0.012, 'sawtooth', 110, 104, 600, amb(), 0.4); tnLp(t, 1.6, 0.01, 'sawtooth', 155.6, 150, 600, amb(), 0.4); },
+  };
+  const _specs = A._evtSpecs;
+  A._evtSpecs = function (kind, isNight) {
+    const base = (kind === 'churchyard' || kind === 'gallows' || kind === 'boss') ? [] : _specs.call(this, kind, isNight);
+    const push = (name, min, max, fn) => base.push({ name: name, min: min, max: max, fn: fn });
+    const E = S.EV;
+    if (kind === 'woods' || kind === 'woods_dark') { if (!isNight) push('katydid', 6, 14, E.katydidDay); else push('howl', 25, 60, E.howlFar); }
+    if (kind === 'bluff' && isNight) push('howl', 30, 70, E.howlFar);
+    if (kind === 'town') { push('clink', 14, 30, E.clink); push('hammer', 18, 40, E.hammer); if (!isNight) push('hen', 16, 36, E.hen); }
+    if (kind === 'river' || kind === 'cave_river') push('burble', 3, 8, E.burble);
+    if (kind === 'churchyard') { push('bell', 30, 60, E.bell); push('crow', 12, 28, E.crow); push('wail', 14, 30, (s, t) => { tn(t, 1.8, 0.02, 'sine', 330, 294, amb(), 0.5); tn(t + 0.3, 1.6, 0.014, 'sine', 392, 349, amb(), 0.5); }); }
+    if (kind === 'gallows') { push('rope', 4, 10, E.rope); push('crow', 10, 24, E.crow); }
+    if (kind === 'boss') { push('heart', 1.0, 1.15, E.heart); push('stab', 6, 12, E.stab); }
+    return base;
+  };
+
+  /* boss tension: swap to the boss bed while a boss is alive and close */
+  S.setBoss = function (on) {
+    on = !!on; if (on === S.boss) return;
+    S.boss = on;
+    if (A._wantArea) A.setArea(A._wantArea, A._wantNight, A._wantTime);
+  };
+  S.checkBoss = function () {
+    const g = HV.Game, s = g && g.state; if (!s || !s.world) { S.setBoss(false); return; }
+    const near = (g.entities || []).some((e) => e && e.boss && e.alive && Math.hypot(e.x - s.world.x, e.y - s.world.y) < 720);
+    S.setBoss(near && (g.mode === 'play' || g.mode === 'dialogue'));
+  };
+
+  /* ================= iOS lifecycle ================= */
+  const _resume = A.resume;
+  A.resume = function () {
+    _resume.call(this);
+    if (this._live && this._unlocked) this._kickEvents();   /* event timers stop while hidden */
+  };
+  const _unlockFn = A.unlock;
+  A.unlock = function () {
+    const r = _unlockFn.apply(this, arguments);
+    if (this.ctx && this.ctx.state === 'interrupted') { try { this.ctx.resume(); } catch (e) { /* ignore */ } }
+    return r;
+  };
+  S.bindLifecycle = function () {
+    if (S._bound || typeof document === 'undefined' || typeof window === 'undefined') return;
+    S._bound = true;
+    window.addEventListener('pageshow', () => A.resume());
+    window.addEventListener('focus', () => { if (!document.hidden) A.resume(); });
+    document.addEventListener('touchstart', () => { if (A.ctx && A.ctx.state !== 'running' && !A._hidden) A.unlock(); }, { passive: true });
+    const iv = setInterval(() => { try { S.checkBoss(); } catch (e) { /* ignore */ } }, 600);
+    if (iv && iv.unref) iv.unref();
+  };
+  if (typeof document !== 'undefined') {
+    const go = () => { S.bindMenus(); S.bindLifecycle(); };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
+  }
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
