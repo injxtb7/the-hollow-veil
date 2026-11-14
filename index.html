@@ -19180,8 +19180,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
        caller asked for, capped near 8 s. Short ones like '+5¢' stay quick. */
     toastHold(text, ms) {
       const n = String(text == null ? '' : text).length;
-      const read = Math.min(8000, 1600 + 55 * n);
-      return Math.max(ms || 0, read);
+      const read = Math.min(4000, 1600 + 40 * n);
+      return Math.min(4000, Math.max(ms || 0, read));
     },
     toast(text, ms, tag) {
       if (!this.toastEl) return;
