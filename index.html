@@ -1796,6 +1796,8 @@ html[data-text] #art-card {
     paperGrain: 'rgba(244,232,208,0.04)',
   };
 
+  HV.COIN_BUMP = 1.25;
+
   HV.RARITY = {
     common:    { id: 'common',    name: 'Common',    color: '#E8DCC4', ink: '#5A4A38', rank: 0 },
     uncommon:  { id: 'uncommon',  name: 'Uncommon',  color: '#7EAE86', ink: '#1E5A36', rank: 1 },
@@ -20473,7 +20475,7 @@ html[data-text] #art-card {
         s.chestsOpened[chest.id] = true;
         const loot = HV.rollLoot({ rng: HV.rng(chest.id + s.hero.name), table: chest.table || 'chest', area: area.id });
         if (loot) s.hero.inventory.push(loot);
-        const coins = 4 + ((HV.hash(chest.id) >> 3) % 12);
+        const coins = Math.ceil((4 + ((HV.hash(chest.id) >> 3) % 12)) * HV.COIN_BUMP);
         s.hero.gold = (s.hero.gold || 0) + coins;
         this.floater('Found ' + (loot ? loot.name : 'something') + '  +' + coins + '¢', s.world.x, s.world.y - 20, HV.RARITY[(loot && loot.rarity) || 'common'].ink);
         HV.Audio.sfxPickup();
@@ -20487,7 +20489,7 @@ html[data-text] #art-card {
         const loot = HV.rollLoot({ rng: HV.rng(cache.id), table: cache.table || 'cache', area: area.id });
         if (loot) s.hero.inventory.push(loot);
         if (cache.id.indexOf('glade') >= 0 || cache.id.indexOf('oil') >= 0 || area.id === 'cedar_glade') s.flags.mara_oil = true;
-        const coins = 6 + ((HV.hash(cache.id) >> 2) % 16);
+        const coins = Math.ceil((6 + ((HV.hash(cache.id) >> 2) % 16)) * HV.COIN_BUMP);
         s.hero.gold = (s.hero.gold || 0) + coins;
         this.floater('Cache: ' + (loot ? loot.name : 'odds') + '  +' + coins + '¢', s.world.x, s.world.y - 20, HV.PAL.gold);
         HV.Audio.sfxPickup();
@@ -20895,7 +20897,8 @@ html[data-text] #art-card {
       if (this.area && this.area.id === 'cedar_glade') {
         this.state.flags.glade_kills = (this.state.flags.glade_kills || 0) + 1;
       }
-      const coins = en.gold != null ? en.gold : Math.max(1, ((en.xp || 8) >> 1));
+      /* a modest coin bump: about a quarter more than before */
+      const coins = Math.ceil((en.gold != null ? en.gold : Math.max(1, ((en.xp || 8) >> 1))) * HV.COIN_BUMP);
       this.state.hero.gold = (this.state.hero.gold || 0) + coins;
       const xp = HV.grantXp(this.state.hero, en.xp || 8);
       this.state.killCount[en.id] = (this.state.killCount[en.id] || 0) + 1;
@@ -21605,6 +21608,7 @@ html[data-text] #art-card {
           }
         }});
       });
+      if (HV.Breakables && HV.Breakables.pushSprites) HV.Breakables.pushSprites(this, sprites, camX, camY, now);
       if (HV.Followers && HV.Followers.pushSprites) HV.Followers.pushSprites(this, sprites, camX, camY, now);
       sprites.push({ y: s.world.y, z: 3, draw: () => {
         const hx = s.world.x - camX, hy = s.world.y - camY;
@@ -25760,6 +25764,467 @@ html[data-text] #art-card {
   HV.QuestTrack = { install };
   install();
 
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+
+/* ==== 25-breakables.js ==== */
+/* The Hollow Veil — smashable barrels, crates, crocks, jugs and hay bales.
+   Placed by a fixed hash per area so they sit in the same spots each visit,
+   against walls and buildings, never on a road, bridge, ford or near an exit.
+   They never block movement. ATK breaks them for coin and, sometimes, a find. */
+(function (root) {
+  const HV = root.HV = root.HV || {};
+  const TILE = 32;
+
+  const KINDS = {
+    barrel: { name: 'Barrel', hp: 2, coin: [3, 7], wood: '#7A5232', band: '#3A3A3A', chip: ['#7A5232', '#5A3A22', '#3A3A3A'] },
+    crate: { name: 'Crate', hp: 2, coin: [4, 9], wood: '#9C7A4C', chip: ['#9C7A4C', '#6E5432'] },
+    crock: { name: 'Clay crock', hp: 1, coin: [2, 6], wood: '#B07A52', chip: ['#B07A52', '#8A5A3A', '#D8C4A0'] },
+    jug: { name: 'Moonshine jug', hp: 1, coin: [3, 8], wood: '#C9B48A', chip: ['#C9B48A', '#7A5A3A'] },
+    hay: { name: 'Hay bale', hp: 2, coin: [1, 4], wood: '#C8A458', chip: ['#C8A458', '#A88438', '#E2C878'] },
+  };
+  /* Which props suit a place, and how many. */
+  const BIOME = {
+    town: { n: 9, kinds: ['barrel', 'crate', 'crock', 'hay', 'barrel', 'crate', 'barrel'] },
+    river: { n: 5, kinds: ['crate', 'barrel', 'crate'] },
+    woods: { n: 4, kinds: ['crock', 'crate', 'barrel'] },
+    bluff: { n: 3, kinds: ['crock', 'crate'] },
+    karst: { n: 5, kinds: ['crate', 'barrel', 'crock'] },
+    road: { n: 4, kinds: ['crate', 'barrel', 'hay'] },
+    bottoms: { n: 3, kinds: ['crock', 'jug'] },
+    ruins: { n: 5, kinds: ['crate', 'crock', 'barrel'] },
+    cave: { n: 5, kinds: ['crock', 'crate', 'crock'] },
+  };
+  const AREA_KINDS = {
+    stillhouse_hollow: { n: 7, kinds: ['jug', 'barrel', 'jug', 'crate'] },
+    bolin_camp: { n: 6, kinds: ['crate', 'barrel', 'crate'] },
+    lead_camp: { n: 6, kinds: ['crate', 'barrel'] },
+    ferry_crossing: { n: 6, kinds: ['crate', 'barrel', 'crate'] },
+    ila_cabin: { n: 4, kinds: ['crock', 'hay'] },
+    pine_churchyard: { n: 3, kinds: ['crock'] },
+  };
+  /* No props where a story fight or the final descent happens. */
+  const NONE = { under_karst: 1, howler_den: 1, yocum_vault: 1 };
+  const FLOOR = { '.': 1, g: 1, f: 1, c: 1 };
+  /* [x, y, kind]: storefronts and porches in Yarrow, off the road, doors left clear */
+  const CURATED = {
+    yarrow_crossing: [
+      [9, 14, 'barrel'], [8, 14, 'crate'], [15, 14, 'crock'],
+      [18, 13, 'barrel'], [24, 13, 'crate'], [25, 13, 'barrel'],
+      [34, 15, 'hay'], [40, 15, 'barrel'], [41, 15, 'crate'],
+      [43, 11, 'crock'], [15, 31, 'barrel'], [16, 31, 'crate'],
+    ],
+  };
+  const RESPAWN_SECS = 600;
+
+  function hash(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function rngFrom(seed) { let a = seed >>> 0; return function () { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+  const B = HV.Breakables = {
+    KINDS, BIOME, RESPAWN_SECS,
+    _cache: {},
+
+    layout(area) {
+      if (!area || !area.cells || NONE[area.id]) return [];
+      if (B._cache[area.id]) return B._cache[area.id];
+      const plan = AREA_KINDS[area.id] || BIOME[area.biome] || BIOME.woods;
+      const rng = rngFrom(hash('props:' + area.id));
+      const W = area.w, H = area.h;
+      const keep = [];
+      const far = (list, x, y, r) => (list || []).every((o) => o.x == null || Math.max(Math.abs(o.x - x), Math.abs(o.y - y)) > r);
+      /* the footprint, its sides, and the rows the roof hangs over; the front step row is allowed */
+      const inBldg = (x, y) => (area.buildings || []).some((b) => x >= b.x - 1 && x <= b.x + b.w && y >= b.y - 2 && y <= b.y + b.h - 1);
+      const nearBldg = (x, y) => (area.buildings || []).some((b) => x >= b.x - 2 && x <= b.x + b.w + 1 && y >= b.y - 2 && y <= b.y + b.h + 2);
+      /* towns and camps keep props out from under the dark tree canopies */
+      const lit = area.biome === 'town' || !!AREA_KINDS[area.id];
+      const spot = (x, y) => {
+        if (x < 1 || y < 1 || x >= W - 1 || y >= H - 1) return null;
+        if (!FLOOR[area.cells[y][x]]) return null;
+        if (HV.treeBlocked && HV.treeBlocked(area, x, y)) return null;
+        let solid = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const ch = HV.getTile(area, x + dx, y + dy);
+            if (ch === ',' || ch === '=' || ch === 'd' || ch === '+' || ch === '~' || ch === 'w') return null;
+            if (HV.tileSolid(ch)) solid++;
+          }
+        }
+        if (inBldg(x, y)) return null;
+        if (!far(area.exits, x, y, 4)) return null;
+        if (area.start && !far([area.start], x, y, 4)) return null;
+        if (!far(area.npcs, x, y, 2) || !far(area.chests, x, y, 2) || !far(area.caches, x, y, 2) || !far(area.herbs, x, y, 1)) return null;
+        if (!far((area.props || []).filter((p) => p.x != null), x, y, 1) || !far(area.trees, x, y, lit ? 2 : 0)) return null;
+        if (lit) {
+          for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (HV.getTile(area, x + dx, y + dy) === 'T') return null;
+        }
+        if (!far(HV.QUEST_PICKUPS && HV.QUEST_PICKUPS.filter((p) => p.area === area.id), x, y, 2)) return null;
+        return { solid };
+      };
+      /* hand-placed spots along the street, by porches and storefronts */
+      const hand = CURATED[area.id];
+      if (hand) {
+        hand.forEach((h) => {
+          if (keep.length >= plan.n) return;
+          if (spot(h[0], h[1]) && far(keep, h[0], h[1], 0)) keep.push({ id: area.id + ':bk' + keep.length, x: h[0], y: h[1], kind: h[2] });
+        });
+        if (keep.length >= Math.min(plan.n, hand.length) - 2) { B._cache[area.id] = keep; return keep; }
+        keep.length = 0;
+      }
+      const cands = [];
+      for (let y = 2; y < H - 2; y++) {
+        for (let x = 2; x < W - 2; x++) {
+          const sp = spot(x, y);
+          if (!sp) continue;
+          const solid = sp.solid;
+          const edge = Math.min(x, y, W - 1 - x, H - 1 - y) < 4 ? 2 : 0;
+          const score = (nearBldg(x, y) ? 4 : 0) + Math.min(solid, 2) - edge + rng() * 1.5;
+          if (score < 1.2) continue;
+          cands.push({ x, y, score });
+        }
+      }
+      cands.sort((a, b) => b.score - a.score);
+      const pool = cands.slice(0, Math.max(plan.n * 6, 30));
+      for (let i = 0; i < pool.length && keep.length < plan.n; i++) {
+        const j = i + Math.floor(rng() * Math.min(6, pool.length - i));
+        const c = pool[j]; pool[j] = pool[i]; pool[i] = c;
+        if (!far(keep, c.x, c.y, 2)) continue;
+        const seed = keep.length;
+        keep.push({ id: area.id + ':bk' + seed, x: c.x, y: c.y, kind: plan.kinds[Math.floor(rng() * plan.kinds.length)] });
+        /* a small cluster: one neighbour sometimes */
+        if (keep.length < plan.n && rng() < 0.45) {
+          const opts = [[1, 0], [-1, 0], [0, 1]];
+          for (let k = 0; k < opts.length; k++) {
+            const nx = c.x + opts[k][0], ny = c.y + opts[k][1];
+            if (cands.some((q) => q.x === nx && q.y === ny) && far(keep, nx, ny, 0)) {
+              keep.push({ id: area.id + ':bk' + keep.length, x: nx, y: ny, kind: plan.kinds[Math.floor(rng() * plan.kinds.length)] });
+              break;
+            }
+          }
+        }
+      }
+      B._cache[area.id] = keep;
+      return keep;
+    },
+
+    ensure(state) { state.broken = state.broken || {}; return state.broken; },
+    isBroken(state, id) { return !!(state && state.broken && state.broken[id]); },
+    live(state, area) { return B.layout(area).filter((p) => !B.isBroken(state, p.id)); },
+
+    /* on entering an area: props broken long enough ago (or on an earlier day) come back */
+    refresh(state, areaId) {
+      const br = B.ensure(state);
+      const now = state.playTime || 0, day = (state.world && state.world.day) || 1;
+      Object.keys(br).forEach((id) => {
+        if (areaId && id.indexOf(areaId + ':') !== 0) return;
+        const e = br[id];
+        if (!e || (e.day || 1) < day || now - (e.t || 0) >= RESPAWN_SECS) delete br[id];
+      });
+    },
+
+    /* What a prop gives. rng is injectable for tests. */
+    rollDrop(state, prop, area, rng) {
+      rng = rng || Math.random;
+      const k = KINDS[prop.kind] || KINDS.crate;
+      const danger = (area && area.danger) || 0;
+      const coins = k.coin[0] + Math.floor(rng() * (k.coin[1] - k.coin[0] + 1)) + danger;
+      const r = rng();
+      let item = null, tier = 'coin';
+      if (r < 0.04) {
+        item = HV.rollLoot({ rng, table: 'chest' });
+        tier = 'rare';
+      } else if (r < 0.16) {
+        const pick = prop.kind === 'jug' ? 'spirit_dram' : ['field_poultice', 'lamp_oil', 'niter_match', 'field_poultice', 'spirit_dram'][Math.floor(rng() * 5)];
+        item = HV.makeInstance(pick, rng);
+        tier = 'potion';
+      } else if (r < 0.30) {
+        const herbs = HV.HERBS || [{ id: 'yarrow', name: 'Yarrow' }];
+        const h = herbs[Math.floor(rng() * herbs.length)];
+        item = { id: h.id, herbId: h.id, name: h.name, qty: 1, rarity: 'common', flavor: 'Tucked away in a ' + k.name.toLowerCase() + '.' };
+        tier = 'herb';
+      }
+      return { coins, item, tier };
+    },
+
+    /* hit props in reach of a swing; returns how many were hit */
+    strike(game, reach) {
+      const s = game.state, area = game.area;
+      if (!s || !area) return 0;
+      const f = s.world.facing || 1;
+      let hits = 0;
+      B.live(s, area).forEach((p) => {
+        const px = p.x * TILE + 16, py = p.y * TILE + 16;
+        const dx = px - s.world.x, dy = py - s.world.y;
+        const d = Math.hypot(dx, dy);
+        if (d > reach || (dx * f < -12 && d > 30)) return;
+        hits++;
+        const fx = B._fx[p.id] = B._fx[p.id] || { hp: (KINDS[p.kind] || KINDS.crate).hp, wob: 0 };
+        fx.hp -= 1;
+        fx.wob = 0.28;
+        if (fx.hp > 0) {
+          game.burst(px, py - 10, (KINDS[p.kind] || KINDS.crate).chip[0], 5, 'spark');
+          if (HV.Audio && HV.Audio.sfxHit) HV.Audio.sfxHit();
+          return;
+        }
+        B.smash(game, p);
+      });
+      return hits;
+    },
+
+    smash(game, p, rng) {
+      const s = game.state, area = game.area;
+      const k = KINDS[p.kind] || KINDS.crate;
+      B.ensure(s)[p.id] = { t: s.playTime || 0, day: (s.world && s.world.day) || 1 };
+      delete B._fx[p.id];
+      const px = p.x * TILE + 16, py = p.y * TILE + 16;
+      const drop = B.rollDrop(s, p, area, rng);
+      s.hero.gold = (s.hero.gold || 0) + drop.coins;
+      if (drop.item) s.hero.inventory.push(drop.item);
+      s.flags = s.flags || {};
+      s.flags.props_broken = (s.flags.props_broken || 0) + 1;
+      /* splinters and dust */
+      const r = Math.random;
+      for (let i = 0; i < 16; i++) {
+        const a = -Math.PI / 2 + (r() - 0.5) * 2.6;
+        const sp = 90 + r() * 120;
+        B._chips.push({ x: px, y: py - 10, z: 0, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.4, vz: 120 + r() * 120,
+          rot: r() * 6, vr: (r() - 0.5) * 18, life: 0.9 + r() * 0.4, age: 0, col: k.chip[i % k.chip.length], w: 4 + r() * 6, h: 2.2 + r() * 2, kind: p.kind });
+      }
+      B._puffs.push({ x: px, y: py, age: 0, life: 0.5 });
+      /* drops that pop out, then fly to Lara */
+      const nCoins = Math.min(6, 2 + Math.floor(drop.coins / 3));
+      for (let i = 0; i < nCoins; i++) B._drops.push({ x: px, y: py - 6, vx: (r() - 0.5) * 120, vz: 90 + r() * 70, z: 0, age: -i * 0.03, kind: 'coin' });
+      if (drop.item) B._drops.push({ x: px, y: py - 6, vx: (r() - 0.5) * 60, vz: 140, z: 0, age: 0, kind: drop.tier });
+      game.burst(px, py - 8, k.chip[0], 10, 'spark');
+      game.shakeNow && game.shakeNow(3, 0.1);
+      const label = '+' + drop.coins + '¢' + (drop.item ? '  ' + drop.item.name : '');
+      const rar = drop.item && HV.RARITY[drop.item.rarity || 'common'];
+      game.floater(label, px, py - 34, rar && rar.rank > 0 ? rar.color : HV.PAL.gold);
+      if (drop.tier === 'rare' && HV.UI && HV.UI.toast) HV.UI.toast('Something good was in that ' + k.name.toLowerCase() + ': ' + drop.item.name + '.', 2400);
+      B.sfxBreak(p.kind);
+      return drop;
+    },
+
+    sfxBreak(kind) {
+      const A = HV.Audio;
+      if (!A || !A.tone) return;
+      try {
+        A.init && A.init();
+        if (!A.ctx) return;
+        const t = A.now ? A.now() : A.ctx.currentTime;
+        const ctx = A.ctx;
+        const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.22), ctx.sampleRate);
+        const ch = buf.getChannelData(0);
+        for (let i = 0; i < ch.length; i++) { const e = 1 - i / ch.length; ch[i] = (Math.random() * 2 - 1) * e * e * (i % 900 < 320 ? 1 : 0.35); }
+        const src = ctx.createBufferSource(); src.buffer = buf;
+        const fl = ctx.createBiquadFilter(); fl.type = 'bandpass';
+        fl.frequency.value = kind === 'crock' || kind === 'jug' ? 2600 : (kind === 'hay' ? 900 : 1300); fl.Q.value = 0.9;
+        const g = ctx.createGain(); g.gain.value = kind === 'hay' ? 0.12 : 0.22;
+        src.connect(fl); fl.connect(g); g.connect(A.sfx || ctx.destination);
+        src.start(t);
+        A.tone(kind === 'crock' || kind === 'jug' ? 880 : 150, t, 0.09, kind === 'crock' || kind === 'jug' ? 'triangle' : 'square', 0.05);
+        A.tone(660, t + 0.18, 0.06, 'sine', 0.04);
+        A.tone(990, t + 0.24, 0.08, 'sine', 0.035);
+      } catch (e) { /* no audio */ }
+    },
+
+    _fx: {}, _chips: [], _puffs: [], _drops: [],
+
+    update(game, dt) {
+      Object.keys(B._fx).forEach((id) => { const f = B._fx[id]; f.wob = Math.max(0, f.wob - dt); });
+      const g = 520;
+      B._chips = B._chips.filter((c) => {
+        c.age += dt; c.x += c.vx * dt; c.y += c.vy * dt; c.rot += c.vr * dt;
+        c.vz -= g * dt; c.z += c.vz * dt;
+        if (c.z < 0) { c.z = 0; c.vz = -c.vz * 0.3; c.vx *= 0.6; c.vy *= 0.6; c.vr *= 0.5; }
+        return c.age < c.life;
+      });
+      B._puffs = B._puffs.filter((p) => (p.age += dt) < p.life);
+      const s = game.state;
+      B._drops = B._drops.filter((d) => {
+        d.age += dt;
+        if (d.age < 0) return true;
+        if (d.age < 0.45) {
+          d.x += d.vx * dt; d.vz -= g * dt; d.z = Math.max(0, d.z + d.vz * dt);
+          if (d.z === 0 && d.vz < 0) d.vz = -d.vz * 0.35;
+        } else if (s) {
+          const tx = s.world.x, ty = s.world.y - 14;
+          const k = Math.min(1, dt * 9);
+          d.x += (tx - d.x) * k; d.y += (ty - d.y) * k; d.z *= 1 - k;
+          if (Math.hypot(tx - d.x, ty - d.y) < 8) {
+            if (!d.ding && d.kind === 'coin' && HV.Audio && HV.Audio.tone && Math.random() < 0.5) { try { HV.Audio.tone(1320, null, 0.05, 'sine', 0.03); } catch (e) { /* ignore */ } }
+            return false;
+          }
+        }
+        return d.age < 1.6;
+      });
+    },
+
+    pushSprites(game, sprites, camX, camY, now) {
+      const s = game.state, area = game.area;
+      if (!s || !area) return;
+      const ctx = game.ctx;
+      B.live(s, area).forEach((p) => {
+        const px = p.x * TILE + 16, py = p.y * TILE + 22;
+        const sx = px - camX, sy = py - camY;
+        const fx = B._fx[p.id];
+        sprites.push({ y: py, z: 2, draw: () => B.draw(ctx, sx, sy, p.kind, { wob: fx ? fx.wob : 0, cracked: fx && fx.hp < (KINDS[p.kind] || KINDS.crate).hp, seed: p.x * 7 + p.y }) });
+      });
+      if (B._chips.length || B._puffs.length || B._drops.length) {
+        sprites.push({ y: 1e9, z: 4, draw: () => B.drawFx(ctx, camX, camY) });
+      }
+    },
+
+    /* ---- clean drawings: solid shapes, soft shading, one ink outline ---- */
+    draw(ctx, x, y, kind, o) {
+      o = o || {};
+      const ink = '#1A1410';
+      const wob = o.wob ? Math.sin(o.wob * 60) * o.wob * 0.5 : 0;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = 'rgba(10,8,6,0.32)';
+      ctx.beginPath(); ctx.ellipse(0, 1, 13, 4.2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.rotate(wob);
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      const shade = (x0, x1, light, dark) => {
+        const g = ctx.createLinearGradient ? ctx.createLinearGradient(x0, 0, x1, 0) : null;
+        if (!g || typeof g.addColorStop !== 'function') return light;
+        g.addColorStop(0, light); g.addColorStop(0.45, light); g.addColorStop(1, dark);
+        return g;
+      };
+      const k = KINDS[kind] || KINDS.crate;
+      if (kind === 'barrel') {
+        ctx.beginPath();
+        ctx.moveTo(-9, -24); ctx.quadraticCurveTo(-12.5, -12, -9, 0); ctx.lineTo(9, 0); ctx.quadraticCurveTo(12.5, -12, 9, -24); ctx.closePath();
+        ctx.fillStyle = shade(-12, 12, '#8E6440', '#4E3420'); ctx.fill();
+        ctx.lineWidth = 1.6; ctx.strokeStyle = ink; ctx.stroke();
+        ctx.fillStyle = k.band;
+        [-20, -5].forEach((by) => { ctx.beginPath(); ctx.moveTo(-11.2, by - 1.6); ctx.lineTo(11.2, by - 1.6); ctx.lineTo(11.2, by + 1.6); ctx.lineTo(-11.2, by + 1.6); ctx.closePath(); ctx.fill(); });
+        ctx.fillStyle = '#6A4428';
+        ctx.beginPath(); ctx.ellipse(0, -24, 9, 2.8, 0, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 1.3; ctx.stroke();
+        ctx.strokeStyle = 'rgba(248,235,205,0.25)'; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(-6, -21); ctx.quadraticCurveTo(-8.4, -12, -6, -3); ctx.stroke();
+      } else if (kind === 'crate') {
+        ctx.fillStyle = shade(-12, 12, '#B08A58', '#6E5432');
+        ctx.beginPath(); ctx.rect(-11, -21, 22, 21); ctx.fill();
+        ctx.lineWidth = 1.6; ctx.strokeStyle = ink; ctx.stroke();
+        ctx.fillStyle = '#C8A26C';
+        ctx.beginPath(); ctx.moveTo(-11, -21); ctx.lineTo(-7, -25); ctx.lineTo(15, -25); ctx.lineTo(11, -21); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#5E4428';
+        ctx.beginPath(); ctx.moveTo(11, -21); ctx.lineTo(15, -25); ctx.lineTo(15, -4); ctx.lineTo(11, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = 'rgba(40,28,16,0.55)'; ctx.lineWidth = 2.2;
+        ctx.beginPath(); ctx.moveTo(-9, -19); ctx.lineTo(9, -2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(248,235,205,0.22)'; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(-9.5, -19.5); ctx.lineTo(-9.5, -2); ctx.stroke();
+      } else if (kind === 'crock' || kind === 'jug') {
+        const jug = kind === 'jug';
+        ctx.beginPath();
+        if (jug) {
+          ctx.moveTo(-3, -24); ctx.lineTo(-3, -20); ctx.quadraticCurveTo(-11, -17, -10, -8); ctx.quadraticCurveTo(-9, 0, 0, 0); ctx.quadraticCurveTo(9, 0, 10, -8); ctx.quadraticCurveTo(11, -17, 3, -20); ctx.lineTo(3, -24); ctx.closePath();
+        } else {
+          ctx.moveTo(-6, -19); ctx.quadraticCurveTo(-12, -14, -10, -6); ctx.quadraticCurveTo(-8, 0, 0, 0); ctx.quadraticCurveTo(8, 0, 10, -6); ctx.quadraticCurveTo(12, -14, 6, -19); ctx.closePath();
+        }
+        ctx.fillStyle = jug ? shade(-11, 11, '#D8C49A', '#8E7A58') : shade(-11, 11, '#C08A5E', '#7A4E30');
+        ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = ink; ctx.stroke();
+        if (jug) {
+          ctx.fillStyle = '#6A4A2E'; ctx.beginPath(); ctx.ellipse(0, -9, 10.2, 3.4, 0, 0, Math.PI); ctx.fill();
+          ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(6.5, -17, 3.6, -1.4, 1.2); ctx.stroke();
+          ctx.fillStyle = '#8A6A44'; ctx.beginPath(); ctx.rect(-2.4, -27, 4.8, 3.4); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = '#F2E6CC'; ctx.font = 'bold 6px Georgia, serif'; ctx.textAlign = 'center'; ctx.fillText('XXX', 0, -11);
+        } else {
+          ctx.fillStyle = '#5A3A24'; ctx.beginPath(); ctx.ellipse(0, -19, 6, 2, 0, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 1.2; ctx.stroke();
+          ctx.strokeStyle = 'rgba(60,36,20,0.5)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-10, -11); ctx.quadraticCurveTo(0, -8.5, 10, -11); ctx.stroke();
+        }
+        ctx.strokeStyle = 'rgba(255,245,225,0.32)'; ctx.lineWidth = 1.8;
+        ctx.beginPath(); ctx.moveTo(-6.5, -15); ctx.quadraticCurveTo(-8, -9, -5.5, -4); ctx.stroke();
+      } else if (kind === 'hay') {
+        ctx.fillStyle = shade(-14, 14, '#D8B868', '#9A7A34');
+        ctx.beginPath(); ctx.moveTo(-14, -17); ctx.quadraticCurveTo(-15, -8, -14, 0); ctx.lineTo(14, 0); ctx.quadraticCurveTo(15, -8, 14, -17); ctx.quadraticCurveTo(0, -20, -14, -17); ctx.closePath();
+        ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = ink; ctx.stroke();
+        ctx.fillStyle = '#E6CC84'; ctx.beginPath(); ctx.ellipse(0, -17.5, 14, 3.2, 0, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 1.2; ctx.stroke();
+        ctx.fillStyle = '#6A4A2A';
+        [-6, 6].forEach((bx) => { ctx.beginPath(); ctx.rect(bx - 1.2, -20, 2.4, 20); ctx.fill(); });
+      }
+      if (o.cracked) {
+        ctx.strokeStyle = 'rgba(26,20,16,0.85)'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(-2, -18); ctx.lineTo(1, -12); ctx.lineTo(-1, -8); ctx.lineTo(2, -3); ctx.stroke();
+      }
+      ctx.restore();
+    },
+
+    drawFx(ctx, camX, camY) {
+      ctx.save();
+      B._puffs.forEach((p) => {
+        const a = 1 - p.age / p.life;
+        ctx.fillStyle = 'rgba(200,184,150,' + (0.35 * a).toFixed(3) + ')';
+        ctx.beginPath(); ctx.ellipse(p.x - camX, p.y - camY - 6, 10 + p.age * 50, 5 + p.age * 20, 0, 0, Math.PI * 2); ctx.fill();
+      });
+      B._chips.forEach((c) => {
+        const a = Math.min(1, (c.life - c.age) / 0.25);
+        ctx.globalAlpha = a;
+        ctx.save();
+        ctx.translate(c.x - camX, c.y - camY - c.z);
+        ctx.rotate(c.rot);
+        ctx.fillStyle = c.col; ctx.strokeStyle = '#1A1410'; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.rect(-c.w / 2, -c.h / 2, c.w, c.h); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      });
+      ctx.globalAlpha = 1;
+      B._drops.forEach((d) => {
+        if (d.age < 0) return;
+        const x = d.x - camX, y = d.y - camY - d.z;
+        ctx.strokeStyle = '#1A1410'; ctx.lineWidth = 1;
+        if (d.kind === 'coin') {
+          ctx.fillStyle = '#E8C547';
+          ctx.beginPath(); ctx.ellipse(x, y, 4.4 * Math.abs(Math.cos(d.age * 9)) + 1, 4.4, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        } else {
+          const col = d.kind === 'herb' ? '#7EAE86' : (d.kind === 'rare' ? '#E07B39' : '#B8E0C8');
+          ctx.fillStyle = 'rgba(255,240,200,0.35)'; ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = col;
+          if (d.kind === 'herb') { ctx.beginPath(); ctx.ellipse(x - 2, y, 2.4, 5, -0.5, 0, Math.PI * 2); ctx.ellipse(x + 2, y, 2.4, 5, 0.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+          else { ctx.beginPath(); ctx.moveTo(x - 1.6, y - 6); ctx.lineTo(x + 1.6, y - 6); ctx.lineTo(x + 1.6, y - 3); ctx.quadraticCurveTo(x + 5, y - 1, x + 4.4, y + 4); ctx.lineTo(x - 4.4, y + 4); ctx.quadraticCurveTo(x - 5, y - 1, x - 1.6, y - 3); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+        }
+      });
+      ctx.restore();
+    },
+
+    install() {
+      const G = HV.Game;
+      if (!G || G._bkInstalled) return;
+      G._bkInstalled = true;
+      const _atk = G.attack;
+      G.attack = function () {
+        const s = this.state;
+        if (s && this.area && this.atkCd <= 0) {
+          /* with no foe close, turn to face the nearest prop so a tap hits it */
+          const foeNear = (this.entities || []).some((en) => en.alive && Math.hypot(en.x - s.world.x, en.y - s.world.y) < 70);
+          if (!foeNear) {
+            let best = null, bd = 60;
+            B.live(s, this.area).forEach((p) => { const d = Math.hypot(p.x * TILE + 16 - s.world.x, p.y * TILE + 16 - s.world.y); if (d < bd) { bd = d; best = p; } });
+            if (best) { const dx = best.x * TILE + 16 - s.world.x; if (Math.abs(dx) > 2) s.world.facing = dx > 0 ? 1 : -1; s.world.facingAng = Math.atan2(best.y * TILE + 16 - s.world.y, dx); }
+          }
+        }
+        const before = this.atkCd;
+        const ret = _atk.apply(this, arguments);
+        if (this.atkCd > 0 && before <= 0) B.strike(this, 58);
+        return ret;
+      };
+      const _tick = G.tick;
+      G.tick = function (dt) {
+        const r = _tick.apply(this, arguments);
+        B.update(this, typeof dt === 'number' ? dt : 1 / 60);
+        return r;
+      };
+      const _enter = G.enterArea;
+      G.enterArea = function (id) {
+        if (this.state) B.refresh(this.state, id);
+        B._fx = {}; B._chips = []; B._puffs = []; B._drops = [];
+        return _enter.apply(this, arguments);
+      };
+    },
+  };
+
+  B.install();
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
