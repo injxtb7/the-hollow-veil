@@ -855,6 +855,11 @@ html[data-text] #art-card {
   box-shadow: 2px 2px 0 #1A1410;
 }
 .hv-card.main { background: #EADBB8; }
+.hv-card[data-track] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.hv-card[data-track]:active { transform: translateY(1px); }
+.hv-card.main[data-track] { box-shadow: inset 0 0 0 2px #B8862E; }
+.hv-tag.hv-tag-follow { color: #8A5A10; border: 1px solid #B8862E; padding: 0 4px; border-radius: 3px; }
+.hv-track-cta { font-style: italic; opacity: .8; }
 .hv-card.locked { opacity: 0.72; }
 .hv-person, .hv-beast { display: flex; gap: 10px; align-items: flex-start; }
 .hv-card.hv-lore {
@@ -13300,6 +13305,233 @@ html[data-text] #art-card {
     'churchyard_wight', 'drowned_kin', 'mine_wight', 'survey_lost', 'gallows_shade', 'castle_keeper', 'hitch_girl', 'hag'].forEach((id) => {
     Rrich[id] = (ctx, x, y, opts) => person(ctx, x, y, opts || {}, P[id]);
   });
+
+  /* -------- companions: hero-quality followers, same polish as Lara -------- */
+  function star5(ctx, x, y, r, fill) {
+    const pts = [];
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + i * Math.PI / 5;
+      const rr = i % 2 ? r * 0.45 : r;
+      pts.push([x + Math.cos(a) * rr, y + Math.sin(a) * rr, 1]);
+    }
+    flat(ctx, pts, fill, 0.7);
+  }
+  function compBegin(ctx, x, y, opts) {
+    const scale = opts.scale || 0.85;
+    const f = opts.facing >= 0 ? 1 : -1;
+    const t = opts.t || 0;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(f * scale, scale);
+    const walk = opts.walk ? Math.sin(t * 9) : Math.sin(t * 1.4) * 0.12;
+    const breath = Math.sin(t * 1.7) * 0.5;
+    ctx.translate(0, breath * 0.35 + (opts.walk ? Math.abs(walk) * -0.8 : 0));
+    return { t: t, walk: walk, sway: Math.sin(t * 2.1) * 0.8 + walk * 0.9 };
+  }
+  function boots(ctx, a, col, h) {
+    const bL = -4.6 - a.walk * 2.4, bR = 4.4 + a.walk * 2.4;
+    const top = h == null ? 16.5 : h;
+    flat(ctx, [[bL - 1.3, top, 1], [bL - 2.4, 23.2, 1], [bL + 3.0, 23.2, 1], [bL + 1.6, top, 1]], col, 1.3);
+    flat(ctx, [[bR - 1.6, top, 1], [bR - 1.0, 23.2, 1], [bR + 3.4, 23.2, 1], [bR + 1.6, top, 1]], col, 1.3);
+    return [bL, bR];
+  }
+  function legs(ctx, b, col, hip) {
+    const y0 = hip == null ? 8 : hip;
+    flat(ctx, [[-4.9, y0, 1], [b[0] - 0.8, 17, 1], [b[0] + 1.5, 17, 1], [-1.8, y0, 1]], col, 1.2);
+    flat(ctx, [[1.8, y0, 1], [b[1] - 0.6, 17, 1], [b[1] + 1.7, 17, 1], [4.9, y0, 1]], col, 1.2);
+  }
+
+  Object.assign(Rrich, {
+    /* Josie Fiddler: rust dress, green shawl, auburn hair over the face, fiddle and bow */
+    comp_josie(ctx, x, y, opts) {
+      opts = opts || {};
+      const pal = PAL(), ink = pal.ink;
+      const a = compBegin(ctx, x, y, opts);
+      const play = !!opts.playing || (!opts.walk && !opts.follower);
+      if (play) glow(ctx, 2, -14, 22, 'rgba(232,197,71,0.8)', 0.22);
+      shadow(ctx, 0, 23.5, 11, 3.0);
+      const b = boots(ctx, a, '#2A1C14', 15.5);
+      /* skirt */
+      const skirt = [[-5.6, -2], [5.6, -2], [8.4, 6], [10.4 + a.sway, 16.6, 1], [4, 18], [0, 17.2], [-4, 18], [-10.4 - a.sway, 16.6, 1], [-8.4, 6]];
+      shape(ctx, skirt, '#E08A50', '#7A3214', 1.7);
+      ctx.save(); ctx.beginPath(); blob(ctx, skirt); ctx.clip();
+      ctx.fillStyle = 'rgba(60,20,8,0.28)';
+      ctx.beginPath(); blob(ctx, [[1, 0], [3.6, 8], [4.6, 18], [1.6, 18], [0.4, 8]]); ctx.fill();
+      ctx.beginPath(); blob(ctx, [[-4, 2], [-5.6, 10], [-7.4, 18], [-5, 18], [-3.4, 9]]); ctx.fill();
+      ctx.restore();
+      rim(ctx, [[-6.4, 2], [-8.6, 9], [-9.4, 15]], 'rgba(248,220,180,0.32)', 1.1);
+      /* bodice */
+      shape(ctx, [[-4.6, -14], [0, -15.6], [4.8, -14], [5.8, -6], [5.4, -1.2, 1], [-5.4, -1.2, 1], [-5.8, -6]], '#C86A34', '#6A2A10', 1.5);
+      flat(ctx, [[-5.6, -2.6, 1], [5.6, -2.6, 1], [5.8, -0.6, 1], [-5.8, -0.6, 1]], '#3A2418', 1.0);
+      /* shawl */
+      shape(ctx, [[-7.8, -12.6], [0, -15.2], [7.8, -12.6], [6.2, -7.4], [0.4, -3.2, 1], [-6.2, -7.4]], '#4E6E58', '#1C2E24', 1.4);
+      flat(ctx, [[0.4, -3.6, 1], [-0.8, 1.6, 1], [0.6, 1.4, 1], [1.4, 1.8, 1], [1.4, -3.4, 1]], '#3E5A48', 0.8);
+      rim(ctx, [[-6.6, -11.6], [-2, -14], [3, -14.2]], 'rgba(220,236,214,0.3)', 1.0);
+      /* arms + instrument */
+      if (play) {
+        /* fiddle tucked under the chin, bow arm sawing */
+        limb(ctx, [-5.2, -12], [-8.4, -6], [-4.2, -11.2], 2.2, 1.6, '#C86A34', '#6A2A10', 1.2);
+        PROP.fiddle(ctx, -2.6, -11.4, -1.05);
+        const saw = Math.sin(a.t * 7) * 2.2;
+        limb(ctx, [5.2, -12], [9.6, -6 + saw * 0.3], [8.4 + saw, -9.6], 2.2, 1.6, '#C86A34', '#6A2A10', 1.2);
+        fillPath(ctx, () => { ctx.ellipse(8.4 + saw, -9.4, 1.7, 1.6, 0, 0, Math.PI * 2); }, SKIN, ink, 1);
+        flat(ctx, [[8.2 + saw, -9.6, 1], [-6 + saw, -17, 1], [-5.6 + saw, -17.8, 1], [8.8 + saw, -10.4, 1]], '#3A2A1C', 0.8);
+        const n = (a.t * 1.3) % 1;
+        ctx.save(); ctx.globalAlpha *= 1 - n;
+        flat(ctx, [[-10, -22 - n * 10], [-8.6, -23 - n * 10], [-8.6, -27 - n * 10, 1], [-8, -27 - n * 10, 1], [-8, -22.6 - n * 10], [-9.4, -21 - n * 10]], '#F4E8D0', 0.6);
+        ctx.restore();
+      } else {
+        const sw = a.walk * 1.6;
+        limb(ctx, [-5.2, -12], [-8.2, -4 - sw * 0.4], [-8.2 - sw, 3], 2.2, 1.6, '#C86A34', '#6A2A10', 1.2);
+        ctx.save(); ctx.translate(-8.6 - sw, 4.6); ctx.rotate(0.35 + sw * 0.05);
+        PROP.fiddle(ctx, 0, 3, 0);
+        ctx.restore();
+        limb(ctx, [5.2, -12], [8.2, -4 + sw * 0.4], [8.0 + sw, 3], 2.2, 1.6, '#C86A34', '#6A2A10', 1.2);
+        fillPath(ctx, () => { ctx.ellipse(8.0 + sw, 3.6, 1.7, 1.6, 0, 0, Math.PI * 2); }, SKIN, ink, 1);
+        flat(ctx, [[8.0 + sw, 3.4, 1], [10.6 + sw, -10, 1], [11.4 + sw, -9.8, 1], [8.8 + sw, 3.8, 1]], '#3A2A1C', 0.8);
+      }
+      /* hair: auburn locks over the face, to the waist */
+      const hair = '#7A3A1C', hairD = '#3A160A';
+      shape(ctx, [[-7.8, -21], [-7.6, -28], [0, -32.4], [7.8, -28.4], [8.2, -20], [6.2, -12.4], [3.2, -10.4], [0, -9.4], [-3.6, -10.8], [-6.8, -13.6]], '#9A4E28', hairD, 1.3);
+      shape(ctx, [[-1.8, -30.4], [0.4, -20], [0.8, -11.6], [2.6, -12.4], [1.6, -22], [0.2, -31]], '#B0603A', '#7A3A1C', 0.9);
+      shape(ctx, [[-6.4, -18], [-9.6, -12], [-9.2, -6], [-7.2, -4.6, 1], [-6.6, -9], [-3.4, -15]], hair, hairD, 1.2);
+      shape(ctx, [[6.2, -17], [9.6, -11], [9.0, -5.6], [7.0, -4.2, 1], [6.8, -8.6], [3.6, -15]], hair, hairD, 1.2);
+      /* green kerchief tied over the crown */
+      shape(ctx, [[-7.8, -24.6], [-6.4, -30.4], [0, -33.2], [6.6, -30.6], [8.0, -24.8], [4, -27.4], [0, -28.2], [-4, -27.4]], '#5E8068', '#24382C', 1.2);
+      flat(ctx, [[7.4, -26, 1], [11.4, -23.6, 1], [10.4, -21.4, 1], [7.6, -24, 1]], '#4E6E58', 0.9);
+      flat(ctx, [[-1.8, -10.2], [0.4, -8.4], [2.6, -10.0], [0.4, -9.2]], SKIN, 0.85);
+      rim(ctx, [[-4.6, -30], [0, -32.2], [4.6, -30.4]], 'rgba(220,240,220,0.35)', 1.0);
+      ctx.restore();
+    },
+
+    /* Sheriff Wren: slate duster, star, gun belt, wide brim — face in the brim's shade */
+    comp_wren(ctx, x, y, opts) {
+      opts = opts || {};
+      const pal = PAL(), ink = pal.ink;
+      const a = compBegin(ctx, x, y, opts);
+      const firing = !!opts.firing;
+      shadow(ctx, 0, 23.5, 11.5, 3.1);
+      const b = boots(ctx, a, '#1A1410');
+      legs(ctx, b, '#3A342E');
+      /* vest and shirt */
+      shape(ctx, [[-4.6, -14], [0, -15.4], [4.6, -14], [5.4, -2], [4.8, 8, 1], [-4.8, 8, 1], [-5.4, -2]], '#5A4636', '#2A1C14', 1.4);
+      flat(ctx, [[-1.4, -15, 1], [1.4, -15, 1], [0.8, -8, 1], [-0.8, -8, 1]], '#D8CCB4', 0.9);
+      fillPath(ctx, () => { ctx.arc(0, -5, 0.6, 0, Math.PI * 2); ctx.arc(0, -1.6, 0.6, 0, Math.PI * 2); }, '#C8B060', false);
+      /* gun belt and holster */
+      flat(ctx, [[-6, 3.4, 1], [6, 3.4, 1], [6, 5.8, 1], [-6, 5.8, 1]], '#2A1C14', 1.0);
+      flat(ctx, [[-0.9, 3.1, 1], [0.9, 3.1, 1], [0.9, 6.1, 1], [-0.9, 6.1, 1]], '#C8A050', 0.8);
+      if (!firing) flat(ctx, [[4.6, 4.6, 1], [7.8, 4.6, 1], [7.2, 12, 1], [5.2, 12, 1]], '#4A2E1C', 1.0);
+      /* open duster, two panels */
+      const flap = Math.sin(a.t * 2.0) * 0.9 + a.walk * 1.2;
+      const L = [[-5.2, -15.4], [-11.4, -11], [-12.6, 0], [-12.2 - flap, 16.4, 1], [-7.6, 15.6], [-5.4, 12], [-4.8, -4]];
+      const R = [[5.2, -15.4], [11.4, -11], [12.6, 0], [12.2 + flap, 16.4, 1], [7.6, 15.6], [5.4, 12], [4.8, -4]];
+      shape(ctx, L, '#6E8296', '#26323E', 1.8);
+      shape(ctx, R, '#6E8296', '#26323E', 1.8);
+      flat(ctx, [[-5.4, -15.2], [-8.4, -12.6], [-5.6, -6.4, 1], [-4.4, -12]], '#4E6276', 1.0);
+      flat(ctx, [[5.4, -15.2], [8.4, -12.6], [5.6, -6.4, 1], [4.4, -12]], '#4E6276', 1.0);
+      rim(ctx, [[-7.6, -9], [-11, 2], [-10.6, 14]], 'rgba(214,226,236,0.32)', 1.1);
+      rim(ctx, [[8.0, -9], [11, 2], [10.6, 14]], 'rgba(214,226,236,0.22)', 1.0);
+      star5(ctx, -6.4, -8.6, 2.2, '#E8C547');
+      /* arms */
+      limb(ctx, [-6, -12], [-10.4, -4], [-9.4, 4], 2.4, 1.8, '#6E8296', '#26323E', 1.25);
+      fillPath(ctx, () => { ctx.ellipse(-9.4, 4.8, 1.8, 1.7, 0, 0, Math.PI * 2); }, SKIN, ink, 1);
+      if (firing) {
+        limb(ctx, [6, -12], [11, -10.4], [16.6, -9.6], 2.4, 1.8, '#6E8296', '#26323E', 1.25);
+        fillPath(ctx, () => { ctx.ellipse(16.8, -9.4, 1.8, 1.7, 0, 0, Math.PI * 2); }, SKIN, ink, 1);
+        flat(ctx, [[16.4, -8, 1], [15.8, -10.4, 1], [24, -11.2, 1], [24, -9.8, 1], [18, -9.0, 1], [17.6, -7, 1]], '#2A2420', 0.9);
+        glow(ctx, 25.4, -10.6, 7, 'rgba(232,197,71,0.95)', 0.8);
+      } else {
+        limb(ctx, [6, -12], [10.4, -4], [8.8, 3.6], 2.4, 1.8, '#6E8296', '#26323E', 1.25);
+        fillPath(ctx, () => { ctx.ellipse(8.8, 4.4, 1.8, 1.7, 0, 0, Math.PI * 2); }, SKIN, ink, 1);
+      }
+      /* head under the hat, beard, no eyes: lighter skin and a soft light under the brim so the face reads */
+      const WSK = '#DCC4A6', WSK_D = '#A88C70';
+      const hg = grad(ctx, 'r', -1.4, -21.5, 0.4, 0, -21, 7);
+      if (hg) { hg.addColorStop(0, WSK); hg.addColorStop(1, WSK_D); }
+      fillGrad(ctx, () => { ctx.ellipse(0, -21, 5.0, 5.8, 0, 0, Math.PI * 2); }, hg, WSK, ink, 1.2);
+      ctx.save(); ctx.beginPath(); ctx.ellipse(0, -21, 5.0, 5.8, 0, 0, Math.PI * 2); ctx.clip();
+      ctx.fillStyle = 'rgba(40,26,16,0.30)'; ctx.beginPath(); ctx.ellipse(0, -25.2, 6.6, 2.8, 0, 0, Math.PI * 2); ctx.fill();
+      const gl = grad(ctx, 'r', -0.6, -20.4, 0.2, -0.6, -20.4, 4.2);
+      if (gl) { gl.addColorStop(0, 'rgba(255,236,206,0.55)'); gl.addColorStop(1, 'rgba(255,236,206,0)'); ctx.fillStyle = gl; ctx.beginPath(); ctx.ellipse(-0.6, -20.4, 4.2, 3.2, 0, 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = 'rgba(120,86,60,0.45)'; ctx.beginPath(); ctx.ellipse(0.6, -19.6, 0.9, 1.4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      shape(ctx, [[-4.9, -19.4], [-4.4, -16.2], [0, -13.6], [4.4, -16.2], [4.9, -19.4], [2.4, -18.4], [0, -18.9], [-2.4, -18.4]], '#7E6652', '#2E2218', 1.05);
+      /* wide brim hat with a pinched crown */
+      flat(ctx, [[-12, -26.2], [0, -28.6], [12, -26.2], [10, -24.4], [0, -25], [-10, -24.4]], '#2A2018', 1.3);
+      shape(ctx, [[-5.2, -27, 1], [-5, -33], [-1.6, -34.6], [0, -33.4], [1.6, -34.6], [5, -33], [5.2, -27, 1]], '#4A3A2C', '#1A1410', 1.3);
+      flat(ctx, [[-5.2, -28.6, 1], [5.2, -28.6, 1], [5.2, -27.2, 1], [-5.2, -27.2, 1]], '#6A4A30', 0.8);
+      rim(ctx, [[-10, -26.6], [-4, -28], [3, -28.2]], 'rgba(232,220,192,0.28)', 1.0);
+      ctx.restore();
+    },
+
+    /* Ferryman Cole: canvas coat, rolled sleeves, grey beard, slouch hat, ferry pole */
+    comp_cole(ctx, x, y, opts) {
+      opts = opts || {};
+      const pal = PAL(), ink = pal.ink;
+      const a = compBegin(ctx, x, y, opts);
+      const sweep = !!opts.sweeping;
+      shadow(ctx, 0, 23.5, 11.5, 3.1);
+      /* pole behind the body when carried */
+      const poleBack = () => {
+        if (sweep) return;
+        flat(ctx, [[9.2, 22, 1], [10.4, -40, 1], [12, -40, 1], [10.8, 22, 1]], '#7A5A3A', 0.9);
+        flat(ctx, [[10.2, -40, 1], [9.2, -44, 1], [12.6, -45, 1], [12.2, -40, 1]], '#5A5550', 0.9);
+      };
+      poleBack();
+      const b = boots(ctx, a, '#2A2018');
+      legs(ctx, b, '#4A4238');
+      flat(ctx, [[b[0] - 1.8, 15.2, 1], [b[0] + 2.2, 15.2, 1], [b[0] + 2.2, 17, 1], [b[0] - 1.8, 17, 1]], '#6A6058', 0.8);
+      flat(ctx, [[b[1] - 1.4, 15.2, 1], [b[1] + 2.4, 15.2, 1], [b[1] + 2.4, 17, 1], [b[1] - 1.4, 17, 1]], '#6A6058', 0.8);
+      /* coat */
+      const flap = a.walk * 1.0;
+      const coat = [[-5, -15.4], [0, -16.6], [5.2, -15.4], [9.6, -9], [9.8, 2], [9.2 + flap, 11, 1], [3, 11.6], [0, 6, 1], [-3, 11.6], [-9.2 - flap, 11, 1], [-9.8, 2], [-9.6, -9]];
+      shape(ctx, coat, '#8A6A4A', '#3A2818', 1.8);
+      flat(ctx, [[-2.6, -15.4, 1], [2.6, -15.4, 1], [1.4, 4, 1], [0, 6, 1], [-1.4, 4, 1]], '#C4B89E', 1.0);
+      flat(ctx, [[-2.4, -14.4, 1], [-1.4, -14.4, 1], [-1.0, 4, 1], [-2.0, 4, 1]], '#3A2818', 0);
+      flat(ctx, [[1.4, -14.4, 1], [2.4, -14.4, 1], [2.0, 4, 1], [1.0, 4, 1]], '#3A2818', 0);
+      ctx.save(); ctx.beginPath(); blob(ctx, coat); ctx.clip();
+      ctx.fillStyle = 'rgba(30,18,8,0.26)';
+      ctx.beginPath(); blob(ctx, [[5, -10], [8.4, 0], [7.6, 11], [5, 11], [5.6, 0]]); ctx.fill();
+      ctx.restore();
+      rim(ctx, [[-6.4, -12], [-9, -2], [-8.8, 9]], 'rgba(240,220,190,0.3)', 1.1);
+      /* rope coil on the hip */
+      fillPath(ctx, () => { ctx.ellipse(-8.6, 6.4, 3.2, 2.6, 0.2, 0, Math.PI * 2); }, null, '#C8B07A', 1.6);
+      fillPath(ctx, () => { ctx.ellipse(-8.6, 6.4, 3.2, 2.6, 0.2, 0, Math.PI * 2); }, null, ink, 0.5);
+      /* arms: coat sleeve to the elbow, bare forearm */
+      limb(ctx, [-6.6, -12], [-10.4, -6], [-10.8, -2], 2.6, 2.2, '#8A6A4A', '#3A2818', 1.25);
+      limb(ctx, [-10.8, -2.6], [-10.6, 1], [-9.8, 3.6], 1.9, 1.6, SKIN, SKIN_D, 1.1);
+      fillPath(ctx, () => { ctx.ellipse(-9.8, 4.4, 1.9, 1.8, 0, 0, Math.PI * 2); }, SKIN, ink, 1);
+      if (sweep) {
+        limb(ctx, [6.6, -12], [11, -9], [13.4, -6.4], 2.6, 2.2, '#8A6A4A', '#3A2818', 1.25);
+        limb(ctx, [13, -6.8], [15.4, -5], [17.4, -4.6], 1.9, 1.6, SKIN, SKIN_D, 1.1);
+        fillPath(ctx, () => { ctx.ellipse(17.8, -4.6, 1.9, 1.8, 0, 0, Math.PI * 2); }, SKIN, ink, 1);
+        flat(ctx, [[-4, 2, 1], [-3.2, 0.6, 1], [34, -10.6, 1], [34.4, -9, 1]], '#7A5A3A', 0.9);
+        flat(ctx, [[34, -11, 1], [38.4, -12.6, 1], [38, -9.4, 1], [34.4, -8.6, 1]], '#5A5550', 0.9);
+      } else {
+        limb(ctx, [6.6, -12], [10, -8], [10.6, -5], 2.6, 2.2, '#8A6A4A', '#3A2818', 1.25);
+        limb(ctx, [10.6, -5.6], [10.8, -3], [10.6, -0.6], 1.9, 1.6, SKIN, SKIN_D, 1.1);
+        fillPath(ctx, () => { ctx.ellipse(10.8, 0, 2.0, 1.9, 0, 0, Math.PI * 2); }, SKIN, ink, 1);
+      }
+      /* head: grey beard, no eyes, slouch hat */
+      const hg = grad(ctx, 'r', -1.4, -23, 0.4, 0, -21, 7);
+      if (hg) { hg.addColorStop(0, SKIN); hg.addColorStop(1, SKIN_D); }
+      fillGrad(ctx, () => { ctx.ellipse(0, -21, 5.0, 5.8, 0, 0, Math.PI * 2); }, hg, SKIN, ink, 1.2);
+      ctx.save(); ctx.beginPath(); ctx.ellipse(0, -21, 5.0, 5.8, 0, 0, Math.PI * 2); ctx.clip();
+      ctx.fillStyle = 'rgba(20,14,10,0.58)'; ctx.beginPath(); ctx.ellipse(0, -23.4, 7, 4.4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      shape(ctx, [[-5, -21.6], [-5, -16], [-2.4, -11.6], [0, -10.6], [2.4, -11.6], [5, -16], [5, -21.6], [2.4, -19], [0, -20.2], [-2.4, -19]], '#C8C4BA', '#6A665E', 1.1);
+      rim(ctx, [[-3.4, -16], [0, -12.4], [3, -14]], 'rgba(255,255,255,0.35)', 0.9);
+      flat(ctx, [[-10.4, -25.4], [-6, -27.8], [0, -28.2], [7, -27.4], [10.8, -25.2], [6, -24.4], [0, -25.2], [-6, -24.4]], '#3A3028', 1.25);
+      shape(ctx, [[-5.4, -26.6], [-4.4, -32.4], [0.6, -34], [5.2, -31.6], [5.4, -26.4]], '#5A4A3A', '#2A2018', 1.25);
+      rim(ctx, [[-3.8, -31], [0.4, -33], [3.8, -31.6]], 'rgba(232,220,192,0.3)', 1.0);
+      ctx.restore();
+    },
+  });
+  P.josie = 'comp_josie';
+  P.sheriff = 'comp_wren'; P.wren = 'comp_wren';
+  P.ferryman = 'comp_cole'; P.cole = 'comp_cole';
+  HV.COMPANION_DRAW = { josie: 'comp_josie', wren: 'comp_wren', cole: 'comp_cole' };
+
   HV.RICH_NPC_COSTUMES = P;
 
   /* creature() is called with enemy ids; alias any drawer whose key differs */
@@ -18369,10 +18601,10 @@ html[data-text] #art-card {
       this.loadTextSize();
     },
 
-    toast(text, ms) {
+    toast(text, ms, tag) {
       if (!this.toastEl) return;
       this._toastQ = this._toastQ || [];
-      this._toastQ.push({ text: text, ms: ms || 1600 });
+      this._toastQ.push({ text: text, ms: ms || 1600, tag: tag || null });
       if (!this._toastBusy) this._pumpToast();
     },
     _pumpToast() {
@@ -18384,12 +18616,23 @@ html[data-text] #art-card {
       }
       this._toastBusy = true;
       const next = this._toastQ.shift();
+      this._toastCur = next;
       this.toastEl.textContent = next.text;
       this.toastEl.classList.remove('hidden');
       clearTimeout(this._tt);
       const self = this;
       this._tt = setTimeout(() => self._pumpToast(), next.ms);
     },
+    /* Drop queued and showing toasts with this tag (stale companion talk). */
+    dropToasts(tag) {
+      if (this._toastQ) this._toastQ = this._toastQ.filter((q) => q.tag !== tag);
+      if (this._toastBusy && this._toastCur && this._toastCur.tag === tag) {
+        clearTimeout(this._tt);
+        this._toastCur = null;
+        this._pumpToast();
+      }
+    },
+    toastBusy() { return !!this._toastBusy; },
     snapshotPlate() {
       const src = (typeof document !== 'undefined') && document.getElementById('game');
       if (!src || !src.width || !src.height) return null;
@@ -21362,6 +21605,7 @@ html[data-text] #art-card {
           }
         }});
       });
+      if (HV.Followers && HV.Followers.pushSprites) HV.Followers.pushSprites(this, sprites, camX, camY, now);
       sprites.push({ y: s.world.y, z: 3, draw: () => {
         const hx = s.world.x - camX, hy = s.world.y - camY;
         HV.Render.hero(ctx, hx, hy, {
@@ -21678,6 +21922,8 @@ html[data-text] #art-card {
         };
         limitBand((m) => m.my < h * 0.50, 2);
         limitBand((m) => m.my > bot - 80, 2);
+        /* The exit on the way to the followed road always shows its name. */
+        pending.forEach((m) => { if (HV._guideHop && m.to === HV._guideHop) m.showLabel = true; });
         const labW = (m) => (m.showLabel ? Math.min(110, 16 + String(m.short || '').length * 6.2) : 28);
         const boxOf = (m) => {
           const lw = labW(m);
@@ -21720,7 +21966,14 @@ html[data-text] #art-card {
           ctx.save();
           ctx.globalAlpha = 0.9;
           ctx.translate(mx, my);
-          ctx.fillStyle = 'rgba(232,220,196,0.92)';
+          const guide = !!(HV._guideHop && m.to === HV._guideHop);
+          if (guide) {
+            const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 260);
+            ctx.strokeStyle = 'rgba(226,176,74,' + (0.55 + 0.4 * pulse).toFixed(2) + ')';
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(0, 0, 14 + pulse * 2.5, 0, Math.PI * 2); ctx.stroke();
+          }
+          ctx.fillStyle = guide ? '#E2B04A' : 'rgba(232,220,196,0.92)';
           ctx.strokeStyle = pal.ink;
           ctx.lineWidth = 1.6;
           ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
@@ -21840,6 +22093,7 @@ html[data-text] #art-card {
       const bx = 12 + pad.l, by = 12 + pad.t;
       const bw = compact ? 150 : 176;
       const hint = (HV.nextHint && HV.nextHint(s, this.area && this.area.id)) || '';
+      const track = HV.trackedHud ? HV.trackedHud(s, this.area && this.area.id) : null;
       const wrapW = compact ? 26 : 32;
       const hintLines = [];
       if (hint) {
@@ -21885,7 +22139,17 @@ html[data-text] #art-card {
       if (slim) {
         /* Phone: slim see-through bars, no box, so Lara is never hidden. */
         const sw = 128;
-        const slimHints = hintLines.slice(0, 2);
+        let slimHints = hintLines.slice(0, 2);
+        if (track) {
+          slimHints = [];
+          let ln2 = '';
+          String(track.short).split(' ').forEach((wrd) => {
+            const nx = ln2 ? ln2 + ' ' + wrd : wrd;
+            if (nx.length > 24 && ln2) { slimHints.push(ln2); ln2 = wrd; } else ln2 = nx;
+          });
+          if (ln2) slimHints.push(ln2);
+          slimHints = slimHints.slice(0, 3);
+        }
         panelH = 62 + (slimHints.length ? 6 + slimHints.length * 12 : 0);
         ctx.save();
         ctx.globalAlpha = 0.5;
@@ -21917,8 +22181,9 @@ html[data-text] #art-card {
           ctx.fillStyle = pal.gold;
           ctx.strokeStyle = 'rgba(20,15,12,0.85)';
           ctx.lineWidth = 3;
-          ctx.strokeText('Next', bx, by + 54);
-          ctx.fillText('Next', bx, by + 54);
+          const nLbl = track ? ('Next · ' + track.name).slice(0, 30) : 'Next';
+          ctx.strokeText(nLbl, bx, by + 54);
+          ctx.fillText(nLbl, bx, by + 54);
           ctx.fillStyle = pal.parchment;
           slimHints.forEach((ln, i) => {
             const cut = ln.length > 24 ? ln.slice(0, 23) + '…' : ln;
@@ -23203,6 +23468,7 @@ html[data-text] #art-card {
       if (!lines) return null;
       const line = lines[Math.abs(Math.floor(now) + id.length) % lines.length];
       state._banterAt = now;
+      state._banterWho = id;
       return line;
     },
 
@@ -23669,7 +23935,10 @@ html[data-text] #art-card {
             }
           }
           const line = C.maybeBanter(this.state, id);
-          if (line && HV.UI && HV.UI.toast) HV.UI.toast(line, 2200);
+          /* Talk waits for a quiet moment; the follower tick shows or drops it. */
+          if (HV.UI && HV.UI.dropToasts) HV.UI.dropToasts('banter');
+          this._banterPending = line ? { line, who: this.state._banterWho, at: this.state.playTime || 0 } : null;
+          if (line && !(HV.Followers && HV.Followers.showBanter) && HV.UI && HV.UI.toast) { HV.UI.toast(line, 2200, 'banter'); this._banterPending = null; }
         }
         return ret;
       };
@@ -24270,16 +24539,25 @@ html[data-text] #art-card {
   }
 
   function roadsHtml(state) {
-    const card = (inner, main) => '<div class="hv-card' + (main ? ' main' : '') + '">' + inner + '</div>';
+    const card = (inner, main, attrs) => '<div class="hv-card' + (main ? ' main' : '') + '"' + (attrs || '') + '>' + inner + '</div>';
     let html = '';
     const hint = (HV.nextHint && HV.nextHint(state, state.world && state.world.area)) || '';
+    const tracked = HV.trackedQuest ? HV.trackedQuest(state) : null;
     if (hint) html += '<div class="hv-hint"><span class="caps">What to do next</span><br>' + hint + '</div>';
-    const active = HV.activeQuests(state).sort((x, y) => (y.main ? 1 : 0) - (x.main ? 1 : 0));
+    const rank = (q) => (tracked && q.id === tracked ? 2 : 0) + (q.main ? 1 : 0);
+    const active = HV.activeQuests(state).sort((x, y) => rank(y) - rank(x));
     const done = HV.doneQuests(state);
     html += '<div class="caps" style="margin-bottom:6px">Open roads</div>';
+    if (active.length > 1) html += '<p class="hv-sub" style="margin:0 0 6px">Tap a road to follow it. The gold one is the road your directions point to.</p>';
     if (!active.length) html += '<p><em>No work in the book yet. Folks with a ! over them have something to ask.</em></p>';
     active.forEach((q) => {
-      html += card((q.main ? '<span class="hv-tag">Main story</span><br>' : '') + '<strong class="hand-title">' + q.name + '</strong><br><span class="hand-note">' + q.journal + '</span>', q.main);
+      const on = tracked ? q.id === tracked : q.main;
+      let tags = '';
+      if (q.main) tags += '<span class="hv-tag">Main story</span> ';
+      if (on) tags += '<span class="hv-tag hv-tag-follow">Following</span>';
+      else tags += '<span class="hv-sub hv-track-cta">Tap to follow</span>';
+      html += card(tags + '<br><strong class="hand-title">' + q.name + '</strong><br><span class="hand-note">' + q.journal + '</span>', on,
+        ' data-track="' + q.id + '" role="button" tabindex="0"');
     });
     if (done.length) {
       html += '<details class="hv-more"><summary class="caps">Finished (' + done.length + ')</summary>';
@@ -24324,6 +24602,14 @@ html[data-text] #art-card {
       p.querySelector('#close').addEventListener('click', handlers.close);
       p.querySelectorAll('[data-tab]').forEach((b) => {
         b.addEventListener('click', () => paint(b.getAttribute('data-tab')));
+      });
+      p.querySelectorAll('[data-track]').forEach((b) => {
+        b.addEventListener('click', () => {
+          if (HV.setTrackedQuest) HV.setTrackedQuest(state, b.getAttribute('data-track'));
+          const top = p.scrollTop;
+          paint('roads');
+          p.scrollTop = top;
+        });
       });
     };
     paint(tab0);
@@ -24956,6 +25242,522 @@ html[data-text] #art-card {
     }
   }
 
+  install();
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+
+/* ==== 23-followers.js ==== */
+/* THE HOLLOW VEIL — companions who walk with you
+   One follower at a time: Josie (after her silver string), Sheriff Wren, Ferryman Cole.
+   They walk behind Lara, lend a modest hand in fights, and the game tells you they exist. */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+
+  const FOLLOWERS = {
+    josie: { npc: 'josie', area: 'yarrow_crossing', every: 9, range: 150,
+      join: 'Josie Fiddler walks with you. When a fight starts she plays: foes slow, and you mend a little.',
+      can: (s) => HV.questDone(s, 'josie_string'),
+      teaser: 'Josie Fiddler lost her mother\'s silver string in the burned mill. Bring it back and she will walk the roads with you.' },
+    wren: { npc: 'sheriff', area: 'yarrow_crossing', every: 6.5, range: 190,
+      join: 'Sheriff Wren rides along. He takes a careful shot when something comes at you.',
+      can: (s) => !!s.flags.met_wren && HV.Companions.approval(s, 'wren') >= 40,
+      teaser: 'Sheriff Wren would ride with you once he trusts you. Talk to him in Yarrow.' },
+    cole: { npc: 'ferryman', area: 'ferry_crossing', every: 7.5, range: 120,
+      join: 'Ferryman Cole comes along with his pole. He knocks foes back and holds them a moment.',
+      can: (s) => (!!s.flags.caught_light || !!(s.quests && s.quests.spook_light)) && HV.Companions.approval(s, 'cole') >= 35,
+      teaser: 'Ferryman Cole might leave the cable a while. Earn his trust at the Ferry Crossing.' },
+  };
+  const NAMES = { josie: 'Josie', wren: 'Sheriff Wren', cole: 'Ferryman Cole' };
+
+  const F = HV.Followers = {
+    DEFS: FOLLOWERS,
+    current(state) {
+      if (!state || !HV.Companions) return null;
+      const ids = HV.Companions.following(state);
+      return ids.length ? ids[0] : null;
+    },
+    canJoin(state, id) {
+      const d = FOLLOWERS[id];
+      return !!(d && state && d.can(state));
+    },
+    /* one at a time: taking someone new sends the last one home */
+    setFollower(state, id) {
+      HV.ensureFeatState(state);
+      Object.keys(FOLLOWERS).forEach((k) => { if (state.companions[k]) state.companions[k].follow = false; });
+      if (id) {
+        state.companions[id].follow = true;
+        state.companions[id].met = true;
+        state.flags.had_follower = true;
+      }
+      F._pos = null;
+      /* a swap clears anything the last companion was about to say */
+      if (HV.UI && HV.UI.dropToasts) HV.UI.dropToasts('banter');
+      if (HV.Game) HV.Game._banterPending = null;
+      return id;
+    },
+
+    /* companion talk: only the one walking with you (or someone at home here
+       when no one follows), only in a quiet moment, and never stale */
+    foesNear(game, r) {
+      const s = game.state;
+      return (game.entities || []).some((en) => en.alive && !en.friendly && Math.hypot(en.x - s.world.x, en.y - s.world.y) < r);
+    },
+    banterOk(game, who) {
+      const cur = F.current(game.state);
+      if (cur) return who === cur;
+      const d = HV.COMPANIONS && HV.COMPANIONS.find((c) => c.id === who);
+      return !!(d && game.area && d.home === game.area.id);
+    },
+    showBanter(game) {
+      const s = game.state;
+      const UI = HV.UI;
+      if (UI && UI.dropToasts && UI._toastCur && UI._toastCur.tag === 'banter' && F.foesNear(game, 220)) UI.dropToasts('banter');
+      const b = game._banterPending;
+      if (!b) return;
+      if ((s.playTime || 0) - b.at > 10 || !F.banterOk(game, b.who)) { game._banterPending = null; return; }
+      if (F.foesNear(game, 260) || (UI && UI.toastBusy && UI.toastBusy())) return;
+      game._banterPending = null;
+      if (UI && UI.toast) UI.toast(b.line, 2400, 'banter');
+    },
+    sendHome(state) {
+      const cur = F.current(state);
+      F.setFollower(state, null);
+      return cur;
+    },
+
+    /* follower position trails behind Lara */
+    _pos: null,
+    update(game, dt) {
+      const s = game.state;
+      const id = F.current(s);
+      if (!id) { F._pos = null; return; }
+      const hx = s.world.x, hy = s.world.y;
+      const fc = s.world.facing >= 0 ? 1 : -1;
+      const tx = hx - fc * 26, ty = hy - 8;
+      if (!F._pos || Math.hypot(F._pos.x - hx, F._pos.y - hy) > 220) F._pos = { x: tx, y: ty, facing: fc, moving: false, cd: 3, act: 0, actKind: null };
+      const p = F._pos;
+      const dx = tx - p.x, dy = ty - p.y, dist = Math.hypot(dx, dy);
+      p.moving = dist > 6;
+      if (p.moving) {
+        const sp = Math.min(dist, Math.max(90, dist * 4) * dt);
+        p.x += dx / dist * sp; p.y += dy / dist * sp;
+        if (Math.abs(dx) > 2) p.facing = dx > 0 ? 1 : -1;
+      }
+      p.cd = Math.max(0, p.cd - dt);
+      p.act = Math.max(0, p.act - dt);
+      F.assist(game, id, p);
+    },
+
+    /* a modest hand in a fight */
+    assist(game, id, p) {
+      const s = game.state, d = FOLLOWERS[id];
+      if (p.cd > 0 || game.mode !== 'play') return;
+      const foes = (game.entities || []).filter((en) => en.alive && Math.hypot(en.x - s.world.x, en.y - s.world.y) < d.range);
+      if (!foes.length) return;
+      p.cd = d.every;
+      p.act = 0.9;
+      const near = foes.slice().sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
+      if (near) p.facing = near.x >= p.x ? 1 : -1;
+      const lvl = (s.hero && s.hero.level) || 1;
+      if (id === 'josie') {
+        p.actKind = 'play';
+        foes.forEach((en) => HV.addStatus(en, 'slow', en.boss ? 1.4 : 3));
+        const h = s.hero;
+        const heal = Math.max(2, Math.round((h.hpMax || 60) * 0.05));
+        h.hp = Math.min(h.hpMax || h.hp, (h.hp || 0) + heal);
+        game.floater('+' + heal, s.world.x, s.world.y - 30, '#7EC8C0', { kind: 'num' });
+        game.burst(p.x, p.y - 20, HV.PAL.gold, 10, 'spark');
+      } else if (id === 'wren') {
+        p.actKind = 'fire';
+        let dmg = Math.round(5 + lvl * 1.4);
+        if (near.boss) dmg = Math.round(dmg * 0.5);
+        F.hurt(game, near, dmg);
+        for (let k = 1; k <= 5; k++) game.burst(p.x + (near.x - p.x) * k / 6, p.y - 12 + (near.y - p.y) * k / 6, HV.PAL.gold, 2, 'streak');
+      } else if (id === 'cole') {
+        p.actKind = 'sweep';
+        let dmg = Math.round(3 + lvl * 0.9);
+        if (near.boss) dmg = Math.round(dmg * 0.5);
+        F.hurt(game, near, dmg);
+        if (!near.boss) {
+          HV.addStatus(near, 'root', 0.8);
+          const ang = Math.atan2(near.y - s.world.y, near.x - s.world.x);
+          near.x += Math.cos(ang) * 26; near.y += Math.sin(ang) * 26;
+        }
+        game.burst(near.x, near.y - 8, HV.PAL.tan, 8, 'spark');
+      }
+      if (HV.Audio && HV.Audio.sfxHit && id !== 'josie') HV.Audio.sfxHit();
+      if (!s.flags['follower_helped_' + id]) {
+        s.flags['follower_helped_' + id] = true;
+        HV.UI.toast(id === 'josie' ? 'Josie plays. The foes drag, and you breathe easier.' : (id === 'wren' ? 'Wren fires: a careful shot.' : 'Cole swings his pole and holds them back.'), 2600);
+      }
+    },
+    hurt(game, en, dmg) {
+      /* never the killing blow on a boss: the fight stays Lara's */
+      if (en.boss) dmg = Math.min(dmg, Math.max(0, en.hp - 1));
+      if (dmg <= 0) return;
+      en.hp -= dmg;
+      game.floater(String(dmg), en.x, en.y - 22, HV.PAL.parchment, { kind: 'num' });
+      if (en.hp <= 0 && !en.boss) { en.hp = 0; game.onKill(en); }
+    },
+
+    pushSprites(game, sprites, camX, camY, now) {
+      const s = game.state;
+      const id = F.current(s);
+      if (!id || !F._pos || !HV.RenderRich) return;
+      const key = HV.COMPANION_DRAW && HV.COMPANION_DRAW[id];
+      const fn = key && HV.RenderRich[key];
+      if (!fn) return;
+      const p = F._pos;
+      sprites.push({ y: p.y, z: 3, draw: () => {
+        const o = { facing: p.facing, t: now, scale: 0.85, follower: true, walk: p.moving };
+        if (p.act > 0) { if (p.actKind === 'play') o.playing = true; if (p.actKind === 'fire') o.firing = true; if (p.actKind === 'sweep') o.sweeping = true; }
+        fn(game.ctx, p.x - camX, p.y - camY, o);
+      } });
+    },
+
+    /* discovery: tell the player companions exist, and when someone can join */
+    nudge(game) {
+      const s = game.state;
+      if (!s || game.mode !== 'play') return;
+      const now = s.playTime || 0;
+      if (F._nudgeAt && now - F._nudgeAt < 6) return;
+      F._nudgeAt = now;
+      if (!s.flags.companion_intro && s.flags.ila_briefed && game.area && game.area.id === 'yarrow_crossing') {
+        s.flags.companion_intro = true;
+        HV.UI.toast('Some folk will walk the roads with you. Josie Fiddler, on the porch, is looking for someone to help her.', 4200);
+        if (HV.addJournal) HV.addJournal(s, 'Granny Ila says Josie Fiddler has been asking after help. Folk who trust you may walk the roads with you.');
+        return;
+      }
+      for (const id of Object.keys(FOLLOWERS)) {
+        if (F.current(s) === id) continue;
+        if (!s.flags['can_follow_' + id] && F.canJoin(s, id)) {
+          s.flags['can_follow_' + id] = true;
+          HV.UI.toast(NAMES[id] + ' would walk with you now. Talk to them at home.', 3800);
+          return;
+        }
+      }
+    },
+
+    install() {
+      const C = HV.Companions;
+      if (!C || F._installed) return;
+      F._installed = true;
+      ['wren', 'cole'].forEach((id) => { if (HV.COMPANION_BY_ID[id]) HV.COMPANION_BY_ID[id].canFollow = true; });
+      const _follow = C.follow;
+      C.follow = function (state, id, on) {
+        if (on && FOLLOWERS[id]) { F.setFollower(state, id); return true; }
+        return _follow.call(C, state, id, on);
+      };
+      /* Josie's string is offered as soon as you have met her */
+      const def = HV.COMPANION_BY_ID.josie;
+      if (def) def.questAt = 22;
+      const _offer = C.canOfferQuest;
+      C.canOfferQuest = function (state, id) {
+        if (id === 'josie') {
+          const d = HV.COMPANION_BY_ID.josie;
+          if (state.quests && state.quests[d.questId]) return false;
+          return C.approval(state, 'josie') >= d.questAt;
+        }
+        return _offer.call(C, state, id);
+      };
+      /* while someone walks with you, they are not also standing at home */
+      const _present = HV.npcIsPresent;
+      HV.npcIsPresent = function (npc, state, isNight) {
+        if (npc && state && state.companions) {
+          const cur = F.current(state);
+          if (cur && FOLLOWERS[cur].npc === npc.id) return false;
+        }
+        return _present ? _present(npc, state, isNight) : true;
+      };
+      F.patchDialog();
+      F.patchGame();
+      F.patchJournal();
+    },
+
+    patchDialog() {
+      const D = HV.DIALOG;
+      if (!D) return;
+      const offer = (who, id, line) => (s, c) => {
+        if (!F.canJoin(s, id) || F.current(s) === id) return;
+        const cur = F.current(s);
+        const t = cur ? line + ' (' + NAMES[cur] + ' will head home.)' : line;
+        c.splice(Math.max(0, c.length - 1), 0, { t: t, next: null, followJoin: id });
+      };
+      const wrapAll = (tree, fn) => {
+        if (!tree) return;
+        Object.keys(tree).forEach((k) => {
+          const node = tree[k];
+          if (!node || typeof node !== 'object' || k === 'start') return;
+          if (node.choicesFn) {
+            const prev = node.choicesFn;
+            node.choicesFn = function (s) { const c = prev.call(node, s) || []; fn(s, c); return c; };
+          } else if (node.choices) {
+            const base = node.choices.slice();
+            node.choicesFn = function (s) { const c = base.slice(); fn(s, c); return c; };
+            delete node.choices;
+          }
+        });
+      };
+      wrapAll(D.josie, offer('josie', 'josie', 'Walk with me a while, Josie?'));
+      wrapAll(D.wren, offer('wren', 'wren', 'Ride along with me a while, Sheriff?'));
+      wrapAll(D.cole, offer('cole', 'cole', 'Leave the cable a spell and come with me?'));
+      if (D.ila && D.ila.later && D.ila.later.textFn) {
+        const n = D.ila.later, base = n.textFn;
+        n.textFn = function (s) {
+          const txt = base.call(n, s) || '';
+          if (s.quests && s.quests.josie_string) return txt;
+          return txt + ' And go see Josie Fiddler on her porch in Yarrow. She has been asking after help, and she is good company on a long road.';
+        };
+      }
+      const _apply = HV.applyDialogChoice;
+      if (_apply) {
+        HV.applyDialogChoice = function (state, choice) {
+          const r = _apply(state, choice);
+          if (choice && choice.followJoin) {
+            F.setFollower(state, choice.followJoin);
+            HV.UI.toast(FOLLOWERS[choice.followJoin].join, 3600);
+          }
+          return r;
+        };
+      }
+    },
+
+    patchGame() {
+      const G = HV.Game;
+      if (!G) return;
+      const _tick = G.tick;
+      G.tick = function (dt) {
+        _tick.call(this, dt);
+        if (this.state && this.area && (this.mode === 'play' || this.mode === 'preview')) { F.update(this, dt); F.nudge(this); F.showBanter(this); }
+      };
+      const _enter = G.enterArea;
+      G.enterArea = function (id, px, py) {
+        const r = _enter.call(this, id, px, py);
+        F._pos = null;
+        return r;
+      };
+    },
+
+    patchJournal() {
+      const J = HV.Journal;
+      if (!J || !J.tabs) return;
+      const tab = J.tabs.find((t) => t.id === 'people');
+      if (tab) {
+        const render = tab.render;
+        tab.render = function (state) {
+          const cur = F.current(state);
+          let lead;
+          if (cur) {
+            lead = '<div class="hv-card"><strong>Walking with you: ' + NAMES[cur] + '</strong><p>' + FOLLOWERS[cur].join + '</p>'
+              + '<button type="button" class="ink-btn" data-follow-home="1">Send ' + NAMES[cur] + ' home</button></div>';
+          } else {
+            const open = Object.keys(FOLLOWERS).filter((id) => F.canJoin(state, id)).map((id) => NAMES[id]);
+            lead = '<div class="hv-card"><strong>Companions</strong><p>' + (open.length
+              ? open.join(' and ') + (open.length > 1 ? ' would' : ' would') + ' walk with you. Talk to them at home to bring one along. One at a time.'
+              : 'No one walks with you yet. ' + FOLLOWERS.josie.teaser + ' ' + FOLLOWERS.wren.teaser) + '</p></div>';
+          }
+          return lead + render(state);
+        };
+      }
+      if (typeof document !== 'undefined' && document.addEventListener && !F._jClick) {
+        F._jClick = true;
+        document.addEventListener('click', (e) => {
+          const b = e.target && e.target.closest && e.target.closest('[data-follow-home]');
+          if (!b || !HV.Game || !HV.Game.state) return;
+          const who = F.sendHome(HV.Game.state);
+          if (who) HV.UI.toast(NAMES[who] + ' heads home. Find them there to walk together again.', 3000);
+          const panel = b.closest('.hv-journal');
+          const tb = panel && panel.querySelector('[data-tab="people"]');
+          if (tb) tb.click();
+        });
+      }
+    },
+  };
+
+  if (HV.Companions && HV.Game) F.install();
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+
+/* ==== 24-quest-track.js ==== */
+/* The Hollow Veil — follow a side road from the Journal.
+   Tap any open road in the Journal to follow it; the HUD "Next" line, the
+   objective banner, and the gold exit sign switch to that road's next step.
+   Tap the main story (or finish the side road) to go back to the main road. */
+(function (root) {
+  const HV = root.HV = root.HV || {};
+
+  const g = (area, text) => ({ area, text });
+  /* Per-quest, per-stage directions: where to go and who to see. */
+  HV.QUEST_GUIDE = {
+    widows_lantern: [g('cedar_glade', 'Find lantern oil in Cedar Glade for Widow Mara.'), g('yarrow_crossing', 'Take the oil to Widow Mara in Yarrow and see off whatever worries her path.')],
+    porch_paint: [g('ila_cabin', 'Find the haint-blue dye box at Granny Ila\'s cabin.')],
+    ilas_debt: [g('post_oak_ridge', 'Gather sang and snakeroot in the hills, then bring them to Ila at her cabin.')],
+    joint_snake_creek: [g('cedar_glade', 'Hunt joint-snakes (and a hoop-snake) in Cedar Glade, then see Ila.')],
+    yocum_dollar: [g('lead_camp', 'Search the Lead Camp for Yocum silver, then tell Otto at the store.'), g('yocum_vault', 'Follow the witch-hazel rod to the Yocum Vault.')],
+    spook_light: [g('devil_promenade', 'Walk Devil\'s Promenade after dusk and watch the light.'), g('devil_promenade', 'Catch a piece of the light on the Promenade, then tell Ferryman Cole.')],
+    congregation_lamp: [g('pine_churchyard', 'Quiet the Pine Churchyard at night and bring a hymn-book from Drowned Shore to Preacher Cald.')],
+    talk_the_fire: [g('ila_cabin', 'Learn the fire charm from Ila at her cabin, then use it on Beek the smith in Yarrow.')],
+    glass_blower: [g('pine_churchyard', 'Take Len\'s witch ball to be blessed at the Pine Churchyard.')],
+    town_under_lake: [g('drowned_shore', 'Search the church-step at Drowned Shore for something with a name on it, then see the sexton.')],
+    promenade_hitch: [g('devil_promenade', 'Look for the vanishing girl and her ring on Devil\'s Promenade.')],
+    old_christmas: [g('high_ledge', 'Cut a cedar bough on the High Ledge for Preacher Cald.')],
+    bottoms_walker: [g('wisp_bottoms', 'Find the Bottoms Walker in Wisp Bottoms, then tell Cole.')],
+    crossroads_letter: [g('the_crossroads', 'Dig the banjo on the west side of The Crossroads (tap USE).'), g('the_crossroads', 'Meet the Man in the Dark Hat at The Crossroads after dark.')],
+    howler_hunt: [g('howler_run', 'Walk Howler Run and face the Howler, then report to Sheriff Wren.')],
+    scale_of_the_gowrow: [g('gowrow_ravine', 'Hunt the gowrow in the ravine east of the fork.')],
+    white_deer: [g('white_stag_woods', 'Find the Snawfus in the White-Stag Woods. Ila does not want it killed.')],
+    peck_problem: [g('bald_knob', 'Go up Bald Knob and deal with Jonas Peck, then tell Sheriff Wren.')],
+    josie_string: [g('burned_mill', 'Search the Burned Mill for the silver fiddle-string.'), g('yarrow_crossing', 'Bring the silver string to Josie Fiddler in Yarrow.')],
+    ila_book: [g('stillhouse_hollow', 'Look under the boards in Stillhouse Hollow for Ila\'s book.'), g('ila_cabin', 'Bring the book home to Ila at her cabin.')],
+    mara_bluff: [g('widows_bluff', 'Find the wick-tin under the scored mark on Widow\'s Bluff.'), g('yarrow_crossing', 'Bring the wick-tin to Widow Mara in Yarrow.'), g('yarrow_crossing', 'Sit Widow Mara\'s porch with her at dusk.')],
+    cald_pew: [g('drowned_shore', 'Search the steps at Drowned Shore for word of Sister Nell.'), g('yarrow_crossing', 'Bring Nell\'s ribbon to Preacher Cald in Yarrow.')],
+    peck_name: [g('bolin_camp', 'Search the old fire-ring at Bushwhack Camp for Cal.'), g('bald_knob', 'Bring Cal\'s hat to Jonas Peck on Bald Knob.')],
+    wren_report: function (s) {
+      const f = s.flags || {};
+      if (!f.wren_seen_howler) return g('howler_run', 'Walk Howler Run for Wren\'s night report.');
+      if (!f.wren_seen_knob) return g('bald_knob', 'Walk Bald Knob for Wren\'s night report.');
+      if (!f.wren_seen_promenade) return g('devil_promenade', 'Walk Devil\'s Promenade for Wren\'s night report.');
+      return g('yarrow_crossing', 'Give Sheriff Wren your night report in Yarrow.');
+    },
+    cole_crossing: [g('drowned_shore', 'Lift the drowned-church token from the low step at Drowned Shore.'), g('ferry_crossing', 'Bring the token to Ferryman Cole at the ferry.')],
+  };
+
+  /* Which quest the directions follow. null means the main road. */
+  HV.trackedQuest = function (state) {
+    if (!state || !state.trackedQuest) return null;
+    const id = state.trackedQuest;
+    const q = state.quests && state.quests[id];
+    const def = HV.QUESTS && HV.QUESTS[id];
+    if (!q || !def || q.done || def.main) { state.trackedQuest = null; return null; }
+    return id;
+  };
+  HV.setTrackedQuest = function (state, id) {
+    if (!state) return null;
+    const def = id && HV.QUESTS && HV.QUESTS[id];
+    const q = id && state.quests && state.quests[id];
+    state.trackedQuest = (def && !def.main && q && !q.done) ? id : null;
+    return state.trackedQuest;
+  };
+
+  HV.questGuide = function (state, id) {
+    const def = HV.QUESTS && HV.QUESTS[id];
+    const q = state && state.quests && state.quests[id];
+    if (!def || !q) return null;
+    const G = HV.QUEST_GUIDE[id];
+    let step = null;
+    if (typeof G === 'function') step = G(state, q.stage || 0);
+    else if (G) step = G[Math.min(q.stage || 0, G.length - 1)];
+    return step;
+  };
+
+  HV.trackedHint = function (state, areaId) {
+    const id = HV.trackedQuest(state);
+    if (!id) return null;
+    const def = HV.QUESTS[id];
+    const here = areaId || (state.world && state.world.area) || 'yarrow_crossing';
+    const step = HV.questGuide(state, id);
+    const label = def.name + ': ';
+    if (!step) {
+      const st = def.stages[(state.quests[id].stage) || 0] || def.stages[0];
+      return label + st.journal;
+    }
+    /* Story gates still apply: point at what opens the way, not past it. */
+    const gate = HV.areaGate && step.area !== here ? HV.areaGate(state, step.area) : null;
+    if (gate) return label + gate;
+    if (step.area === here) return label + step.text;
+    return label + step.text + ' ' + HV.formatTravel(here, step.area);
+  };
+
+  /* Compact form for the phone HUD: quest name plus a short step. */
+  HV.trackedHud = function (state, areaId) {
+    const id = HV.trackedQuest(state);
+    if (!id) return null;
+    const def = HV.QUESTS[id];
+    const here = areaId || (state.world && state.world.area) || 'yarrow_crossing';
+    const step = HV.questGuide(state, id);
+    if (!step) return { id, name: def.name, short: 'See the Journal for this road.' };
+    const gate = HV.areaGate && step.area !== here ? HV.areaGate(state, step.area) : null;
+    if (gate) return { id, name: def.name, short: 'The way is shut for now. See the Journal.' };
+    if (step.area === here) return { id, name: def.name, short: step.text };
+    const found = HV.pathToArea && HV.pathToArea(here, step.area);
+    const nm = (a) => (HV.AREAS[a] && HV.AREAS[a].name) || a;
+    if (!found) return { id, name: def.name, short: 'Find your way to ' + nm(step.area) + '.' };
+    const area = HV.AREAS[here];
+    const hop = found.path[1];
+    const ex = ((area && area.exits) || []).find((e) => e.to === hop);
+    const dir = HV.compassDir ? HV.compassDir(area, ex) : '';
+    let short = 'Go to ' + nm(step.area);
+    if (dir) short += ': head ' + dir + (hop !== step.area ? ' to ' + nm(hop) : '');
+    else if (hop !== step.area) short += ' by way of ' + nm(hop);
+    return { id, name: def.name, short: short + '.' };
+  };
+
+  /* Remember the next area on the route so the matching exit sign can glow. */
+  if (HV.formatTravel && !HV.formatTravel._track) {
+    const _ft = HV.formatTravel;
+    HV.formatTravel = function (fromId, goalId) {
+      const found = HV.pathToArea && HV.pathToArea(fromId, goalId);
+      HV._guideHop = found && !found.here ? found.path[1] : null;
+      return _ft.apply(this, arguments);
+    };
+    HV.formatTravel._track = true;
+  }
+
+  if (HV.nextHint && !HV.nextHint._track) {
+    const _nh = HV.nextHint;
+    HV.nextHint = function (state, areaId) {
+      HV._guideHop = null;
+      const t = state && HV.trackedHint(state, areaId);
+      if (t) return t;
+      return _nh.apply(this, arguments);
+    };
+    HV.nextHint._track = true;
+  }
+
+  function install() {
+    const R = HV.Render;
+    if (R && R.exitSign && !R.exitSign._track) {
+      const _es = R.exitSign;
+      R.exitSign = function (ctx, x, y, label, dir) {
+        const hop = HV._guideHop && HV.AREAS && HV.AREAS[HV._guideHop];
+        if (hop && label && ctx && ctx.save) {
+          const a = String(label).toLowerCase(), b = String(hop.name || '').toLowerCase();
+          if (a && b && (a === b || b.indexOf(a) === 0 || a.indexOf(b) === 0)) {
+            ctx.save();
+            const t = (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
+            ctx.globalAlpha = 0.45 + 0.25 * Math.sin(t * 3);
+            ctx.fillStyle = '#E2B04A';
+            ctx.beginPath();
+            if (ctx.ellipse) ctx.ellipse(x, y - 30, 46, 15, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+        return _es.apply(this, arguments);
+      };
+      R.exitSign._track = true;
+    }
+    const G = HV.Game;
+    if (G && G.tick && !G.tick._track) {
+      const _t = G.tick;
+      G.tick = function () {
+        const s = this.state;
+        const was = s && s.trackedQuest;
+        const ret = _t.apply(this, arguments);
+        if (s && was && !HV.trackedQuest(s)) {
+          s._trackDoneFlash = was;
+          if (HV.UI && HV.UI.toast) HV.UI.toast('Side road finished. Back on the main road.');
+        }
+        return ret;
+      };
+      G.tick._track = true;
+    }
+  }
+  HV.QuestTrack = { install };
   install();
 
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
