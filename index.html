@@ -644,7 +644,7 @@ html[data-text] #art-card {
 
 /* iPhone 15 portrait — 393 x 852 pt */
 @media (orientation: portrait) and (max-width: 430px) {
-  .title-wordmark { top: calc(var(--sat) + 8px); }
+  .title-wordmark { top: calc(var(--sat) + 48px); }  /* dropped 40px so THE HOLLOW clears the top ink fade */
   .title-kicker { font-size: 17px; }
   .title-veil { font-size: 60px; }
   .title-sub { font-size: 15px; }
@@ -1592,8 +1592,12 @@ html[data-text] #art-card {
 }
 
 @media (orientation: portrait) and (max-width: 430px) {
-  .title-screen.is-portrait-art .title-wordmark { top: calc(var(--sat) + 10px); }
+  .title-screen.is-portrait-art .title-wordmark { top: calc(var(--sat) + 50px); }  /* dropped 40px: crisp below the top fade */
   .title-screen.is-portrait-art .title-veil { font-size: 66px; }
+}
+/* iPad portrait: same 36px drop, there is plenty of sky above the moon */
+@media (orientation: portrait) and (min-width: 431px) {
+  .title-screen.is-portrait-art .title-wordmark { top: calc(max(8%, calc(var(--sat) + 10px)) + 36px); }
 }
 /* Portrait art: the Howler is small, so keep the eye glint tiny so it reads as an eye, not a red ball. */
 .title-screen.is-portrait-art .title-howler-eye {
@@ -7149,6 +7153,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       if (opts.glow) glow(ctx, 0, -12, 22, opts.glow, 0.4);
 
       /* contact shadow */
+      if (HV.Light && HV.Light.cast) HV.Light.cast(ctx, 0, 20, 11, 3.4, 0.22); else {
       ctx.fillStyle = 'rgba(8,10,12,0.2)';
       ctx.beginPath();
       ctx.ellipse(1, 20, 15, 4.6, 0, 0, Math.PI * 2);
@@ -7157,6 +7162,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       ctx.beginPath();
       ctx.ellipse(0, 20, 9, 2.8, 0, 0, Math.PI * 2);
       ctx.fill();
+      }
 
       /* slim boots under the hem */
       ctx.strokeStyle = pal.ink;
@@ -7353,6 +7359,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       glow(ctx, 16, -38, 20, 'rgba(126,200,192,0.95)', 0.78);
 
       /* contact shadow */
+      if (HV.Light && HV.Light.cast) HV.Light.cast(ctx, 0, 23, 14, 4.2, 0.24); else {
       ctx.fillStyle = 'rgba(8,10,12,0.22)';
       ctx.beginPath();
       ctx.ellipse(1, 23, 19, 5.5, 0, 0, Math.PI * 2);
@@ -7361,6 +7368,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       ctx.beginPath();
       ctx.ellipse(0, 23, 12, 3.4, 0, 0, Math.PI * 2);
       ctx.fill();
+      }
 
       /* a hint of boots under the hem */
       ctx.strokeStyle = pal.ink;
@@ -7564,10 +7572,12 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       ctx.translate(x, y);
       ctx.scale(s * (rng() < 0.15 ? -1 : 1), s);
       /* shadow */
+      if (HV.Light && HV.Light.cast) HV.Light.cast(ctx, 0, 8, 22, 6, 0.3); else {
       ctx.fillStyle = 'rgba(8,10,12,0.35)';
       ctx.beginPath();
       ctx.ellipse(0, 8, 22, 6, 0, 0, Math.PI * 2);
       ctx.fill();
+      }
       /* roots */
       ctx.strokeStyle = pal.ink;
       ctx.lineWidth = 2.2;
@@ -8428,8 +8438,10 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       const door = b.door || 's';
       ctx.save();
       /* foundation shadow */
+      if (HV.Light && HV.Light.wall) HV.Light.wall(ctx, px, py + th - 1, tw, 0.32); else {
       ctx.fillStyle = 'rgba(11,12,10,0.35)';
       ctx.fillRect(px - 2, py + th - 6, tw + 4, 8);
+      }
       /* walls — two-storey inns stand taller */
       const wallH = style.two ? th * 0.8 : th * 0.72;
       const wallY = py + th - wallH;
@@ -8843,8 +8855,10 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       const wallH = bh * 0.58;
       const wallY = by + bh - wallH;
       /* ground shadow */
+      if (HV.Light && HV.Light.wall) HV.Light.wall(ctx, bx, by + bh - 1, bw, 0.3); else {
       ctx.fillStyle = 'rgba(11,12,10,0.32)';
       ctx.fillRect(bx - 4, by + bh - 6, bw + 8, 10);
+      }
 
       /* aged, ink-shaded whitewash — sits in the woodcut palette, not a pale slab */
       const wash = '#B59E7C';
@@ -11839,6 +11853,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     ctx.beginPath();
   }
   function shadow(ctx, x, y, rx, ry, a) {
+    if (HV.Light && HV.Light.cast) return HV.Light.cast(ctx, x, y, rx, ry, a);
     ctx.fillStyle = 'rgba(8,10,12,' + (a == null ? 0.22 : a) + ')';
     ctx.beginPath();
     ctx.ellipse(x + 1, y, rx * 1.25, ry * 1.35, 0, 0, Math.PI * 2);
@@ -14074,6 +14089,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   HV.COMPANION_DRAW = { josie: 'comp_josie', wren: 'comp_wren', cole: 'comp_cole' };
 
   HV.RICH_NPC_COSTUMES = P;
+  /* drawing kit shared with the bestiary pass (32-bestiary.js) */
+  HV.RichKit = { hatchUnused: hatch, glow, fillPath, shadow, snakeRibbon, strokeRibbon, grad, fillGrad, blob, bbox, shape, flat, rim, limb, claws, eyes, smoke, begin, snakeBody, person, brimShade, beard, hairOver, hollowEyes, HATS, PROP, P, legSet, hornQ, fangs, spikes, Rrich };
 
   /* creature() is called with enemy ids; alias any drawer whose key differs */
   Rrich.wampus_cat = Rrich.wampus;
@@ -21362,7 +21379,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         const dist = Math.sqrt(dx * dx + dy * dy);
         const isSoft = target && en === target && dist < range * 1.5 && dist < Math.max(range, 56);
         const dirOk = range > 80 || isSoft || (dx * f >= -10);
-        if (dist < range && dirOk) {
+        if (dist < range + (en.bodyR || 0) && dirOk) {
           const res = HV.resolveStrike(s.hero, en, { derived: d, rng: Math.random, night: this.isNight(), reflectTo: s.hero });
           if (res.crit) this.floater('CRIT ' + res.dmg, en.x, en.y - 66, HV.PAL.gold, { kind: 'tag', en: en });
           else this.floater(String(res.dmg), en.x, en.y - 22, HV.PAL.parchment, { kind: 'num' });
@@ -22093,6 +22110,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         HV.Render.herbMark(ctx, hb.x * TILE + 16 - camX, hb.y * TILE + 16 - camY, picked, now);
       });
       (this.area.props || []).forEach((pr) => {
+        /* soft sun/moon shadow under standing props (lighting pass) */
+        if (HV.Light && (pr.kind === 'well' || pr.kind === 'rock')) HV.Light.cast(ctx, pr.x * TILE + 16 - camX, pr.y * TILE + (pr.kind === 'well' ? 27 : 24) - camY, pr.kind === 'well' ? 13 : 9, pr.kind === 'well' ? 4 : 3, pr.kind === 'well' ? 0.22 : 0.16);
         if (pr.kind === 'well') HV.Render.well(ctx, pr.x * TILE + 16 - camX, pr.y * TILE + 16 - camY);
         else if (pr.kind === 'rock') HV.Render.rock(ctx, pr.x * TILE + 16 - camX, pr.y * TILE + 16 - camY, pr.x + ',' + pr.y);
         else if (pr.kind === 'fence') HV.Render.fence(ctx, pr.x1 * TILE - camX, pr.y1 * TILE - camY, pr.x2 * TILE - camX, pr.y2 * TILE - camY);
@@ -22265,13 +22284,16 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
 
       const face = s.world.facing >= 0 ? 1 : -1;
       const lights = [];
+      /* warm 0..1: lamps and windows come up through dusk, full at night (lighting pass) */
+      const warm = HV.Light ? HV.Light.warm(s.world.time) : (night ? 1 : 0);
+      const mix = (a, b) => a + (b - a) * warm;
       /* Warm amber lantern pool — stronger and wider at night, a little flicker */
       const flicker = 1 + Math.sin(now * 6.2) * 0.06;
       lights.push({
         x: s.world.x - camX + face * -12,
         y: s.world.y - camY + 4,
-        r: ((night ? 200 : 130) + (d.light || 0) * 2.2 + (s.hero.lightFuel || 0) * 0.5) * flicker,
-        color: night ? 'rgba(224,123,57,0.52)' : 'rgba(224,123,57,0.28)',
+        r: (mix(130, 200) + (d.light || 0) * 2.2 + (s.hero.lightFuel || 0) * 0.5) * flicker,
+        color: 'rgba(224,123,57,' + mix(0.28, 0.52).toFixed(3) + ')',
       });
       /* Teal staff glow */
       lights.push({
@@ -22287,11 +22309,13 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         lights.push({
           x: (b.x + b.w * 0.35) * TILE - camX,
           y: (b.y + b.h * 0.45) * TILE - camY,
-          r: night ? 100 : 54, color: night ? 'rgba(232,197,71,0.28)' : 'rgba(232,197,71,0.1)',
+          r: mix(54, 100), color: 'rgba(232,197,71,' + mix(0.1, 0.28).toFixed(3) + ')',
         });
-        if (night) {
-          lights.push({ x: (b.x + b.w * 0.22) * TILE - camX, y: gy, r: 74, color: 'rgba(232,180,70,0.3)' });
-          lights.push({ x: (b.x + b.w * 0.72) * TILE - camX, y: gy, r: 74, color: 'rgba(232,180,70,0.3)' });
+        if (warm > 0.25) {
+          /* window and doorstep pools spill warm light on the ground from dusk on */
+          const wa = (0.3 * Math.min(1, (warm - 0.25) / 0.5)).toFixed(3);
+          lights.push({ x: (b.x + b.w * 0.22) * TILE - camX, y: gy, r: 78, color: 'rgba(232,180,70,' + wa + ')' });
+          lights.push({ x: (b.x + b.w * 0.72) * TILE - camX, y: gy, r: 78, color: 'rgba(232,180,70,' + wa + ')' });
         }
       });
       this.entities.forEach((en) => {
@@ -22300,6 +22324,26 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
           lights.push({ x: en.x - camX, y: en.y - camY, r: 50, color: (en.glow || pal.haint) });
         }
       });
+      /* readability: in the dark every foe, unopened chest and exit gets a soft clear patch
+         so it never melts into the night (no colour cast, just less darkness) */
+      const caveLit = this.area.biome === 'cave' || this.area.dark;
+      if (warm > 0.4 || caveLit) {
+        const onScr = (px, py) => px > -60 && py > -60 && px < zw + 60 && py < zh + 60;
+        this.entities.forEach((en) => {
+          if (!en.alive) return;
+          const px = en.x - camX, py = en.y - camY - 8;
+          if (onScr(px, py)) lights.push({ x: px, y: py, r: en.boss ? 78 : 50, color: 'rgba(0,0,0,0)' });
+        });
+        (this.area.chests || []).forEach((c) => {
+          if (s.chestsOpened && s.chestsOpened[c.id]) return;
+          const px = c.x * TILE + 16 - camX, py = c.y * TILE + 16 - camY;
+          if (onScr(px, py)) lights.push({ x: px, y: py, r: 46, color: 'rgba(232,197,71,0.16)' });
+        });
+        (this.area.exits || []).forEach((ex) => {
+          const px = ex.x * TILE + 16 - camX, py = ex.y * TILE + 16 - camY;
+          if (onScr(px, py)) lights.push({ x: px, y: py, r: 56, color: 'rgba(126,200,192,0.12)' });
+        });
+      }
       if (this.area.biome === 'cave' || this.area.dark) {
         const step = 4;
         const gx0 = Math.floor(x0 / step) * step, gy0 = Math.floor(t0 / step) * step;
@@ -28121,6 +28165,1080 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   let want = true;   /* approved by Nick, Nov 13 */
   try { if (root.localStorage && root.localStorage.getItem(B.KEY) === 'old') want = false; } catch (e) { /* keep new */ }
   if (want) B.apply();
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ==== 32-bestiary.js ==== */
+/* THE HOLLOW VEIL — bestiary redraw: every boss and creature rebuilt from how the
+   Ozark and Appalachian tellings describe them. Same clean style as the character
+   pass: smooth closed shapes, soft radial shading, one ink weight, rim lights,
+   no hatching, no scribble. Overrides drawers in HV.RenderRich at load. */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const K = HV.RichKit;
+  if (!K) return;
+  const { glow, fillPath, shadow, blob, shape, flat, rim, limb, claws, eyes, smoke, begin, snakeBody, hornQ, fangs, spikes, legSet, Rrich, P, grad, fillGrad, strokeRibbon, PROP, brimShade, hairOver } = K;
+  const INK = () => HV.PAL.ink;
+  const dot = (ctx, x, y, r, col, lw) => fillPath(ctx, () => { ctx.arc(x, y, r, 0, Math.PI * 2); }, col, lw ? INK() : false, lw || 1);
+  const oval = (ctx, x, y, rx, ry, rot, col, lw) => fillPath(ctx, () => { ctx.ellipse(x, y, rx, ry, rot || 0, 0, Math.PI * 2); }, col, lw ? INK() : false, lw || 1);
+  /* a clip-painted soft patch inside a shape (belly light, back shade) */
+  function inside(ctx, body, pts, col) {
+    ctx.save(); ctx.beginPath(); blob(ctx, body); ctx.clip();
+    ctx.fillStyle = col; ctx.beginPath(); blob(ctx, pts); ctx.fill();
+    ctx.restore(); ctx.beginPath();
+  }
+  const mark = (ctx, x, y, s, col) => {   /* the scored mark: a carved X in a ring, glowing */
+    ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1.3 * s; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(x, y, 3.2 * s, 0, Math.PI * 2); ctx.moveTo(x - 2 * s, y - 2 * s); ctx.lineTo(x + 2 * s, y + 2 * s); ctx.moveTo(x + 2 * s, y - 2 * s); ctx.lineTo(x - 2 * s, y + 2 * s); ctx.stroke();
+    ctx.restore(); ctx.beginPath();
+  };
+
+  const D = {};
+
+  /* ---------------- BOSSES ---------------- */
+
+  /* The Ozark Howler: bear-sized, shaggy black, a cat-like lope, steer horns, red eyes.
+     Head and horn geometry is the approved one, unchanged. */
+  D.ridge_howler = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const whelp = !!opts.whelp;
+    const t = begin(ctx, x, y, opts, whelp ? 0.82 : 1.95);
+    const br = Math.sin(t * 1.4) * 0.8, sway = Math.sin(t * 1.1) * 1.2;
+    const fur = ['#3A2E26', '#0E0A08'], furL = ['#4C3E32', '#16110D'], mane = ['#2A221C', '#080605'];
+    glow(ctx, 6, -36, 28, 'rgba(180,24,18,0.95)', 0.42);
+    shadow(ctx, -2, 21, 22, 4.6);
+    /* hind legs: heavy bear haunches */
+    limb(ctx, [-10, 0], [-17, 9], [-14, 20], 6.2, 3.4, fur[0], fur[1], 1.6);
+    limb(ctx, [3, 1], [8, 10], [5, 20], 6.0, 3.4, furL[0], furL[1], 1.6);
+    claws(ctx, -12.4, 20, 1, 2.8, '#D8CCB0'); claws(ctx, 6.4, 20, 1, 2.8, '#D8CCB0');
+    /* far arm */
+    limb(ctx, [-11, -20], [-25, -4 + sway], [-19, 13], 4.6, 2.8, fur[0], fur[1], 1.5);
+    claws(ctx, -19, 13.6, -1, 3.8, '#E0D4B8');
+    /* shaggy hulk: humped bear shoulders, tufted ragged fringe */
+    const body = [[-2, -44 + br], [9, -42 + br], [17, -35, 1], [16, -27], [21, -19, 1], [17, -11], [19, -3, 1], [13, 3], [9, 11, 1], [3, 8], [-4, 13, 1], [-9, 8], [-16, 11, 1], [-17, 2], [-23, -5, 1], [-19, -13], [-23, -22, 1], [-17, -29], [-17, -38, 1], [-10, -40]];
+    shape(ctx, body, fur[0], fur[1], 2.2);
+    inside(ctx, body, [[4, -32], [13, -16], [9, 6], [0, -6]], 'rgba(0,0,0,0.3)');
+    inside(ctx, body, [[-13, -32], [-4, -38], [-2, -26], [-11, -18]], 'rgba(130,100,76,0.22)');
+    /* pale-tipped chest mane (solid locks) */
+    [[0, -30, 2, -18], [5, -29, 7, -17], [-4, -28, -3, -16], [9, -26, 11, -16]].forEach((m) =>
+      shape(ctx, [[m[0] - 2.4, m[1], 1], [m[0] + 2.4, m[1], 1], [m[2] + 0.8, m[3], 1], [m[2] - 0.6, m[3] + 1.2, 1]], '#5A4A3C', mane[1], 1.0));
+    rim(ctx, [[-15, -35], [-6, -42], [6, -42]], 'rgba(232,200,170,0.32)', 1.3);
+    /* near arm */
+    limb(ctx, [10, -22], [23, -3 - sway], [16, 12], 4.8, 3.0, furL[0], furL[1], 1.5);
+    claws(ctx, 16.4, 12.6, 1, 4.2, '#E0D4B8');
+    /* head (approved shape) */
+    const head = [[-8, -36], [-4, -48], [6, -50], [13, -44], [17, -36], [20, -30], [14, -25], [4, -25], [-6, -28]];
+    shape(ctx, head, '#3A2E26', '#100C0A', 1.9);
+    shape(ctx, [[9, -34], [17, -33.6], [21, -30], [18, -26], [10, -27]], '#4A3C32', '#1A1410', 1.4);
+    oval(ctx, 19.6, -30, 1.4, 1.0, 0, '#0B0C0A');
+    flat(ctx, [[11, -27.4, 1], [19.6, -27.6, 1], [17.6, -24.6, 1], [12, -24.8, 1]], '#4A1612', 0.9);
+    fangs(ctx, [[13, -26.6, 2.6], [16.2, -26.8, 2.3], [18.4, -26.6, 1.6]]);
+    /* ear tufts behind the horns */
+    flat(ctx, [[-5, -44, 1], [-9, -49, 1], [-2, -47, 1]], mane[0], 1.0);
+    /* the approved steer horns: wide, out then up, pale tips — DO NOT CHANGE */
+    if (whelp) {
+      hornQ(ctx, [-1, -47], [-9, -49], [-8, -55], 2.6, '#7A6A56', '#2A2018', '#C8B898');
+      hornQ(ctx, [7, -47], [15, -49], [14, -55], 2.6, '#7A6A56', '#2A2018', '#C8B898');
+    } else {
+      hornQ(ctx, [-1, -47], [-22, -50], [-19, -64], 3.6, '#7A6A56', '#2A2018', '#C8B898');
+      hornQ(ctx, [7, -47], [28, -50], [25, -64], 3.6, '#7A6A56', '#2A2018', '#C8B898');
+    }
+    const pulse = 0.75 + Math.sin(t * 5) * 0.25;
+    ctx.save(); ctx.globalAlpha *= pulse;
+    eyes(ctx, [[2, -38, 2.3, 1.4, -0.2], [9, -37, 2.5, 1.5, 0.15]], '#F0402A', 'rgba(220,30,20,1)', 8);
+    ctx.restore();
+    ctx.restore();
+  };
+
+  /* The Snawfus: an Ozark white deer with flowering boughs for antlers; it floats
+     over the treetops and is seen in spring. Ghost-white, blossom-crowned, hooves off the ground. */
+  D.snawfus = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.6);
+    const step = Math.sin(t * 2.2), hover = Math.sin(t * 1.3) * 1.6 - 3, br = Math.sin(t * 1.5) * 0.4;
+    const fur = ['#FFFDF6', '#9AA6B2'], legC = ['#E4E8EC', '#7A8590'];
+    glow(ctx, 4, -18, 36, 'rgba(150,190,230,0.8)', 0.38);
+    shadow(ctx, 0, 20, 15, 3.0, 0.12);
+    ctx.translate(0, hover);
+    /* mist trailing from the hooves */
+    smoke(ctx, -10, 16, t, '#B4D0EC', 4, 4); smoke(ctx, 10, 16, t + 0.5, '#B4D0EC', 3, 4);
+    legSet(ctx, [{ x: -10, y: -3, f: -1, w0: 2.2, w1: 0.9, hoof: '#4A5058', kx: 2, fy: 17, amp: 1.2 }, { x: 8, y: -3, f: 1, w0: 2.2, w1: 0.9, hoof: '#4A5058', kx: -2, fy: 17, amp: 1.2 }], step, legC);
+    const body = [[-16, -7], [-12, -14 + br], [0, -15 + br], [10, -15], [15, -11], [14, -3], [5, 0], [-8, -0.6], [-15, -2]];
+    shape(ctx, body, fur[0], fur[1], 1.6);
+    inside(ctx, body, [[-14, -4], [0, -3], [12, -4], [8, 1], [-10, 1]], 'rgba(130,150,175,0.28)');
+    /* white flag tail */
+    shape(ctx, [[-15, -10], [-21, -15, 1], [-19, -7], [-16, -5]], '#FFFFFF', '#B8C4D0', 1.1);
+    rim(ctx, [[-11, -12.6], [0, -13.8], [10, -13.2]], 'rgba(255,255,255,0.6)', 1.2);
+    legSet(ctx, [{ x: -6, y: -2, f: 1, w0: 2.4, w1: 1.0, hoof: '#4A5058', kx: 2, fy: 17, amp: 1.2 }, { x: 11, y: -3, f: -1, w0: 2.4, w1: 1.0, hoof: '#4A5058', kx: -2, fy: 17, amp: 1.2 }], step, fur);
+    /* neck and head: a graceful whitetail, not a giraffe */
+    shape(ctx, [[8, -14], [12, -22], [15, -28], [20, -27.4], [18, -20], [14, -10]], fur[0], fur[1], 1.4);
+    ctx.save(); ctx.translate(18, -29); ctx.rotate(0.28);
+    shape(ctx, [[-4, 0], [-2, -4.4], [4, -4], [10.4, -1], [11, 2.2], [3, 3.8], [-3, 3.2]], fur[0], fur[1], 1.3);
+    oval(ctx, 10.4, 0.6, 1.1, 0.9, 0, '#2A3038');
+    flat(ctx, [[-2, -3.4, 1], [-7, -7.2, 1], [-2.8, -0.8, 1]], '#F4F0E8', 1.0);
+    flat(ctx, [[-1, -3.8, 1], [-4.6, -8.6, 1], [0.6, -3.4, 1]], '#E8C8D0', 0.8);
+    eyes(ctx, [[2.6, -0.9, 1.4, 1.0]], '#2A4A68', 'rgba(150,200,240,1)', 4);
+    dot(ctx, 3.0, -1.3, 0.4, '#FFFFFF');
+    /* flowering antlers: dogwood and redbud blossoms on pale tines */
+    ctx.save(); ctx.translate(-0.6, -3.6);
+    const ant = (s) => {
+      limb(ctx, [0, 0], [s * 4.6, -8], [s * 3.4, -17], 1.1, 0.45, '#EADFC8', '#9A8A6A', 0.9);
+      limb(ctx, [s * 4.0, -7], [s * 8.4, -10], [s * 10, -15], 0.75, 0.35, '#EADFC8', '#9A8A6A', 0.8);
+      limb(ctx, [s * 3.6, -12], [s * 0.2, -16], [s * -1.4, -19], 0.65, 0.3, '#EADFC8', '#9A8A6A', 0.8);
+      [[s * 3.4, -17.6, 0], [s * 10.4, -15.6, 1], [s * -1.6, -19.6, 1], [s * 6.6, -11, 0], [s * 1.2, -9, 1]].forEach((p, i) => {
+        const pink = p[2] === 1, c = pink ? '#E89AB8' : '#FFFFFF', cd = pink ? '#A85878' : '#B8C0C8';
+        for (let k = 0; k < 4; k++) {
+          const a = k * Math.PI / 2 + t * 0.35 + i;
+          shape(ctx, [[p[0], p[1]], [p[0] + Math.cos(a - 0.5) * 2.0, p[1] + Math.sin(a - 0.5) * 2.0], [p[0] + Math.cos(a) * 2.6, p[1] + Math.sin(a) * 2.6], [p[0] + Math.cos(a + 0.5) * 2.0, p[1] + Math.sin(a + 0.5) * 2.0]], c, cd, 0.6);
+        }
+        dot(ctx, p[0], p[1], 0.75, '#E8C547');
+      });
+      /* a green leaf or two */
+      shape(ctx, [[s * 5, -13], [s * 8.4, -12.4], [s * 6, -10.6]], '#7AA86A', '#2E5228', 0.6);
+    };
+    ant(-1); ant(1);
+    ctx.restore();
+    ctx.restore();
+    /* falling petals */
+    for (let i = 0; i < 4; i++) {
+      const u = ((t * 0.25 + i * 0.27) % 1);
+      ctx.save(); ctx.globalAlpha *= (1 - u);
+      oval(ctx, 14 + Math.sin(i * 2 + t) * 8, -40 + u * 50, 1.2, 0.7, u * 4, i % 2 ? '#E89AB8' : '#FFFFFF');
+      ctx.restore();
+    }
+    ctx.restore();
+  };
+
+  /* The Gowrow: Arkansas cave lizard twenty feet long, two great tusks, a ridge of
+     horn spikes down its back, short legs, a whipping tail. Low, long, heavy. */
+  D.gowrow = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.75);
+    const step = Math.sin(t * 2.4), tail = Math.sin(t * 1.6) * 3, jaw = Math.max(0, Math.sin(t * 1.2)) * 1.6;
+    const sk = ['#6E8A5E', '#18241A'], belly = '#C8B888';
+    shadow(ctx, -8, 18, 34, 4.4);
+    /* tail: long, tapering, a spiked club end */
+    const tl = [[-20, -5], [-34, -4 + tail * 0.4], [-48, 2 + tail], [-56, 6 + tail * 1.2, 1], [-50, 8 + tail], [-34, 7], [-20, 6]];
+    shape(ctx, tl, sk[0], sk[1], 1.6);
+    spikes(ctx, [[-28, -4.6, -31, -10, 2], [-38, -2.4, -41, -7.6, 1.8], [-47, 1.6, -51, -3, 1.6]], '#2A3A26');
+    const far = { w0: 3.8, w1: 2.2, claw: 3, cc: '#E8DCB8', fy: 17, kx: -6, ky: -5, amp: 1.4 };
+    legSet(ctx, [Object.assign({ x: -13, y: 2, f: -1 }, far), Object.assign({ x: 11, y: 2, f: 1 }, far)], step, ['#425A40', '#0E1610']);
+    const body = [[-22, -3], [-14, -13], [0, -16], [12, -15], [22, -11], [25, 0], [15, 7], [0, 8.4], [-14, 7.4], [-22, 5]];
+    shape(ctx, body, sk[0], sk[1], 1.9);
+    inside(ctx, body, [[-20, 4], [0, 2.4], [20, 1.6], [16, 10], [-16, 10]], 'rgba(200,184,136,0.5)');
+    /* armoured scutes: rows of solid rounded plates */
+    for (let i = 0; i < 6; i++) {
+      const sx = -16 + i * 6.4, sy = -10.4 - Math.sin((i / 5) * Math.PI) * 3.4;
+      shape(ctx, [[sx - 2.6, sy + 1.4], [sx, sy - 1.2], [sx + 2.6, sy + 1.4], [sx, sy + 3.4]], '#7E9A6A', '#2A3A24', 0.8);
+    }
+    spikes(ctx, [[-16, -12, -18, -19, 2.2], [-10, -14, -11, -22, 2.5], [-4, -15.4, -4, -24.5, 2.8], [2, -16, 3, -25.5, 2.8], [8, -15.6, 9.5, -23.6, 2.6], [14, -14, 16, -20.5, 2.3]], '#E0D4B0');
+    rim(ctx, [[-18, -10], [-4, -15], [12, -14]], 'rgba(232,230,190,0.3)', 1.2);
+    legSet(ctx, [Object.assign({ x: -8, y: 3, f: 1 }, far, { w0: 4.2, w1: 2.4 }), Object.assign({ x: 16, y: 2, f: -1 }, far, { w0: 4.2, w1: 2.4 })], step, sk);
+    /* head: broad, low, crocodile-heavy, with two upturned tusks */
+    ctx.save(); ctx.translate(23, -7);
+    shape(ctx, [[-4, -6], [4, -9], [14, -7], [22, -3], [24, 1], [16, 2.4], [4, 3], [-4, 4]], sk[0], sk[1], 1.6);
+    shape(ctx, [[-2, 3], [6, 3 + jaw], [18, 3 + jaw], [22, 2 + jaw * 0.6], [16, 6.4 + jaw], [4, 7 + jaw], [-3, 6]], '#5E7A50', sk[1], 1.3);
+    flat(ctx, [[5, 2.6, 1], [20, 2.0, 1], [18, 3.6 + jaw, 1], [6, 4 + jaw, 1]], '#5A1A14', 0.8);
+    fangs(ctx, [[9, 2.4, 1.6], [12.4, 2.4, 1.6], [15.6, 2.2, 1.4]]);
+    hornQ(ctx, [10, 5 + jaw], [15, 6], [14, -4], 2.0, '#F4ECD4', '#B8A478');
+    hornQ(ctx, [16, 4.6 + jaw], [21, 5], [21, -2], 1.7, '#F4ECD4', '#B8A478');
+    /* brow horns */
+    flat(ctx, [[2, -7, 1], [-2, -13, 1], [6, -8.4, 1]], '#E0D4B0', 1.0);
+    eyes(ctx, [[8, -5, 1.8, 1.2, -0.2]], '#E8C547', 'rgba(232,197,71,1)', 5);
+    flat(ctx, [[7.6, -6.2, 1], [8.2, -6.2, 1], [8.1, -3.8, 1], [7.7, -3.8, 1]], '#0B0C0A', 0);
+    oval(ctx, 22.6, -1.6, 0.9, 0.6, 0, '#0B0C0A');
+    ctx.restore();
+    ctx.restore();
+  };
+
+  /* Whitey, the White River Monster: grey-white, big as a boxcar, skin peeling like
+     sycamore bark, a horn on its forehead and a spiny ridge down its back. Breaching. */
+  D.whitey = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.55);
+    const swell = Math.sin(t * 1.3) * 1.4, ripple = (t * 0.6) % 1;
+    const sk = ['#E8E4DA', '#7A8288'], bark = '#B8B4A8';
+    glow(ctx, 0, -6, 40, 'rgba(126,200,192,0.55)', 0.3);
+    /* the river around it */
+    oval(ctx, 0, 14, 40, 7.5, 0, 'rgba(40,74,84,0.85)', 1.2);
+    ctx.save(); ctx.globalAlpha *= (1 - ripple);
+    ctx.strokeStyle = 'rgba(200,232,226,0.7)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(0, 14, 26 + ripple * 18, 4 + ripple * 3, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore(); ctx.beginPath();
+    /* rear hump breaking water */
+    const hump = [[-34, 13], [-30, 2 + swell], [-20, -4 + swell], [-10, 2], [-8, 13]];
+    shape(ctx, hump, sk[0], sk[1], 1.6);
+    spikes(ctx, [[-27, 2, -29, -4, 1.8], [-21, -3, -22, -10, 2.1], [-15, -2, -14, -8, 1.8]], '#5A6268');
+    /* tail fluke curling out */
+    shape(ctx, [[-38, 12], [-44, 4, 1], [-40, 6], [-36, -1, 1], [-35, 8]], sk[0], sk[1], 1.2);
+    /* main body rising in a great arch */
+    const body = [[-6, 13], [-6, -6], [-1, -20 + swell], [8, -28 + swell], [17, -27], [22, -18], [18, -6], [14, 13]];
+    shape(ctx, body, sk[0], sk[1], 1.9);
+    /* peeling bark patches: solid flakes, edged */
+    [[0, -14, 3.6, 2.2, 0.4], [10, -22, 3.2, 1.8, -0.3], [4, -2, 3.4, 2.4, 0.2], [14, -10, 2.6, 1.8, 0.6], [-2, 6, 2.6, 1.6, 0]].forEach((b) => {
+      shape(ctx, [[b[0] - b[2], b[1]], [b[0], b[1] - b[3]], [b[0] + b[2], b[1] + 0.4, 1], [b[0] + b[2] * 0.3, b[1] + b[3]]], bark, '#6A6A60', 0.8);
+    });
+    spikes(ctx, [[0, -21, -3, -27, 1.8], [5, -26, 3, -33, 2.0], [11, -28, 11, -35, 2.0]], '#5A6268');
+    rim(ctx, [[-3, -10], [2, -20], [10, -26]], 'rgba(255,255,250,0.55)', 1.3);
+    /* head and the single forehead horn */
+    ctx.save(); ctx.translate(18, -28); ctx.rotate(0.2);
+    shape(ctx, [[-6, 2], [-4, -6], [4, -8], [14, -4], [19, 0], [16, 4], [4, 6], [-4, 6]], sk[0], sk[1], 1.6);
+    flat(ctx, [[6, 3.4, 1], [18, 1, 1], [15, 4.4, 1], [6, 5.4, 1]], '#3A2A2A', 0.8);
+    fangs(ctx, [[9, 3.4, 1.6], [12, 3, 1.5], [14.6, 2.4, 1.3]]);
+    hornQ(ctx, [3, -7], [5, -14], [10, -18], 2.0, '#F4F0E4', '#9A9A90', '#D8D4C8');
+    /* frill fins */
+    shape(ctx, [[-4, -3], [-11, -9, 1], [-9, -2], [-12, 2, 1], [-4, 3]], '#C8D0D0', '#5A6870', 1.0);
+    eyes(ctx, [[6, -2.6, 1.8, 1.3]], '#B4F0E6', 'rgba(126,220,200,1)', 6);
+    ctx.restore();
+    /* water falling off */
+    for (let i = 0; i < 4; i++) {
+      const u = ((t * 0.8 + i * 0.25) % 1);
+      ctx.save(); ctx.globalAlpha *= (1 - u) * 0.8;
+      oval(ctx, 4 + i * 4, -18 + u * 30, 0.9, 1.6, 0, '#CDEDE6');
+      ctx.restore();
+    }
+    ctx.restore();
+  };
+
+  /* Bottoms Walker (Momo): Missouri's river-bottom monster — seven feet, black hair
+     over a pumpkin-shaped head, glowing orange eyes, three-toed tracks, a stink. */
+  D.momo = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.55);
+    const step = Math.sin(t * 2.2), br = Math.sin(t * 1.4) * 0.6, sway = Math.sin(t * 1.1) * 1.4;
+    const hair = ['#3A3028', '#0C0906'];
+    shadow(ctx, 0, 21, 15, 3.6);
+    smoke(ctx, -8, -30, t, '#5A6A3A', 3, 6);   /* the stink */
+    limb(ctx, [-5, -2], [-7 + step * 2, 9], [-6 + step * 3, 20], 4.4, 3.0, hair[0], hair[1], 1.5);
+    limb(ctx, [5, -2], [7 - step * 2, 9], [6 - step * 3, 20], 4.4, 3.0, '#46392F', hair[1], 1.5);
+    /* three big toes each foot */
+    [[-6 + step * 3, 21], [6 - step * 3, 21]].forEach((f) => { for (let k = -1; k <= 1; k++) oval(ctx, f[0] + 2 + k * 2.2, f[1], 1.5, 1.0, 0, '#2A2018', 0.8); });
+    limb(ctx, [-9, -26], [-15, -10 + sway], [-14, 6], 3.6, 2.4, hair[0], hair[1], 1.4);
+    const body = [[-10, -30 + br], [0, -34 + br], [10, -30 + br], [13, -18, 1], [11, -6], [12, 3, 1], [6, 2], [0, 5, 1], [-6, 2], [-12, 3, 1], [-11, -6], [-13, -18, 1]];
+    shape(ctx, body, hair[0], hair[1], 2.0);
+    inside(ctx, body, [[2, -28], [10, -16], [8, 0], [2, -10]], 'rgba(0,0,0,0.3)');
+    /* hanging hair locks: solid tapered shapes */
+    [[-10, -14, -12, -2], [-6, -8, -7, 4], [8, -10, 10, 2], [3, -6, 4, 5]].forEach((m) => shape(ctx, [[m[0] - 2, m[1], 1], [m[0] + 2, m[1], 1], [m[2] + 0.6, m[3], 1], [m[2] - 0.8, m[3] + 1, 1]], '#4A3C30', hair[1], 0.9));
+    limb(ctx, [9, -26], [15, -10 - sway], [14, 6], 3.8, 2.6, '#4A3C32', hair[1], 1.4);
+    claws(ctx, 14.4, 6.6, 1, 2.6, '#C8B898');
+    /* pumpkin-shaped head: wide, ribbed, under a fall of hair */
+    ctx.save(); ctx.translate(1, -38 + br);
+    shape(ctx, [[-9, 2], [-10, -4], [-6, -9], [0, -10], [6, -9], [10, -4], [9, 2], [4, 5], [-4, 5]], '#4A3A2E', '#120C08', 1.7);
+    inside(ctx, [[-9, 2], [-10, -4], [-6, -9], [0, -10], [6, -9], [10, -4], [9, 2], [4, 5], [-4, 5]], [[-3.4, -9], [-1.6, -9], [-1.6, 5], [-3.4, 5]], 'rgba(0,0,0,0.22)');
+    inside(ctx, [[-9, 2], [-10, -4], [-6, -9], [0, -10], [6, -9], [10, -4], [9, 2], [4, 5], [-4, 5]], [[2.4, -9], [4.2, -9], [4.2, 5], [2.4, 5]], 'rgba(0,0,0,0.22)');
+    shape(ctx, [[-10, -3], [-6, -10], [0, -11], [6, -10], [10, -3], [7, -5], [3, -1.6], [-2, -4.6], [-7, -1.6]], hair[0], hair[1], 1.2);
+    eyes(ctx, [[-3.4, 0, 1.9, 1.4], [3.6, 0, 1.9, 1.4]], '#F09A3A', 'rgba(240,140,40,1)', 6);
+    flat(ctx, [[-3, 3.4, 1], [3, 3.4, 1], [2, 4.4, 1], [-2, 4.4, 1]], '#1A0E08', 0);
+    ctx.restore();
+    ctx.restore();
+  };
+
+  /* Rawhead and Bloody Bones: a razorback's raw head on a walking skeleton of bloody
+     bones, rising from a pool by the hollow — tusks, bristles, ribs. */
+  D.rawhead = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.45);
+    const step = Math.sin(t * 2.6), sway = Math.sin(t * 1.3) * 1.4, br = Math.sin(t * 1.6) * 0.5;
+    const bone = ['#F0E6D2', '#A89A80'], blood = ['#A8321E', '#4A100A'];
+    glow(ctx, 2, -24, 26, 'rgba(196,92,38,0.85)', 0.3);
+    shadow(ctx, 0, 21, 13, 3.2);
+    /* bloody pool at the feet */
+    oval(ctx, 0, 20.4, 12, 2.6, 0, 'rgba(110,20,14,0.6)');
+    /* legs: bones with sinew */
+    const leg = (hx, k, c) => { limb(ctx, [hx, 0], [hx + k * 1.4 - 1, 9], [hx + k * 2.2, 20], 2.0, 1.4, c[0], c[1], 1.2); oval(ctx, hx + k * 0.7 - 0.5, 9, 1.8, 1.6, 0, bone[0], 1.0); flat(ctx, [[hx + k * 2.2 - 2.4, 19.6, 1], [hx + k * 2.2 + 3.4, 19.6, 1], [hx + k * 2.2 + 3.0, 21.6, 1], [hx + k * 2.2 - 2.2, 21.6, 1]], bone[1], 0.9); };
+    leg(-4, -step, bone); leg(4, step, ['#E4D8C2', '#9A8A70']);
+    /* pelvis + spine */
+    shape(ctx, [[-6, -2], [0, -4], [6, -2], [4, 2], [-4, 2]], bone[0], bone[1], 1.2);
+    for (let i = 0; i < 4; i++) oval(ctx, 0.2, -6 - i * 2.6, 1.4, 1.1, 0, bone[0], 0.9);
+    /* far arm */
+    limb(ctx, [-6, -18], [-11, -8 + sway], [-12, 2], 1.8, 1.2, bone[0], bone[1], 1.1);
+    claws(ctx, -12, 2.6, -1, 3.2, bone[0]);
+    /* ribcage with raw flesh tatters */
+    const cage = [[-7, -22 + br], [0, -24 + br], [7, -22 + br], [8, -14], [5, -9], [-5, -9], [-8, -14]];
+    shape(ctx, cage, '#5A1810', '#2A0806', 1.4);
+    for (let i = 0; i < 4; i++) {
+      const ry = -21 + i * 3 + br;
+      ctx.save(); ctx.strokeStyle = INK(); ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-7 + i * 0.6, ry + 1.6); ctx.quadraticCurveTo(0, ry - 1.8, 7 - i * 0.6, ry + 1.6); ctx.stroke();
+      ctx.strokeStyle = bone[0]; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore(); ctx.beginPath();
+    }
+    shape(ctx, [[-8, -16], [-10, -10, 1], [-6, -12]], blood[0], blood[1], 0.9);
+    shape(ctx, [[7, -19], [10, -12, 1], [6, -14]], blood[0], blood[1], 0.9);
+    /* near arm with long finger bones */
+    limb(ctx, [6, -18], [12, -8 - sway], [13, 2], 1.9, 1.3, bone[0], bone[1], 1.1);
+    claws(ctx, 13.2, 2.6, 1, 3.6, bone[0]);
+    /* the raw razorback head: long snout, tusks, bristle crest */
+    ctx.save(); ctx.translate(1, -27 + br); ctx.rotate(0.06);
+    spikes(ctx, [[-6, -6, -9, -12, 1.6], [-3, -7.6, -4, -14, 1.7], [0, -8, 1, -15, 1.7], [3, -7.4, 5, -13, 1.6]], '#3A1410');
+    shape(ctx, [[-7, 2], [-7, -5], [-2, -8], [5, -7], [10, -4], [16, -2], [17, 2], [10, 4], [2, 5], [-4, 5]], blood[0], blood[1], 1.6);
+    inside(ctx, [[-7, 2], [-7, -5], [-2, -8], [5, -7], [10, -4], [16, -2], [17, 2], [10, 4], [2, 5], [-4, 5]], [[-6, -4], [-1, -7], [2, -5], [-3, -2]], 'rgba(240,200,170,0.35)');
+    shape(ctx, [[15, -2.4], [18.4, -1.4], [18.6, 2.2], [15.4, 2.8]], '#C86A5A', '#5A1A12', 1.0);
+    oval(ctx, 17.6, 0.2, 0.6, 0.8, 0, '#2A0806');
+    flat(ctx, [[-4, -6, 1], [-6.4, -12, 1], [-1, -7.4, 1]], blood[1], 1.0);
+    hornQ(ctx, [11, 3.4], [14, 2], [12.6, -3.4], 1.3, '#F4ECD4', '#B8A070');
+    hornQ(ctx, [8, 3.8], [10.4, 2.4], [9.2, -2], 1.1, '#F4ECD4', '#B8A070');
+    /* bone showing through at the skull */
+    shape(ctx, [[-6, -2], [-3, -5], [1, -3.4], [-2, -0.6]], bone[0], bone[1], 0.8);
+    eyes(ctx, [[4, -3.2, 1.5, 1.1]], '#F8C060', 'rgba(240,150,40,1)', 5);
+    ctx.restore();
+    /* drips */
+    for (let i = 0; i < 3; i++) { const u = ((t * 0.7 + i * 0.33) % 1); ctx.save(); ctx.globalAlpha *= 1 - u; oval(ctx, -5 + i * 5, -10 + u * 28, 0.8, 1.3, 0, '#8A1A10'); ctx.restore(); }
+    ctx.restore();
+  };
+
+  /* The Headless Raider: a guerrilla horseman of the border war who rode with Bolin's
+     bushwhackers — duster, saber, no head, a cold glow where it should be — on a gaunt pale horse. */
+  D.bolin_shade = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.35);
+    const step = Math.sin(t * 3.2), bob = Math.sin(t * 3.2 * 2) * 0.8, mist = Math.sin(t * 2) * 0.5;
+    const horse = ['#C4CCD0', '#4A5560'], horseD = ['#8A949C', '#2E3840'];
+    ctx.save(); ctx.globalAlpha *= 0.92;
+    glow(ctx, 2, -36, 26, 'rgba(126,200,192,0.8)', 0.35);
+    shadow(ctx, 0, 20, 22, 3.4, 0.14);
+    smoke(ctx, -18, 12, t, '#9AB4BC', 4, 5);
+    /* far legs */
+    legSet(ctx, [{ x: -13, y: -2, f: -1, w0: 2.6, w1: 1.2, hoof: '#1A1E22', fy: 19, kx: 2 }, { x: 11, y: -2, f: 1, w0: 2.6, w1: 1.2, hoof: '#1A1E22', fy: 19, kx: -2 }], step, horseD);
+    /* gaunt horse body with ribs */
+    const hb = [[-18, -6 + bob], [-12, -12 + bob], [6, -12 + bob], [15, -10 + bob], [17, -3 + bob], [10, 2 + bob], [-10, 2 + bob], [-17, 0 + bob]];
+    shape(ctx, hb, horse[0], horse[1], 1.6);
+    for (let i = 0; i < 3; i++) { ctx.save(); ctx.strokeStyle = 'rgba(46,56,64,0.5)'; ctx.lineWidth = 1.0; ctx.beginPath(); ctx.moveTo(-3 + i * 4, -9 + bob); ctx.quadraticCurveTo(-1 + i * 4, -4 + bob, -3 + i * 4, 0 + bob); ctx.stroke(); ctx.restore(); }
+    ctx.beginPath();
+    /* ragged tail */
+    shape(ctx, [[-17, -6 + bob], [-24, -2, 1], [-22, 6, 1], [-18, 2], [-16, -2]], '#6A7680', '#2A343C', 1.1);
+    legSet(ctx, [{ x: -9, y: 0, f: 1, w0: 2.8, w1: 1.3, hoof: '#1A1E22', fy: 19, kx: 2 }, { x: 14, y: -1, f: -1, w0: 2.8, w1: 1.3, hoof: '#1A1E22', fy: 19, kx: -2 }], step, horse);
+    /* neck and long skull-like horse head */
+    shape(ctx, [[10, -10 + bob], [16, -20 + bob], [20, -24 + bob], [24, -20 + bob], [19, -11 + bob], [16, -4 + bob]], horse[0], horse[1], 1.4);
+    shape(ctx, [[18, -25 + bob], [22, -27 + bob], [30, -20 + bob], [31, -16 + bob], [27, -15 + bob], [20, -19 + bob]], '#D4DADE', '#5A6670', 1.3);
+    flat(ctx, [[19, -26 + bob, 1], [18, -31 + bob, 1], [21.4, -26.6 + bob, 1]], horse[1], 0.9);
+    eyes(ctx, [[23.4, -22.4 + bob, 1.2, 0.9]], '#B4F0E6', 'rgba(126,220,200,1)', 4);
+    /* mane in solid wisps */
+    shape(ctx, [[12, -12 + bob], [15, -22 + bob, 1], [17, -16 + bob], [19, -25 + bob, 1], [18, -13 + bob]], '#5A6670', '#1E262C', 1.0);
+    /* the rider: long duster, saber raised, no head */
+    ctx.save(); ctx.translate(-1, -12 + bob);
+    shape(ctx, [[-6, 4], [-8, -6], [-6, -20], [0, -24], [6, -20], [8, -6], [10, 6], [2, 4], [-4, 8]], '#8A98A4', '#2E3A46', 1.5);
+    flat(ctx, [[-1, -22, 1], [1, -22, 1], [0.6, -6, 1], [-0.6, -6, 1]], '#C8C0A8', 0);   /* coat seam */
+    flat(ctx, [[-6, -10, 1], [6, -10, 1], [6, -8, 1], [-6, -8, 1]], '#5A4030', 0.8);    /* belt */
+    /* far arm on reins, near arm with saber high */
+    limb(ctx, [-5, -18], [-2, -10], [8, -10], 2.2, 1.6, '#7A8894', '#2E3A46', 1.1);
+    limb(ctx, [5, -19], [11, -26], [9, -33], 2.2, 1.6, '#8A98A4', '#2E3A46', 1.1);
+    ctx.save(); ctx.translate(9, -34); ctx.rotate(-0.5 + Math.sin(t * 2) * 0.06);
+    flat(ctx, [[-0.8, 0, 1], [0.8, 0, 1], [1.4, -22, 1], [0, -24, 1], [-0.6, -22, 1]], '#D8E0E4', 0.8);
+    flat(ctx, [[-2.6, 0.4, 1], [2.6, 0.4, 1], [2.6, 1.6, 1], [-2.6, 1.6, 1]], '#C8A050', 0.8);
+    ctx.restore();
+    /* collar with no head: a cold glow and wisps where it should be */
+    shape(ctx, [[-5, -21], [0, -25], [5, -21], [3, -18], [-3, -18]], '#6A7884', '#24303A', 1.2);
+    glow(ctx, 0, -25, 10, 'rgba(160,240,220,0.9)', 0.6 + mist * 0.3);
+    oval(ctx, 0, -23.6, 3.4, 1.4, 0, '#1A2228', 0.9);
+    smoke(ctx, 0, -25, t, '#B4E4DC', 3, 2);
+    ctx.restore();
+    ctx.restore();
+    ctx.restore();
+  };
+
+  /* The Under-Stone: what sleeps in the limestone under the county — a hunched giant of
+     stacked karst, strata banded, roots through its seams, the scored marks glowing on it. */
+  D.under_stone = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.6);
+    const br = Math.sin(t * 0.9) * 0.8, sway = Math.sin(t * 0.8) * 1.2, pulse = 0.6 + Math.sin(t * 2.4) * 0.4;
+    const st = ['#8A8C88', '#2A2E30'], stD = ['#6A6E70', '#1C2024'];
+    glow(ctx, 2, -26, 40, 'rgba(126,200,192,0.8)', 0.3 + pulse * 0.1);
+    shadow(ctx, 0, 21, 26, 5.0);
+    /* stubby pillar legs */
+    shape(ctx, [[-16, 0], [-6, 0], [-5, 20], [-17, 20]], stD[0], stD[1], 1.6);
+    shape(ctx, [[5, 0], [15, 0], [16, 20], [4, 20]], st[0], st[1], 1.6);
+    /* far arm: a column of boulders */
+    [[-22, -28, 6], [-26, -16, 5.6], [-26, -4, 5.2], [-24, 7, 5.6]].forEach((b, i) => shape(ctx, [[b[0] - b[2], b[1] + sway * i * 0.3], [b[0], b[1] - b[2] + sway * i * 0.3], [b[0] + b[2], b[1] + sway * i * 0.3], [b[0], b[1] + b[2] + sway * i * 0.3]], stD[0], stD[1], 1.3));
+    /* hunched torso: stacked strata slabs */
+    const body = [[-20, -10], [-18, -34 + br], [-6, -44 + br], [8, -44 + br], [18, -36 + br], [20, -12], [16, 4], [-16, 4]];
+    shape(ctx, body, st[0], st[1], 2.2);
+    for (let i = 0; i < 4; i++) inside(ctx, body, [[-24, -36 + i * 10 + br], [24, -38 + i * 10 + br], [24, -35 + i * 10 + br], [-24, -33 + i * 10 + br]], 'rgba(30,34,38,0.35)');
+    inside(ctx, body, [[-18, -32], [-8, -42], [-4, -30], [-14, -20]], 'rgba(220,216,200,0.18)');
+    /* roots growing through the seams: solid tapered shapes */
+    [[-12, -40, -18, -54], [2, -44, 0, -58], [12, -42, 18, -55], [16, -20, 26, -16], [-18, -18, -28, -20]].forEach((r) => shape(ctx, [[r[0] - 1.8, r[1], 1], [r[0] + 1.8, r[1], 1], [(r[0] + r[2]) / 2 + 1.2, (r[1] + r[3]) / 2], [r[2], r[3], 1], [(r[0] + r[2]) / 2 - 1.2, (r[1] + r[3]) / 2]], '#5A4632', '#1E1610', 1.0));
+    /* moss caps */
+    shape(ctx, [[-16, -36], [-6, -45], [6, -46], [14, -40], [4, -41], [-6, -38]], '#5E7A5A', '#1E2E1E', 1.0);
+    /* the scored marks, glowing in the stone */
+    ctx.save(); ctx.globalAlpha *= pulse;
+    glow(ctx, 0, -20, 12, 'rgba(126,220,200,1)', 0.7);
+    mark(ctx, 0, -20, 1.6, '#C8FFF4'); mark(ctx, -10, -6, 0.9, '#9AE8DA'); mark(ctx, 11, -28, 0.8, '#9AE8DA');
+    ctx.restore();
+    /* near arm: heavier boulders, a fist of stone */
+    [[22, -28, 6.4], [26, -15, 6], [25, -2, 5.6], [23, 10, 7]].forEach((b, i) => shape(ctx, [[b[0] - b[2], b[1] - sway * i * 0.3], [b[0], b[1] - b[2] - sway * i * 0.3], [b[0] + b[2], b[1] - sway * i * 0.3], [b[0], b[1] + b[2] - sway * i * 0.3]], st[0], st[1], 1.4));
+    /* head: a flat capstone sunk in the shoulders, two lantern eyes in a crack */
+    shape(ctx, [[-9, -42 + br], [-8, -52 + br], [0, -55 + br], [9, -52 + br], [10, -42 + br]], '#9A9C96', '#3A3E40', 1.6);
+    flat(ctx, [[-7, -47 + br, 1], [7, -48 + br, 1], [6, -45 + br, 1], [-6, -44.4 + br, 1]], '#0E1418', 0.9);
+    eyes(ctx, [[-3.4, -46 + br, 1.8, 1.1], [3.6, -46.4 + br, 1.8, 1.1]], '#DFFFF8', 'rgba(126,220,200,1)', 7);
+    /* orbiting shards */
+    for (let i = 0; i < 4; i++) {
+      const a = t * 0.7 + i * Math.PI / 2, sx = Math.cos(a) * 30, sy = -20 + Math.sin(a) * 8;
+      if (Math.sin(a) >= 0) shape(ctx, [[sx - 2.6, sy], [sx, sy - 3.6], [sx + 2.8, sy - 0.4], [sx + 0.4, sy + 2.8]], '#C8C4B4', '#5A5850', 1.0);
+    }
+    ctx.restore();
+  };
+
+  /* ---------------- BALD KNOBBERS (cleanup) ----------------
+     Historical masks: black cloth hood, two stiff cloth horns tied off at the tips,
+     eye and mouth holes ringed in white stitching. Long dark coats, a rifle or saber. */
+  K.HATS.hornhood = function (ctx, hx, hy, col, c) {
+    const hood = c.hoodL || '#2A2622';
+    /* horns: stiff black cloth, flared, with white tie-offs */
+    shape(ctx, [[hx - 3.8, hy - 5.0], [hx - 6.6, hy - 9.6], [hx - 7.6, hy - 14.0, 1], [hx - 4.6, hy - 10.6], [hx - 1.6, hy - 6.8]], '#2E2A26', '#0A0806', 1.1);
+    shape(ctx, [[hx + 1.6, hy - 6.8], [hx + 4.6, hy - 10.6], [hx + 7.8, hy - 14.2, 1], [hx + 6.8, hy - 9.6], [hx + 4.0, hy - 5.0]], '#2E2A26', '#0A0806', 1.1);
+    flat(ctx, [[hx - 7.9, hy - 13.6, 1], [hx - 6.6, hy - 13.2, 1], [hx - 6.9, hy - 12.2, 1], [hx - 8.0, hy - 12.6, 1]], '#E8DCC0', 0.6);
+    flat(ctx, [[hx + 6.8, hy - 13.4, 1], [hx + 8.1, hy - 13.8, 1], [hx + 8.0, hy - 12.8, 1], [hx + 6.9, hy - 12.4, 1]], '#E8DCC0', 0.6);
+    /* the hood itself, falling to the shoulders */
+    shape(ctx, [[hx - 6.8, hy + 6.8, 1], [hx - 6.4, hy - 2.6], [hx - 3.4, hy - 6.6], [hx, hy - 7.6], [hx + 3.4, hy - 6.6], [hx + 6.4, hy - 2.6], [hx + 6.8, hy + 6.8, 1], [hx, hy + 5.6]], hood, '#0A0806', 1.3);
+    rim(ctx, [[hx - 4.4, hy - 5.4], [hx - 1, hy - 7], [hx + 2.4, hy - 6.6]], 'rgba(232,220,192,0.22)', 0.9);
+    /* eye holes ringed in white stitching */
+    [[hx - 2.2, hy - 1.2], [hx + 2.4, hy - 1.2]].forEach((e) => { oval(ctx, e[0], e[1], 1.7, 1.25, 0, '#E8DCC0'); oval(ctx, e[0], e[1], 1.15, 0.8, 0, '#0B0C0A'); });
+    glow(ctx, hx, hy - 1.2, 3.2, 'rgba(196,92,38,0.6)', 0.35);
+    /* mouth hole, red-stitched */
+    oval(ctx, hx + 0.1, hy + 2.8, 1.6, 0.9, 0, '#A8321E'); oval(ctx, hx + 0.1, hy + 2.8, 1.0, 0.5, 0, '#0B0C0A');
+    ctx.beginPath();
+  };
+  const knob = (base, extra) => Object.assign({}, base || {}, extra);
+  if (P.night_rider) P.night_rider = knob(P.night_rider, { coat: ['#34302C', '#0C0A08'], hoodL: '#24201C', tall: 1.06, wide: 1.0, boot: '#140E0A', trousers: '#221C16' });
+  if (P.night_captain) P.night_captain = knob(P.night_captain, { coat: ['#3A3430', '#0E0A08'], hoodL: '#201C18', tall: 1.1, wide: 1.06, boot: '#140E0A', trousers: '#221C16',
+    front: (ctx) => { flat(ctx, [[-6.4, -6, 1], [6.4, 2, 1], [6.4, 4, 1], [-6.4, -4, 1]], '#8A2A1E', 0.9); flat(ctx, [[-2, -13, 1], [2, -13, 1], [1.4, 4, 1], [-1.4, 4, 1]], '#1A1612', 0); } });
+  if (P.jonas_peck) P.jonas_peck = knob(P.jonas_peck, { coat: ['#5A4632', '#1A120C'], hoodL: '#2A241E', tall: 1.1, wide: 1.06, boot: '#1A120C', trousers: '#2A2018',
+    /* keeps his marks: the gold star and the red sash, now with a brass buckle and duster placket */
+    front: (ctx, t, pal, top) => { flat(ctx, [[-1.6, top + 4, 1], [1.6, top + 4, 1], [1.2, 6, 1], [-1.2, 6, 1]], '#2A1E14', 0);
+      flat(ctx, [[3.4, top + 8], [4.8, top + 10.4, 1], [3.4, top + 12.4], [2.0, top + 10.4, 1]], '#E8C547', 0.8);
+      shape(ctx, [[-8.4, 4, 1], [8.4, 4, 1], [8.4, 6.4, 1], [-8.4, 6.4, 1]], '#A83A2A', '#5A1A14', 0.9);
+      flat(ctx, [[-1.3, 4.3, 1], [1.3, 4.3, 1], [1.3, 6.1, 1], [-1.3, 6.1, 1]], '#C8A050', 0.6); } });
+
+
+  const knobP = (base, extra) => Object.assign({}, base || {}, extra);
+  /* ---------------- CREATURES ---------------- */
+
+  /* one leg of a four-footed beast, hip to a planted foot on the ground line */
+  const leg4 = (ctx, hx, hy, sw, w, col, fore, gy) => {
+    gy = gy == null ? 20 : gy;
+    limb(ctx, [hx, hy], [hx + (fore ? 1.6 : -2.6) + sw * 0.4, hy + (gy - hy) * 0.52], [hx + sw, gy], w, w * 0.5, col[0], col[1], 1.3);
+  };
+  const tri = (ctx, a, b, c, col, lw) => flat(ctx, [[a[0], a[1], 1], [b[0], b[1], 1], [c[0], c[1], 1]], col, lw == null ? 0.8 : lw);
+
+  /* Yard dog gone feral: the half-starved cur that runs the hollows in packs — ribs
+     through mange, hackles up, lips peeled off yellow teeth. */
+  D.feral_dog = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.25);
+    const g = Math.sin(t * 6), br = Math.sin(t * 2) * 0.5;
+    const fur = ['#9A8264', '#3E2E1E'], far = ['#6A5640', '#261A10'];
+    shadow(ctx, 1, 20.5, 17, 3.2);
+    leg4(ctx, -10, -3, -g * 2.6, 2.6, far, false); leg4(ctx, 9, -4, g * 2.6, 2.4, far, true);
+    /* rat tail, low */
+    shape(ctx, [[-14, -6], [-20, -2], [-24, 5, 1], [-21, 0], [-15, -3]], fur[0], fur[1], 1.2);
+    const body = [[-15, -6], [-9, -10 + br], [0, -9 + br], [8, -12 + br], [14, -11], [15, -5, 1], [10, -1], [3, 1.5], [-3, 0], [-10, 0.5], [-16, -2]];
+    shape(ctx, body, fur[0], fur[1], 1.7);
+    inside(ctx, body, [[-6, -2], [3, -3], [3, 2], [-6, 2]], 'rgba(176,128,112,0.55)');   /* mange */
+    inside(ctx, body, [[-15, -12], [14, -14], [14, -8], [-15, -7]], 'rgba(0,0,0,0.22)');
+    ctx.save(); ctx.strokeStyle = 'rgba(40,26,16,0.6)'; ctx.lineWidth = 0.9; ctx.lineCap = 'round';
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(-1 + i * 2.6, -7); ctx.quadraticCurveTo(0 + i * 2.6, -3.5, -1.4 + i * 2.6, -0.6); ctx.stroke(); }
+    ctx.restore(); ctx.beginPath();
+    /* hackles: solid spikes along the spine */
+    for (let i = 0; i < 6; i++) tri(ctx, [-6 + i * 3, -9.6 + (i > 3 ? -2 : 0) + br], [-5 + i * 3 + 1.2, -14 - (i % 2) * 1.6 + br], [-3.6 + i * 3, -9.4 + (i > 3 ? -2 : 0) + br], fur[1]);
+    leg4(ctx, -8, -2, g * 2.6, 2.8, fur, false); leg4(ctx, 11, -4, -g * 2.6, 2.6, fur, true);
+    claws(ctx, -8 + g * 2.6, 20, 1, 1.8, '#D8CCB0'); claws(ctx, 11 - g * 2.6, 20, 1, 1.8, '#D8CCB0');
+    /* low snarling head */
+    ctx.save(); ctx.translate(15, -10 + br); ctx.rotate(0.18);
+    tri(ctx, [-2, -4], [-4, -10], [1, -5], '#5A4430', 1);   /* torn ear */
+    const hd = [[-4, -4], [2, -6], [7, -4], [13, -2], [13.4, 1, 1], [8, 2.4], [6, 4.6, 1], [0, 4.4], [-4, 2]];
+    shape(ctx, hd, '#A88C6C', '#3E2E1E', 1.5);
+    flat(ctx, [[6, 1.6, 1], [13, 0.4, 1], [12.6, 2.6, 1], [7, 3.6, 1]], '#5A1A14', 0.7);  /* peeled lips */
+    fangs(ctx, [[8, 1.2, 1.6], [11, 0.8, 1.4], [9.6, 3.2, -1.4]]);
+    dot(ctx, 13.2, -1.6, 1.0, '#1A1008');
+    eyes(ctx, [[3.6, -2.6, 1.3, 0.8, -0.3]], '#F0C040', 'rgba(240,190,60,0.9)', 3.6);
+    ctx.restore();
+    ctx.restore();
+  };
+
+  /* The booger dog: the Black Dog of the old roads — calf-tall, coal-black, eyes like
+     live coals, smoke where its feet should be. */
+  D.booger_dog = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.4);
+    const g = Math.sin(t * 4.6), br = Math.sin(t * 1.6) * 0.7;
+    const fur = ['#2E2A2E', '#060506'], far = ['#1C1A1E', '#040304'];
+    glow(ctx, 14, -14, 18, 'rgba(200,40,24,0.9)', 0.3);
+    shadow(ctx, 0, 20.5, 19, 3.4, 0.3);
+    smoke(ctx, -12, 16, t, '#3A3440', 4, 8); smoke(ctx, 10, 16, t + 1, '#3A3440', 3, 6);
+    leg4(ctx, -11, -4, -g * 2, 3.2, far, false, 18); leg4(ctx, 10, -6, g * 2, 3.2, far, true, 18);
+    /* tail streams off into smoke */
+    shape(ctx, [[-15, -9], [-22, -14], [-30, -12 + g, 1], [-23, -10], [-16, -5]], fur[0], fur[1], 1.3);
+    const body = [[-17, -6], [-12, -12 + br], [-2, -13 + br], [6, -17 + br], [13, -18], [17, -12, 1], [14, -3], [6, 1], [-4, 0], [-12, 1], [-18, -2]];
+    shape(ctx, body, fur[0], fur[1], 2.0);
+    rim(ctx, [[-12, -12 + br], [-2, -13.4 + br], [6, -17.4 + br], [13, -18.4]], 'rgba(200,190,220,0.35)', 1.0);
+    for (let i = 0; i < 7; i++) tri(ctx, [-9 + i * 3, -12.6 - (i > 3 ? i - 3 : 0) + br], [-8 + i * 3 + 1.4, -17 - (i > 3 ? i - 3 : 0) + br], [-6.6 + i * 3, -12 - (i > 3 ? i - 3 : 0) + br], '#0E0C10');
+    leg4(ctx, -8, -3, g * 2, 3.4, fur, false, 18); leg4(ctx, 12, -5, -g * 2, 3.4, fur, true, 18);
+    /* feet go to smoke */
+    oval(ctx, -8 + g * 2, 19, 4, 1.8, 0, 'rgba(70,60,76,0.7)'); oval(ctx, 12 - g * 2, 19, 4, 1.8, 0, 'rgba(70,60,76,0.7)');
+    /* broad head, ears flat, coal eyes, a hanging length of chain */
+    ctx.save(); ctx.translate(16, -16 + br);
+    tri(ctx, [-3, -4], [-6, -8.6], [0, -5.4], '#16141A', 1);
+    const hd = [[-5, -4], [2, -7], [8, -5], [14, -2], [14, 2, 1], [8, 4], [7, 6.4, 1], [0, 6], [-5, 3]];
+    shape(ctx, hd, '#36323A', '#060506', 1.7);
+    flat(ctx, [[7, 2.4, 1], [14, 1.4, 1], [13.4, 4, 1], [8, 5, 1]], '#7A1A12', 0.7);
+    fangs(ctx, [[9, 2.2, 1.8], [12, 1.8, 1.6]]);
+    eyes(ctx, [[4.4, -2.4, 1.8, 1.1, -0.2]], '#FF6A30', 'rgba(255,80,30,1)', 6);
+    eyes(ctx, [[4.6, -2.4, 0.7, 0.5]], '#FFE0A0');
+    ctx.restore();
+    ctx.save(); ctx.strokeStyle = '#6A6470'; ctx.lineWidth = 1.1;
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.ellipse(14 - i * 0.6, -8 + i * 2.6, 1.0, 1.5, 0.3 * (i % 2 ? 1 : -1), 0, Math.PI * 2); ctx.stroke(); }
+    ctx.restore(); ctx.beginPath();
+    ctx.restore();
+  };
+
+  /* snake helpers */
+  const ribbon = (ctx, rib, c0, c1, lw) => { const g = grad(ctx, 'r', 0, -2, 1, 0, 6, 30); if (g) { g.addColorStop(0, c0); g.addColorStop(1, c1); } fillGrad(ctx, () => strokeRibbon(ctx, rib), g, c1, INK(), lw); };
+  const inRibbon = (ctx, rib, fn) => { ctx.save(); ctx.beginPath(); strokeRibbon(ctx, rib); ctx.clip(); fn(); ctx.restore(); ctx.beginPath(); };
+
+  /* Cottonmouth: the heavy water moccasin of the Ozark sloughs — dark banded body,
+     a blunt viper head thrown back, mouth gaping cotton-white. */
+  D.cottonmouth = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.3);
+    const rib = snakeBody(40, 5.2, 15, t * 1.8, 1.2);
+    shadow(ctx, 0, 15, 20, 3, 0.25);
+    ribbon(ctx, rib, '#6A6044', '#1E1A12', 1.7);
+    inRibbon(ctx, rib, () => {
+      for (let i = 2; i < rib.mid.length - 3; i += 3) { const m = rib.mid[i]; ctx.fillStyle = 'rgba(14,12,8,0.6)'; ctx.beginPath(); ctx.ellipse(m.x, m.y, 1.8, m.w + 1, 0, 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = 'rgba(214,196,150,0.35)'; ctx.beginPath(); rib.top.forEach((p, i) => ctx[i ? 'lineTo' : 'moveTo'](p.x, p.y + 1.2)); ctx.lineTo(rib.top[rib.top.length - 1].x, rib.top[rib.top.length - 1].y - 2); for (let i = rib.top.length - 1; i >= 0; i--) ctx.lineTo(rib.top[i].x, rib.top[i].y - 1.4); ctx.fill();
+    });
+    const h = rib.mid[rib.mid.length - 1];
+    ctx.save(); ctx.translate(h.x + 1, h.y - 1); ctx.rotate(-0.35);
+    const gape = 0.8 + Math.sin(t * 2.4) * 0.15;
+    /* lower jaw, white mouth */
+    shape(ctx, [[-2, 1], [5, 2 + gape * 2], [11, 5 * gape + 2, 1], [5, 5 * gape + 3], [-2, 4]], '#5A5038', '#1E1A12', 1.3);
+    flat(ctx, [[0, 1.6, 1], [10, 4 * gape + 2, 1], [4, 4 * gape + 2.4, 1]], '#F2EEE4', 0.6);
+    /* upper head: wide viper wedge */
+    shape(ctx, [[-4, -4], [3, -6], [10, -3.4], [12, 0, 1], [6, 1], [-2, 2], [-5, 0]], '#7A6E50', '#1E1A12', 1.5);
+    flat(ctx, [[1, 0.8, 1], [11.4, 0.2, 1], [6, 2.2, 1]], '#F2EEE4', 0.6);
+    fangs(ctx, [[9.6, 0.8, 2.2]]);
+    flat(ctx, [[2, -3.6, 1], [8, -2.6, 1], [8.4, -1.6, 1], [2, -2.4, 1]], '#2A2418', 0);   /* eye mask */
+    eyes(ctx, [[5, -2.6, 1.0, 0.8]], '#C8A040');
+    ctx.restore();
+    ctx.restore();
+  };
+
+  /* The joint snake (glass lizard): breaks into pieces when struck and joins back up —
+     glossy, jointed like cane, each segment ringed in black. */
+  D.joint_snake = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const bit = !!opts.bit;
+    const t = begin(ctx, x, y, opts, bit ? 1.15 : 1.3);
+    const rib = snakeBody(bit ? 18 : 42, bit ? 3.6 : 4.4, bit ? 2 : 10, t * 2.2, bit ? 1.4 : 1.2);
+    shadow(ctx, 0, 14, bit ? 10 : 20, 2.4, 0.2);
+    ribbon(ctx, rib, '#C8B670', '#4A4220', 1.6);
+    inRibbon(ctx, rib, () => {
+      ctx.fillStyle = 'rgba(60,80,40,0.55)';
+      ctx.beginPath(); rib.top.forEach((p, i) => ctx[i ? 'lineTo' : 'moveTo'](p.x, p.y)); for (let i = rib.mid.length - 1; i >= 0; i--) ctx.lineTo(rib.mid[i].x, rib.mid[i].y - 0.6); ctx.fill();
+      for (let i = 2; i < rib.mid.length - 1; i += 3) { const m = rib.mid[i]; ctx.fillStyle = '#14120A'; ctx.beginPath(); ctx.ellipse(m.x, m.y, 0.9, m.w + 1, 0, 0, Math.PI * 2); ctx.fill(); }
+      ctx.strokeStyle = 'rgba(255,250,220,0.75)'; ctx.lineWidth = 1.1; ctx.beginPath(); rib.top.forEach((p, i) => { if (i % 3 === 1) { ctx.moveTo(p.x - 1.2, p.y + 1.6); ctx.lineTo(p.x + 1.0, p.y + 1.4); } }); ctx.stroke();
+    });
+    const h = rib.mid[rib.mid.length - 1];
+    if (bit) {
+      oval(ctx, h.x, h.y, 1.6, h.w * 1.0, 0, '#E8C8B0', 1.0);
+      oval(ctx, rib.mid[0].x, rib.mid[0].y, 1.0, 1.6, 0, '#E8C8B0');
+    } else {
+      ctx.save(); ctx.translate(h.x, h.y);
+      shape(ctx, [[-2, -3.8], [4, -3.6], [8.6, -1.2], [9, 1.2], [4, 3.2], [-2, 3.6]], '#D0BE78', '#4A4220', 1.4);
+      flat(ctx, [[1, -1.6, 1], [8, -0.6, 1], [8, 0.2, 1], [1, -0.6, 1]], '#2A2410', 0);
+      eyes(ctx, [[4.6, -1.6, 1.0, 0.8]], '#2A1A08');
+      ctx.fillStyle = '#C04030'; ctx.beginPath(); ctx.moveTo(9, 0.4); ctx.lineTo(12 + Math.sin(t * 9), -0.4); ctx.lineTo(12 + Math.sin(t * 9), 1.4); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+  };
+
+  /* The hoop snake: takes its tail in its mouth and rolls down the ridge after you,
+     the poison horn on its tail out front. */
+  D.hoop_snake = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.3);
+    const R0 = 11, W = 3.8;
+    shadow(ctx, 0, 19, 11, 2.4);
+    /* dust kicked up behind */
+    for (let i = 0; i < 3; i++) { const u = (t * 1.4 + i / 3) % 1; ctx.save(); ctx.globalAlpha *= 0.4 * (1 - u); oval(ctx, -10 - u * 12, 17 - u * 4, 2 + u * 3, 1.4 + u * 2, 0, '#A89878'); ctx.restore(); }
+    ctx.save(); ctx.translate(0, 6); ctx.rotate(t * 3.2);
+    const g = grad(ctx, 'r', -3, -3, 2, 0, 0, R0 + W);
+    if (g) { g.addColorStop(0, '#3A3A30'); g.addColorStop(1, '#0E0E0A'); }
+    fillGrad(ctx, () => { ctx.arc(0, 0, R0 + W, 0.42, Math.PI * 2 - 0.08); ctx.arc(0, 0, R0 - W, Math.PI * 2 - 0.08, 0.42, true); ctx.closePath(); }, g, '#1A1A14', INK(), 1.6);
+    /* yellow belly on the inside, bands across */
+    ctx.save(); ctx.strokeStyle = '#A88A3A'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(0, 0, R0 - W + 1.2, 0.5, Math.PI * 2 - 0.1); ctx.stroke();
+    ctx.strokeStyle = 'rgba(90,86,60,0.8)'; ctx.lineWidth = 1.1;
+    for (let a = 0.8; a < Math.PI * 2 - 0.3; a += 0.62) { ctx.beginPath(); ctx.moveTo(Math.cos(a) * (R0 - W + 0.6), Math.sin(a) * (R0 - W + 0.6)); ctx.lineTo(Math.cos(a) * (R0 + W - 0.6), Math.sin(a) * (R0 + W - 0.6)); ctx.stroke(); }
+    ctx.restore(); ctx.beginPath();
+    /* the poison horn */
+    flat(ctx, [[R0 - 2.6, 2.2, 1], [R0 + 8, 6.6, 1], [R0 + 2, 5.4, 1]], '#E8DCC0', 1.0);
+    glow(ctx, R0 + 7, 6.4, 4, 'rgba(160,220,90,0.9)', 0.5);
+    /* head biting the tail */
+    ctx.save(); ctx.rotate(0.12); ctx.translate(R0, -1.6);
+    shape(ctx, [[-4.6, -3], [0, -5], [4.4, -2.4], [5, 2.4], [0, 3.4], [-4.6, 2.4]], '#4A4A3C', '#0E0E0A', 1.3);
+    eyes(ctx, [[1.6, -2.6, 1.0, 0.8]], '#F0C040', 'rgba(240,190,60,0.8)', 3);
+    ctx.restore();
+    ctx.restore();
+    ctx.restore();
+  };
+
+  /* Fiddleback: the brown recluse, grown to a dog's size in the cave mouths — tan,
+     long-legged, the dark violin on its back, six eyes in pairs. */
+  D.fiddleback = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.45);
+    const w = Math.sin(t * 5);
+    const legC = ['#A88A64', '#4A3420'];
+    shadow(ctx, 0, 19, 20, 3.4);
+    /* eight legs: tall knees, fine tips */
+    const L = [[-3, -1, -21, -13, -24, 18], [-2, 0, -16, -16, -15, 19], [2, 0, 15, -16, 14, 19], [3, -1, 21, -13, 24, 18], [-3, 2, -18, -6, -22, 19], [3, 2, 18, -6, 22, 19], [-1, 3, -10, -8, -9, 20], [1, 3, 10, -8, 9, 20]];
+    L.forEach((l, i) => { const s = (i % 2 ? w : -w) * 1.4; limb(ctx, [l[0], l[1] + 4], [l[2] + s * 0.4, l[3]], [l[4] + s, l[5]], 1.5, 0.6, i > 5 ? '#B89A70' : legC[0], legC[1], 1.0); });
+    /* abdomen behind, cephalothorax in front (we look from above and behind) */
+    const ab = [[-7, -4], [0, -8], [7, -4], [8, 4], [4, 10], [0, 11], [-4, 10], [-8, 4]];
+    shape(ctx, ab, '#B8986C', '#5A4028', 1.6);
+    inside(ctx, ab, [[-8, -4], [8, -4], [8, -1], [-8, -1]], 'rgba(255,240,210,0.18)');
+    const th = [[-6, 3], [0, 1], [6, 3], [6, 10], [3, 14], [-3, 14], [-6, 10]];
+    shape(ctx, th, '#C8A878', '#6A4C30', 1.5);
+    /* the violin: neck toward the abdomen */
+    flat(ctx, [[-1.3, 3, 1], [1.3, 3, 1], [1.4, 6.6], [3.8, 8.6], [3, 11.6], [0, 12.6], [-3, 11.6], [-3.8, 8.6], [-1.4, 6.6]], '#3A2414', 0);
+    /* six eyes */
+    [[-2.6, 13.4], [2.6, 13.4], [0, 14.6], [-1, 14.2], [1, 14.2], [0, 13]].slice(0, 6).forEach((e, i) => { if (i < 3 || i === 5) dot(ctx, e[0] * (i === 5 ? 0 : 1), e[1] + (i === 5 ? 0.4 : 0), 0.8, '#0B0806'); });
+    glow(ctx, 0, 14, 5, 'rgba(200,40,24,0.7)', 0.3);
+    /* fangs */
+    tri(ctx, [-1.8, 14], [-1.2, 17], [-0.6, 14], '#2A1A10'); tri(ctx, [0.6, 14], [1.2, 17], [1.8, 14], '#2A1A10');
+    ctx.restore();
+  };
+
+  /* Razorback: the wild Ozark hog — narrow as a plank, high ridge of bristles, long
+     snout, tusks curling out of the jaw. */
+  D.feral_hog = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.3);
+    const g = Math.sin(t * 5), br = Math.sin(t * 2) * 0.5;
+    const hide = ['#5E4A3A', '#1E140E'], far = ['#3E3026', '#120C08'];
+    shadow(ctx, 0, 20.5, 18, 3.4);
+    leg4(ctx, -10, -2, -g * 2, 2.4, far, false); leg4(ctx, 9, -3, g * 2, 2.4, far, true);
+    shape(ctx, [[-15, -7], [-19, -4], [-20, 0, 1], [-17, -4]], hide[0], hide[1], 1.0);
+    const body = [[-16, -6], [-11, -11 + br], [-2, -12 + br], [6, -16 + br], [12, -14], [15, -8, 1], [12, -1], [4, 1.5], [-6, 1], [-14, 0], [-17, -3]];
+    shape(ctx, body, hide[0], hide[1], 1.8);
+    inside(ctx, body, [[-17, -1], [15, -3], [15, 3], [-17, 3]], 'rgba(0,0,0,0.25)');
+    rim(ctx, [[-11, -11.4 + br], [-2, -12.4 + br], [6, -16.4 + br]], 'rgba(220,200,170,0.35)', 1.0);
+    /* the razor ridge */
+    for (let i = 0; i < 9; i++) { const bx = -12 + i * 2.6, by = -11 - (i > 4 ? (i - 4) * 1.0 : 0) + br; tri(ctx, [bx, by + 1], [bx + 1.6, by - 4.6 - (i % 2) * 1.4], [bx + 2.8, by + 1], '#1A120C', 0.6); }
+    leg4(ctx, -8, -2, g * 2, 2.6, hide, false); leg4(ctx, 11, -3, -g * 2, 2.6, hide, true);
+    /* split hooves */
+    [[-8 + g * 2, 20.4], [11 - g * 2, 20.4]].forEach((f) => { oval(ctx, f[0] - 0.8, f[1], 1.1, 0.9, 0, '#1A120C'); oval(ctx, f[0] + 1.2, f[1], 1.1, 0.9, 0, '#1A120C'); });
+    /* long head, low */
+    ctx.save(); ctx.translate(13, -10 + br); ctx.rotate(0.28);
+    tri(ctx, [-1, -5], [-1, -10], [3, -5.6], '#3E2E22', 1);
+    shape(ctx, [[-3, -5], [3, -5.6], [10, -3], [15, -1.6], [15.6, 2, 1], [9, 3], [2, 5], [-3, 3]], '#6E5848', '#1E140E', 1.5);
+    oval(ctx, 15.4, 0.2, 1.1, 2.0, 0, '#B8806A', 0.8);
+    /* tusks */
+    flat(ctx, [[9, 2, 1], [12, -2.6, 1], [10.6, 2.6, 1]], '#F0E6D0', 0.8);
+    eyes(ctx, [[4.6, -2.6, 1.0, 0.8]], '#E05030', 'rgba(220,70,40,0.7)', 3);
+    ctx.restore();
+    ctx.restore();
+  };
+
+  /* The Wampus Cat: the Cherokee telling of a woman cursed into a cat's hide — a panther
+     too big and too long, walking wrong, with a woman's hank of hair down its neck and
+     yellow eyes that drive men mad. */
+  D.wampus = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.5);
+    const g = Math.sin(t * 3.4), br = Math.sin(t * 1.4) * 0.6, tl = Math.sin(t * 2.1);
+    const fur = ['#3A3634', '#0A0908'], far = ['#262322', '#060505'];
+    glow(ctx, 14, -22, 16, 'rgba(232,200,70,0.9)', 0.3);
+    shadow(ctx, 0, 20.5, 22, 3.6);
+    /* long tail curling up */
+    shape(ctx, [[-17, -10], [-24, -6], [-30, -14 + tl * 3], [-29, -24 + tl * 2], [-26, -26 + tl * 2, 1], [-27, -16 + tl * 2], [-23, -10], [-17, -6]], fur[0], fur[1], 1.3);
+    const wl = (hx, hy, sw, w, col, fore) => limb(ctx, [hx, hy], [hx + (fore ? -5 : 6) + sw * 0.4, hy + 9], [hx + (fore ? 3 : -2) + sw, 20], w, w * 0.5, col[0], col[1], 1.4);
+    wl(-12, -2, -g * 3, 4.0, far, false); wl(11, -3, g * 3, 3.4, far, true);
+    /* low, long, gaunt panther body, high shoulders */
+    const body = [[-18, -4], [-12, -11 + br], [-2, -8 + br], [6, -13 + br], [13, -15], [17, -9, 1], [14, 0], [6, 1], [-4, 3], [-12, 3], [-19, 0]];
+    shape(ctx, body, fur[0], fur[1], 2.0);
+    inside(ctx, body, [[-18, -2], [17, -6], [17, 2], [-18, 2]], 'rgba(0,0,0,0.3)');
+    rim(ctx, [[-12, -11.4 + br], [-2, -8.4 + br], [6, -13.4 + br], [13, -15.4]], 'rgba(200,200,190,0.3)', 1.0);
+    /* spine knobs */
+    for (let i = 0; i < 5; i++) oval(ctx, -9 + i * 3.4, -9.6 + (i > 2 ? -(i - 2) * 1.6 : 0) + br, 1.0, 0.8, 0, '#4A4642');
+    wl(-9, -1, g * 3, 4.2, fur, false); wl(13, -2, -g * 3, 3.6, fur, true);
+    claws(ctx, -11 + g * 3, 20, 1, 3.0, '#E0D8C8'); claws(ctx, 16 - g * 3, 20, 1, 3.0, '#E0D8C8');
+    /* the hank of woman's hair down the neck */
+    shape(ctx, [[8, -18], [12, -20], [14, -14], [11, -3, 1], [9, -7], [6, -1, 1], [6, -10]], '#1A1210', '#050303', 1.1);
+    /* cat head, too broad, flat face */
+    ctx.save(); ctx.translate(17, -15 + br); ctx.rotate(0.12);
+    tri(ctx, [-5, -2], [-9, -8], [-1, -4.6], '#2E2A28', 1.1);   /* ears laid back */
+    const hd = [[-5, -2], [0, -5.4], [6, -4.6], [11, -2.4], [13, 0.4, 1], [10, 2.4], [11, 6.4, 1], [4, 7.4], [-2, 6], [-5, 3]];
+    shape(ctx, hd, '#46423E', '#0A0908', 1.6);
+    flat(ctx, [[3, 2.6, 1], [12.4, 1.6, 1], [10.4, 6, 1], [4, 6.2, 1]], '#6A1A14', 0.7);
+    fangs(ctx, [[5, 2.6, 3.0], [10.4, 2.2, 2.6], [7.4, 6, -2.2]]);
+    dot(ctx, 12.6, -0.6, 0.9, '#0B0806');
+    eyes(ctx, [[3.4, -2.2, 2.0, 1.1, -0.25]], '#F2D040', 'rgba(242,208,64,1)', 6);
+    eyes(ctx, [[3.6, -2.2, 0.45, 1.0]], '#0B0806');
+    ctx.restore();
+    ctx.restore();
+  };
+  D.wampus_cat = D.wampus;
+
+  /* Plat-eye: the Low Country one-eyed haint that takes any shape — here caught
+     between dog and smoke, one great eye in the middle of it. */
+  D.plat_eye = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.35);
+    const m = (k) => Math.sin(t * 2 + k) * 1.6;
+    glow(ctx, 2, -10, 22, 'rgba(232,120,40,0.9)', 0.35);
+    shadow(ctx, 0, 19, 15, 3, 0.25);
+    smoke(ctx, -6, 6, t, '#2A2430', 4, 8);
+    /* shifting body: a dog's shape that won't hold */
+    const body = [[-16, -4 + m(0)], [-10, -14 + m(1)], [0, -18 + m(2)], [10, -15 + m(3)], [16, -6 + m(4)], [14, 6], [10, 16, 1], [7, 8], [2, 17, 1], [-2, 8], [-8, 17, 1], [-10, 8], [-16, 12 + m(5), 1], [-15, 4]];
+    shape(ctx, body, '#2E2834', '#060408', 1.8);
+    inside(ctx, body, [[-12, -12], [10, -16], [12, -8], [-12, -6]], 'rgba(120,100,140,0.25)');
+    /* tendrils */
+    for (let i = 0; i < 4; i++) { const a = -2.6 + i * 0.5; limb(ctx, [Math.cos(a) * 12, -6 + Math.sin(a) * 10], [Math.cos(a) * 18 + m(i), -6 + Math.sin(a) * 15], [Math.cos(a) * 22 + m(i + 2) * 2, -6 + Math.sin(a) * 19], 1.6, 0.5, '#2E2834', '#060408', 1.0); }
+    /* the one eye */
+    const blink = (Math.sin(t * 0.7) > 0.96) ? 0.2 : 1;
+    oval(ctx, 2, -6, 7, 5.4 * blink, 0, '#F6E2B0', 1.4);
+    glow(ctx, 2, -6, 8, 'rgba(240,140,40,1)', 0.5);
+    oval(ctx, 2 + Math.sin(t) * 1.4, -6, 4, 4 * blink, 0, '#E07020');
+    oval(ctx, 2 + Math.sin(t) * 1.4, -6, 1.0, 3.4 * blink, 0, '#0B0806');
+    ctx.restore();
+  };
+
+  /* ---- haints: each its own colour, shape and motion ---- */
+
+  /* Will-o'-the-wisp / jack-ma-lantern: a cold blue-green flame that leads you off the
+     path, a hollow little face in it. Flickers and drifts. */
+  D.haint_wisp = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.3);
+    const bob = Math.sin(t * 2.4) * 3, f = (k) => Math.sin(t * 9 + k) * 1.2;
+    shadow(ctx, 0, 20, 7, 1.6, 0.15);
+    glow(ctx, 0, -10 + bob, 26, 'rgba(90,230,190,1)', 0.45);
+    ctx.save(); ctx.translate(0, bob);
+    /* trailing sparks */
+    for (let i = 0; i < 5; i++) { const u = (t * 0.9 + i / 5) % 1; ctx.save(); ctx.globalAlpha *= 1 - u; dot(ctx, -3 - u * 10 + Math.sin(i * 3) * 2, -4 + u * 10, 1.1 * (1 - u) + 0.3, '#A8FFE0'); ctx.restore(); }
+    const fl = [[0, -28 + f(0)], [3, -20], [7, -14 + f(1)], [7, -6], [3, -1], [-3, -1], [-7, -6], [-6, -15 + f(2)], [-3, -18], [-2, -24 + f(3)]];
+    shape(ctx, fl, '#C8FFF0', '#2A9A86', 1.0, 0.92);
+    shape(ctx, [[0, -20 + f(1)], [4, -12], [3, -5], [-3, -5], [-4, -12]], '#F0FFFA', '#7ADCC4', 0, 0.9);
+    /* hollow face */
+    oval(ctx, -1.8, -10, 1.0, 1.4, 0, '#0E3A34'); oval(ctx, 1.8, -10, 1.0, 1.4, 0, '#0E3A34'); oval(ctx, 0, -6.6, 1.0, 1.4 + Math.sin(t * 3) * 0.3, 0, '#0E3A34');
+    ctx.restore();
+    ctx.restore();
+  };
+
+  /* Porch haint: the thing the haint-blue ceilings are painted to keep out — a long
+     grey shroud drifting at the edge of the porch light, reaching. */
+  D.porch_haint = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.25);
+    const bob = Math.sin(t * 1.8) * 2.4, sw = Math.sin(t * 1.3);
+    shadow(ctx, 0, 20, 9, 2, 0.15);
+    glow(ctx, 0, -16 + bob, 24, 'rgba(140,180,230,1)', 0.35);
+    ctx.save(); ctx.translate(0, bob); ctx.globalAlpha *= 0.9;
+    /* reaching arms under the shroud */
+    limb(ctx, [-6, -22], [-14, -18 + sw], [-19, -14 + sw * 2], 2.4, 1.0, '#C8D4E4', '#5A6A84', 1.1);
+    claws(ctx, -19, -13.4 + sw * 2, -1, 2.6, '#E8EEF6');
+    const sh = [[0, -40], [5, -38], [7, -30], [10, -16], [13, -2], [14, 10, 1], [10, 5], [7, 13, 1], [3, 6], [-1, 14, 1], [-4, 6], [-8, 12, 1], [-10, 4], [-14, 9, 1], [-12, -4], [-10, -18], [-7, -30], [-5, -38]];
+    shape(ctx, sh, '#E4ECF6', '#6A7A96', 1.5);
+    inside(ctx, sh, [[3, -36], [12, -20], [14, 10], [4, 10]], 'rgba(60,76,110,0.25)');
+    rim(ctx, [[-6, -35], [-9, -28], [-10, -16]], 'rgba(255,255,255,0.6)', 1.1);
+    limb(ctx, [6, -22], [13, -16 - sw], [18, -11 - sw * 2], 2.4, 1.0, '#D8E2F0', '#5A6A84', 1.1);
+    claws(ctx, 18, -10.4 - sw * 2, 1, 2.6, '#E8EEF6');
+    /* long hollow face */
+    oval(ctx, -2.8, -28, 1.7, 2.8, 0.35, '#141824'); oval(ctx, 2.8, -28, 1.7, 2.8, -0.35, '#141824');
+    inside(ctx, sh, [[-6, -26], [-3, -24], [-4, -16], [-7, -18]], 'rgba(60,76,110,0.35)'); inside(ctx, sh, [[6, -26], [3, -24], [4, -16], [7, -18]], 'rgba(60,76,110,0.35)');
+    oval(ctx, 0, -19.6, 1.6, 4 + Math.sin(t * 2) * 0.8, 0, '#141824');
+    ctx.restore();
+    ctx.restore();
+  };
+
+  /* The Spook Light (Hornet / Joplin light): an orange ball that bounces down the old
+     road, swings, and sometimes splits in two. */
+  D.promenade_light = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.2);
+    const b = -Math.abs(Math.sin(t * 2.2)) * 10, sx = Math.sin(t * 0.9) * 3;
+    const split = Math.max(0, Math.sin(t * 0.5)) ;
+    shadow(ctx, 0, 20, 8 + b * 0.2, 1.8, 0.2);
+    glow(ctx, 0, 18, 12, 'rgba(255,170,60,0.9)', 0.25 * (1 + b / 12));
+    const ball = (bx, by, r) => {
+      glow(ctx, bx, by, r * 3.2, 'rgba(255,150,40,1)', 0.55);
+      oval(ctx, bx, by, r * 1.35, r * 1.35, 0, 'rgba(255,190,90,0.35)');
+      oval(ctx, bx, by, r, r, 0, '#FFB040');
+      oval(ctx, bx - r * 0.2, by - r * 0.2, r * 0.6, r * 0.6, 0, '#FFF2C8');
+    };
+    if (split > 0.8) { const d = (split - 0.8) * 30; ball(sx - d, -10 + b, 5.6); ball(sx + d, -10 + b * 0.7, 4.6); }
+    else ball(sx, -10 + b, 7);
+    /* comet tail of where it's been */
+    for (let i = 1; i < 4; i++) { ctx.save(); ctx.globalAlpha *= 0.22 / i; oval(ctx, sx - i * 3.4, -8 + b + i * 1.4, 4 - i * 0.6, 4 - i * 0.6, 0, '#FFB040'); ctx.restore(); }
+    ctx.restore();
+  };
+
+  /* Mill spark: the burnt mill's embers that still swarm — a hot core, a cloud of
+     orbiting coals, ash falling. */
+  D.mill_spark = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.3);
+    const cy = -10 + Math.sin(t * 2) * 2;
+    shadow(ctx, 0, 20, 9, 1.8, 0.15);
+    glow(ctx, 0, cy, 22, 'rgba(255,110,30,1)', 0.45);
+    smoke(ctx, 0, cy - 4, t, '#4A3A30', 3, 4);
+    for (let i = 0; i < 11; i++) {
+      const a = t * (1.6 + (i % 3) * 0.5) + i * 0.57, r = 6 + (i % 4) * 2.6;
+      const ex = Math.cos(a) * r, ey = cy + Math.sin(a) * r * 0.6;
+      const s = 1.0 + (i % 3) * 0.5;
+      glow(ctx, ex, ey, s * 3, 'rgba(255,120,30,1)', 0.4);
+      shape(ctx, [[ex - s, ey], [ex, ey - s * 1.3], [ex + s, ey], [ex, ey + s]], '#FFE6A0', '#C04010', 0.6);
+    }
+    shape(ctx, [[-4, cy], [-2, cy - 5], [1, cy - 4], [4, cy - 1], [3, cy + 3], [-2, cy + 4]], '#FFF0C0', '#D05010', 1.2);
+    eyes(ctx, [[-1, cy - 0.6, 0.8, 0.9], [1.8, cy - 0.6, 0.8, 0.9]], '#3A1004');
+    ctx.restore();
+  };
+
+  /* Ozark cavefish: the blind white fish of the spring caves — no eyes, pink gills, a
+     school of them turning together in the dark water. */
+  D.blind_fish_swarm = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = begin(ctx, x, y, opts, 1.3);
+    oval(ctx, 0, 12, 20, 5, 0, 'rgba(40,70,90,0.35)');
+    const fish = (fx, fy, s, ph) => {
+      const tw = Math.sin(t * 7 + ph) * 1.6;
+      ctx.save(); ctx.translate(fx + Math.sin(t * 1.2 + ph) * 2, fy + Math.cos(t * 1.5 + ph) * 1.2); ctx.scale(s, s);
+      shape(ctx, [[-9, tw - 4, 1], [-6, tw * 0.5], [-9, tw + 4, 1]], '#F0E0DC', '#A88884', 0.9);
+      shape(ctx, [[-6, 0], [-1, -3], [5, -2.6], [9, 0], [5, 2.4], [-1, 2.8]], '#FFF6F2', '#C8A8A4', 1.1);
+      flat(ctx, [[2, -1.6, 1], [3.4, 0, 1], [2, 1.6, 1]], '#E07870', 0);
+      rim(ctx, [[-4, -1.6], [1, -2.6], [6, -1.6]], 'rgba(255,255,255,0.7)', 0.8);
+      ctx.restore();
+    };
+    fish(-8, 2, 1.0, 0); fish(6, -2, 1.1, 1.3); fish(-2, 9, 0.9, 2.2); fish(10, 8, 0.85, 3.1); fish(-12, 10, 0.8, 4);
+    ctx.restore();
+  };
+
+  /* Cave creeper: a camel cricket grown huge in the deep caves — humped, pale, legs
+     like sprung hinges, feelers longer than it is. */
+  const cricket = function (ctx, x, y, opts) {
+    const t = begin(ctx, x, y, opts, 1.3);
+    const tw = Math.sin(t * 3), hop = Math.max(0, Math.sin(t * 2.2)) * 1.5;
+    const sh = ['#D8C8A8', '#7A6448'];
+    shadow(ctx, 0, 20, 18, 3);
+    ctx.save(); ctx.translate(0, -hop);
+    ctx.save(); ctx.strokeStyle = '#6A5640'; ctx.lineWidth = 0.9; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(12, -6); ctx.quadraticCurveTo(26, -26 + tw * 2, 34, -18 + tw * 3); ctx.moveTo(12, -5); ctx.quadraticCurveTo(28, -14 - tw * 2, 36, -4 - tw * 2); ctx.stroke(); ctx.restore(); ctx.beginPath();
+    /* big jumping legs, far then near */
+    limb(ctx, [-6, -6], [-18, -22], [-24, 20], 3.4, 0.9, '#B8A888', sh[1], 1.1);
+    limb(ctx, [2, 0], [0, 10], [4, 20], 1.4, 0.8, '#B8A888', sh[1], 1.0); limb(ctx, [8, 0], [12, 10], [14, 20], 1.4, 0.8, '#B8A888', sh[1], 1.0);
+    const body = [[-14, -2], [-8, -10], [2, -12], [10, -9], [14, -4], [12, 2], [2, 3], [-8, 2]];
+    shape(ctx, body, sh[0], sh[1], 1.6);
+    for (let i = 0; i < 4; i++) { ctx.save(); ctx.strokeStyle = 'rgba(90,70,48,0.55)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-8 + i * 4.6, -10 + (i ? 0 : 1)); ctx.quadraticCurveTo(-6 + i * 4.6, -4, -8 + i * 4.6, 2); ctx.stroke(); ctx.restore(); ctx.beginPath(); }
+    rim(ctx, [[-8, -10], [2, -12.4], [10, -9.4]], 'rgba(255,248,230,0.6)', 1.1);
+    limb(ctx, [-4, -4], [-14, -22], [-19, 20], 3.8, 1.0, sh[0], sh[1], 1.2);
+    limb(ctx, [4, 0], [5, 10], [9, 20], 1.5, 0.8, sh[0], sh[1], 1.0); limb(ctx, [10, -1], [16, 9], [19, 20], 1.5, 0.8, sh[0], sh[1], 1.0);
+    shape(ctx, [[9, -7], [14, -8], [17, -4], [15, 1], [10, 0]], '#E0D2B4', sh[1], 1.3);
+    eyes(ctx, [[14, -4.6, 1.0, 1.0]], '#1A120A');
+    ctx.restore();
+    ctx.restore();
+  };
+  /* Karst lurker: the Ozark blind salamander grown to a man's length in the drowned
+     passages — pale pink, no eyes, red feather gills. */
+  const salamander = function (ctx, x, y, opts) {
+    const t = begin(ctx, x, y, opts, 1.5);
+    const w = Math.sin(t * 2.4), gl = Math.sin(t * 4) * 0.8;
+    const sk = ['#F0D8D0', '#A07870'];
+    shadow(ctx, 0, 19, 24, 3.4);
+    oval(ctx, 0, 18, 26, 3.4, 0, 'rgba(60,90,110,0.3)');
+    const legS = (hx, s, c) => limb(ctx, [hx, 6], [hx + s * 2 - 1, 13], [hx + s * 3, 19], 2.4, 1.4, c[0], c[1], 1.1);
+    legS(-11, -w, ['#D0B4AC', sk[1]]); legS(9, w, ['#D0B4AC', sk[1]]);
+    const body = [[-30, 6 + w * 2], [-22, 2 + w], [-12, 1], [0, 0], [10, 0], [16, 2], [14, 11], [4, 12], [-8, 12], [-18, 10], [-30, 8 + w * 2]];
+    shape(ctx, body, sk[0], sk[1], 1.6);
+    inside(ctx, body, [[-30, 9], [16, 9], [16, 14], [-30, 14]], 'rgba(160,100,100,0.25)');
+    for (let i = 0; i < 6; i++) { ctx.save(); ctx.strokeStyle = 'rgba(150,100,96,0.5)'; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.moveTo(-14 + i * 4.4, 1.4); ctx.quadraticCurveTo(-13 + i * 4.4, 6, -14 + i * 4.4, 11); ctx.stroke(); ctx.restore(); ctx.beginPath(); }
+    rim(ctx, [[-22, 2.4 + w], [-6, 0.4], [10, 0.4]], 'rgba(255,255,255,0.6)', 1.1);
+    legS(-8, w, sk); legS(12, -w, sk);
+    claws(ctx, -8 + w * 3, 19.4, 1, 1.6, '#F8ECE8'); claws(ctx, 12 - w * 3, 19.4, 1, 1.6, '#F8ECE8');
+    /* broad flat head, eyeless */
+    shape(ctx, [[12, 0], [20, -2], [28, 1], [29, 6, 1], [22, 9], [14, 10]], '#F8E2DA', sk[1], 1.5);
+    flat(ctx, [[20, 6.4, 1], [29, 5.6, 1], [28, 6.8, 1], [21, 7.6, 1]], '#7A4A44', 0);
+    oval(ctx, 22, 2, 1.2, 0.8, 0, 'rgba(120,80,76,0.5)');   /* the buried eye */
+    /* feather gills */
+    [[15, -1, -6], [17, -1.6, -8], [19, -1.6, -7]].forEach((g, i) => shape(ctx, [[g[0] - 1.2, g[1]], [g[0] - 2 + gl * (i - 1), g[1] + g[2]], [g[0] + 1.4, g[1]]], '#F07A70', '#9A2A24', 0.8));
+    ctx.restore();
+  };
+  D.cave_creeper = function (ctx, x, y, opts) { opts = opts || {}; return opts.lurk ? salamander(ctx, x, y, opts) : cricket(ctx, x, y, opts); };
+  D.karst_lurker = function (ctx, x, y, opts) { return salamander(ctx, x, y, opts || {}); };
+
+  /* ---- haints that were people: their own colour and a token from their telling ---- */
+  const aura = { hitch_girl: 'rgba(220,236,240,1)', drowned_kin: 'rgba(80,150,180,1)', churchyard_wight: 'rgba(150,210,160,1)', mine_wight: 'rgba(240,200,90,1)',
+    gallows_shade: 'rgba(200,190,170,1)', bushwhack_ghost: 'rgba(170,200,230,1)', survey_lost: 'rgba(200,230,170,1)', hag: 'rgba(170,120,220,1)', castle_keeper: 'rgba(230,120,50,1)' };
+  Object.keys(aura).forEach((id) => {
+    D[id] = function (ctx, x, y, opts) {
+      opts = opts || {};
+      const t = opts.t || 0, s = (opts.scale == null || opts.scale === 1) ? 1.25 : opts.scale / 1.2;
+      ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+      glow(ctx, 0, -14, 22, aura[id], 0.3 + Math.sin(t * 2.2) * 0.05);
+      /* ground mist in the haint's colour */
+      ctx.save(); ctx.globalAlpha *= 0.35;
+      for (let i = 0; i < 3; i++) oval(ctx, -8 + i * 8 + Math.sin(t + i) * 2, 18, 7, 2, 0, aura[id]);
+      ctx.restore();
+      ctx.restore();
+      return Rrich.person(ctx, x, y, id, opts);
+    };
+  });
+  /* tokens from the tellings */
+  if (P.hitch_girl) P.hitch_girl = knobP(P.hitch_girl, { alpha: 0.72, float: true, back: (ctx, t) => { ctx.save(); ctx.globalAlpha *= 0.5 + Math.sin(t * 1.4) * 0.3; oval(ctx, 0, 14, 8, 6, 0, 'rgba(230,240,244,0.5)'); ctx.restore(); } });
+  if (P.hag) P.hag = knobP(P.hag, { glow: 'rgba(170,120,220,0.8)', face: (ctx, hx, hy) => { hairOver(ctx, hx, hy, ['#B8B4AA', '#6A665E'], 12); eyes(ctx, [[hx - 1.4, hy - 0.4, 1.0, 0.6], [hx + 2, hy - 0.4, 1.0, 0.6]], '#E04040', 'rgba(220,60,60,1)', 4); },
+    back: (ctx) => { shape(ctx, [[-4, -16], [-16, -26], [-22, -14, 1], [-14, -16], [-12, -8]], '#2A1E2E', '#0A060C', 1.0); shape(ctx, [[4, -16], [16, -26], [22, -14, 1], [14, -16], [12, -8]], '#2A1E2E', '#0A060C', 1.0); } });
+  if (P.churchyard_wight) P.churchyard_wight = knobP(P.churchyard_wight, { glow: 'rgba(150,210,160,0.7)', back: (ctx) => { shape(ctx, [[-14, 20], [-14, 2], [-11, -1], [-8, 2], [-8, 20]], '#8A8A84', '#4A4A44', 1.1); } });
+  if (P.mine_wight) P.mine_wight = knobP(P.mine_wight, { front: (ctx, t, pal, top) => { glow(ctx, 0, top - 4, 9, 'rgba(255,210,100,1)', 0.6 + Math.sin(t * 6) * 0.1); } });
+  if (P.bushwhack_ghost) P.bushwhack_ghost = knobP(P.bushwhack_ghost, { back: (ctx, t) => smoke(ctx, 14, -4, t, '#C8D0D8', 3, 3) });
+
+  /* The Fork Fiddler: the man in black at the crossroads at midnight — tall, coat to
+     his boots, a red fiddle, gold eyes under the hat, cloven boots, embers in the ruts. */
+  if (P.crossroads_fiddler) P.crossroads_fiddler = knobP(P.crossroads_fiddler, { coat: ['#221C1C', '#040303'], tall: 1.2, wide: 0.92, boot: '#0A0606', trousers: '#140E0E', hatCol: '#0A0808',
+    glow: 'rgba(232,90,40,0.6)',
+    face: (ctx, hx, hy) => { brimShade(ctx, hx, hy); ctx.fillStyle = 'rgba(8,4,4,0.85)'; ctx.beginPath(); ctx.ellipse(hx, hy, 4.7, 5.4, 0, 0, Math.PI * 2); ctx.fill(); eyes(ctx, [[hx - 1.6, hy - 0.6, 1.2, 0.6], [hx + 1.8, hy - 0.6, 1.2, 0.6]], '#FFD040', 'rgba(255,200,60,1)', 4); flat(ctx, [[hx - 2, hy + 2.6, 1], [hx + 2.4, hy + 2.2, 1], [hx + 1, hy + 3.2, 1]], '#E8DCC0', 0); },
+    front: (ctx, t, pal, top) => { flat(ctx, [[-7, top + 2, 1], [-5, top + 2, 1], [-4, 18, 1], [-7.6, 18, 1]], '#7A1A14', 0); },
+    hold: (ctx, t, pal, h) => {
+      ctx.save(); ctx.translate(-3.4, -9); ctx.rotate(-0.9);
+      shape(ctx, [[-3, -6], [0, -7], [3, -6], [2.4, -2.6], [3.4, 1], [3, 5], [0, 6], [-3, 5], [-3.4, 1], [-2.4, -2.6]], '#D0402A', '#5A1008', 1.1);
+      flat(ctx, [[-0.5, -14, 1], [0.5, -14, 1], [0.5, -6, 1], [-0.5, -6, 1]], '#1A0E08', 0.7);
+      flat(ctx, [[-0.9, 1, 1], [0.9, 1, 1], [0.9, 2, 1], [-0.9, 2, 1]], '#1A0E08', 0);
+      ctx.restore();
+      PROP.bow(ctx, h[1][0], h[1][1] + Math.sin(t * 7) * 1.4);
+    } });
+  D.crossroads_fiddler = function (ctx, x, y, opts) {
+    opts = opts || {};
+    const t = opts.t || 0, s = (opts.scale == null || opts.scale === 1) ? 1.4 : opts.scale / 1.1;
+    ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+    /* the crossroads under him: two ruts crossing, embers in them */
+    ctx.save(); ctx.strokeStyle = 'rgba(30,18,10,0.55)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-22, 14); ctx.lineTo(22, 24); ctx.moveTo(-20, 25); ctx.lineTo(20, 13); ctx.stroke(); ctx.restore(); ctx.beginPath();
+    glow(ctx, 0, 18, 18, 'rgba(240,100,30,1)', 0.35 + Math.sin(t * 3) * 0.08);
+    for (let i = 0; i < 4; i++) { const u = (t * 0.7 + i / 4) % 1; ctx.save(); ctx.globalAlpha *= 1 - u; dot(ctx, -10 + i * 7, 18 - u * 20, 0.9, '#FFB050'); ctx.restore(); }
+    ctx.restore();
+    return Rrich.person(ctx, x, y, 'crossroads_fiddler', opts);
+  };
+
+  D.momo_walker = D.momo; D.bottoms_walker = D.momo;
+  Object.assign(Rrich, D);
+  HV.Bestiary = { redrawn: Object.keys(D) };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ==== 33-lighting.js ==== */
+/* THE HOLLOW VEIL — lighting & shadow pass.
+   One sun for the whole game: soft ground shadows that lean west in the morning, sit
+   short underfoot at midday, stretch east at evening and go faint and cool under the
+   moon. Never boxy: every shadow is a soft-edged ellipse or a row of them. Also the
+   warm-light factor (evening + night) and the readability lights that keep Lara,
+   enemies, chests and exits easy to find in the dark. Respects Light effects (LowFx). */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const low = () => !!(HV.LowFx && HV.LowFx.on && HV.LowFx.on());
+  const timeNow = () => { const g = HV.Game; const t = g && g.state && g.state.world ? g.state.world.time : 0.5; return ((t % 1) + 1) % 1; };
+  const cave = () => { const g = HV.Game, a = g && g.area; return !!(a && (a.biome === 'cave' || a.dark)); };
+
+  const Light = HV.Light = {
+    /* daylight 0..1 (0 night, 1 midday) — same ramps as the game's ambient */
+    dayK(tm) { return tm < 0.2 || tm > 0.82 ? 0 : (tm < 0.32 ? (tm - 0.2) / 0.12 : (tm > 0.68 ? (0.82 - tm) / 0.14 : 1)); },
+    /* evening/night warmth 0..1: lamps, windows and torches come up through dusk */
+    warm(tm) { tm = tm == null ? timeNow() : tm; return tm > 0.82 || tm < 0.2 ? 1 : (tm > 0.66 ? (tm - 0.66) / 0.16 : (tm < 0.3 ? (0.3 - tm) / 0.1 : 0)); },
+    /* direction (unit-ish, screen space), length factor and strength of cast shadows */
+    sun(tm) {
+      tm = tm == null ? timeNow() : tm;
+      if (cave()) return { x: 0, y: 1, len: 0.5, a: 0.8, night: true };
+      if (tm < 0.2 || tm > 0.82) return { x: 0.45, y: 0.5, len: 0.85, a: 0.6, night: true };
+      const u = Math.max(0, Math.min(1, (tm - 0.2) / 0.62));
+      const dx = -Math.cos(u * Math.PI);
+      return { x: dx, y: 0.32 + 0.18 * (1 - Math.abs(dx)), len: 0.7 + 1.6 * Math.abs(dx), a: 1, night: false };
+    },
+    _frame: null,
+    cur() { const tm = timeNow(); if (!this._frame || this._frame.tm !== tm || this._frame.cave !== cave()) this._frame = Object.assign({ tm: tm, cave: cave() }, this.sun(tm)); return this._frame; },
+    /* contact shadow + a soft cast shadow leaning with the sun. Works in a sprite's local
+       (possibly mirrored) space. a = base strength like the old helper (0.22 default). */
+    cast(ctx, x, y, rx, ry, a) {
+      const S = this.cur();
+      const base = (a == null ? 0.22 : a) * S.a;
+      let flip = 1;
+      try { if (ctx.getTransform) { const m = ctx.getTransform(); if (m.a < 0) flip = -1; } } catch (e) { /* ignore */ }
+      const dx = S.x * flip;
+      const len = rx * S.len;
+      const cx = x + dx * len * 0.7, cy = y + S.y * ry * 1.1;
+      const ang = Math.atan2(S.y * 0.35, dx || 0.0001) * (Math.abs(dx) > 0.15 ? 1 : 0);
+      ctx.save();
+      if (low() || !ctx.createRadialGradient) {
+        ctx.fillStyle = 'rgba(8,10,12,' + Math.min(0.5, base * 1.5).toFixed(3) + ')';
+        ctx.beginPath(); ctx.ellipse(cx, cy, Math.max(rx, len * 0.75), ry * 1.25, ang, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.translate(cx, cy); ctx.rotate(ang); ctx.scale(1, (ry * 1.35) / Math.max(1, Math.max(rx, len * 0.8)));
+        const R = Math.max(rx * 1.1, len * 0.85);
+        const g = ctx.createRadialGradient(0, 0, 0, 0, 0, R);
+        g.addColorStop(0, 'rgba(8,10,12,' + Math.min(0.6, base * 2.1).toFixed(3) + ')');
+        g.addColorStop(0.55, 'rgba(8,10,12,' + Math.min(0.45, base * 1.4).toFixed(3) + ')');
+        g.addColorStop(1, 'rgba(8,10,12,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+      /* small dark contact under the feet keeps things planted */
+      ctx.fillStyle = 'rgba(8,10,12,' + Math.min(0.55, (a == null ? 0.48 : a * 2) * (0.75 + 0.25 * S.a)).toFixed(3) + ')';
+      ctx.beginPath(); ctx.ellipse(x, y, rx * 0.82, ry * 0.8, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+    },
+    /* a building's ground shadow: a row of soft pools along the wall base, never a band */
+    wall(ctx, x, y, w, a) {
+      const n = Math.max(3, Math.round(w / 26));
+      for (let k = 0; k < n; k++) {
+        const fx = x + (k + 0.5) * w / n;
+        this.cast(ctx, fx, y, w / n * 0.85, 5, (a == null ? 0.3 : a) * 0.9);
+      }
+    },
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ==== 34-sweep46.js ==== */
+/* THE HOLLOW VEIL — hv46 regression-sweep fixes.
+   1. Long-bodied foes (Gowrow, Whitey, Wampus, Karst lurker) carry a body radius so a
+      swing that visibly lands on a tail or flank counts — the hit area matches the art.
+   2. Chests/caches that the dungeon carver dropped on a pool tile are moved to the
+      nearest dry floor so loot is never in water or walls. */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const BODY_R = { gowrow: 34, whitey: 14, wampus_cat: 10, karst_lurker: 6, ridge_howler: 4, under_stone: 4 };
+  HV.BODY_R = BODY_R;
+  if (HV.spawnEnemy && !HV.spawnEnemy._bodyR) {
+    const base = HV.spawnEnemy;
+    HV.spawnEnemy = Object.assign(function (id, x, y, mods) {
+      const en = base.apply(this, arguments);
+      if (en && BODY_R[en.id]) en.bodyR = BODY_R[en.id];
+      return en;
+    }, base, { _bodyR: true });
+  }
+  /* loot placement: walkable floor chars the carver uses */
+  HV.fixLootPlacement = function () {
+    const moved = [];
+    const okCh = (ch) => !!ch && ch !== '~' && ch !== 'w' && !(HV.tileSolid && HV.tileSolid(ch)) && (!HV.tileWalkable || HV.tileWalkable(ch));
+    Object.keys(HV.AREAS || {}).forEach((id) => {
+      const a = HV.AREAS[id];
+      if (!a || !HV.getTile) return;
+      (a.chests || []).concat(a.caches || []).forEach((c) => {
+        const here = HV.getTile(a, c.x, c.y);
+        if (okCh(here)) return;
+        for (let r = 1; r <= 6; r++) {
+          for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+            if (okCh(HV.getTile(a, c.x + dx, c.y + dy))) { moved.push(id + ':' + c.id); c.x += dx; c.y += dy; return; }
+          }
+        }
+      });
+    });
+    return moved;
+  };
+  try { HV._lootMoved = HV.fixLootPlacement(); } catch (e) { HV._lootMoved = []; }
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
