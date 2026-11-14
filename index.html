@@ -32409,6 +32409,113 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     const ch = HV.getTile(area, tx, ty);
     return !!(HV.tileWater && HV.tileWater(ch));
   }
+  const PATH_CH = { ',': 1, '=': 1, 'd': 1 };
+  function isPathTile(area, tx, ty) {
+    if (!area || !HV.getTile) return false;
+    return !!PATH_CH[HV.getTile(area, tx, ty)];
+  }
+  function isPathAt(area, x, y) {
+    return isPathTile(area, Math.floor(x / TILE), Math.floor(y / TILE));
+  }
+  function nearWater(area, x, y, rad) {
+    if (!area) return false;
+    const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE), r = rad == null ? 2 : rad;
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (isWater(area, tx + dx, ty + dy)) return true;
+    }
+    return false;
+  }
+  /* Unit normal pointing off a road (perpendicular to the path). */
+  function pathNormal(area, x, y) {
+    const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE);
+    const horiz = isPathTile(area, tx - 1, ty) || isPathTile(area, tx + 1, ty) || isPathTile(area, tx, ty);
+    const vert = isPathTile(area, tx, ty - 1) || isPathTile(area, tx, ty + 1);
+    if (horiz && !vert) return { x: 0, y: (y >= ty * TILE + 16 ? 1 : -1) || 1 };
+    if (vert && !horiz) return { x: (x >= tx * TILE + 16 ? 1 : -1) || 1, y: 0 };
+    if (horiz) return { x: 0, y: 1 };
+    return { x: 0, y: 1 };
+  }
+  const WATER_KINDS = { strider: 1, ripple: 1, dragonfly: 1, heron: 1, turtle: 1 };
+  const DAY_BIRDS = { cardinal: 1, jay: 1, sparrow: 1, chicken: 1, butterfly: 1, vulture: 1 };
+  /* Ground kinds that must never idle on a road. Armadillos and possums may only be on one while crossing. */
+  const OFF_PATH = {
+    deer: 1, rabbit: 1, squirrel: 1, turtle: 1, box_turtle: 1, chicken: 1, cat: 1, hound: 1,
+    cardinal: 1, jay: 1, sparrow: 1, crow: 1, heron: 1, whip: 1, firefly: 1, box_turtle: 1,
+  };
+  function offPathSite(game, kind, near) {
+    const area = game && game.area;
+    const sites = Life._sites || (area ? gatherSites(area) : null);
+    if (!sites) return null;
+    let list = sites.grass;
+    if (kind === 'squirrel' || kind === 'crow') list = (sites.trees && sites.trees.length) ? sites.trees : sites.grass;
+    else if (kind === 'hound') list = sites.porches.length ? sites.porches : sites.grass;
+    else if (kind === 'cat') list = sites.fences.length ? sites.fences : (sites.porches.length ? sites.porches : sites.grass);
+    else if (kind === 'heron' || kind === 'turtle') list = sites.edge.length ? sites.edge : sites.grass;
+    const pool = (list && list.length ? list : sites.grass) || [];
+    const fx = near ? near.x : 0, fy = near ? near.y : 0;
+    for (let i = 0; i < 14; i++) {
+      const s = pool[(Math.random() * pool.length) | 0];
+      if (!s) continue;
+      if (isPathAt(area, s.x, s.y)) continue;
+      const tx = Math.floor(s.x / TILE), ty = Math.floor(s.y / TILE);
+      if (reserved(area, tx, ty)) continue;
+      if (near && Math.hypot(s.x - fx, s.y - fy) < 20) continue;
+      return { x: s.x, y: s.y };
+    }
+    if (near) {
+      const n = pathNormal(area, near.x, near.y);
+      return { x: near.x + n.x * 40, y: near.y + n.y * 40 };
+    }
+    return null;
+  }
+  function unstick(c, game) {
+    const s = offPathSite(game, c.kind, { x: c.x, y: c.y }) || offPathSite(game, c.kind, heroPos(game));
+    if (s) {
+      c.x = s.x; c.y = s.y; c.homeX = s.x; c.homeY = s.y;
+      c.state = 'idle'; c.pose = (c.kind === 'hound' ? 'sleep' : (c.kind === 'cat' ? 'sit' : 'idle'));
+      c.z = 0; c.vx = 0; c.vy = 0; c.hidden = false;
+    } else {
+      c.hidden = true; c.state = 'hide'; c.alpha = 0;
+    }
+    c._stuck = 0; c._osc = 0;
+  }
+  function deClump(c, list, game, minD) {
+    const air = c.kind === 'vulture' || c.kind === 'bat' || c.kind === 'moth' || c.kind === 'firefly' || c.kind === 'butterfly' || c.kind === 'dragonfly';
+    if (air) return;
+    const need = minD == null ? (c.kind === 'crow' ? 48 : 32) : minD;
+    (list || []).forEach((o) => {
+      if (o === c || o.kind !== c.kind) return;
+      const dx = c.x - o.x, dy = c.y - o.y;
+      const d = Math.hypot(dx, dy);
+      if (d < need && d >= 0) {
+        const ang = d < 1 ? (c.seed || 0.3) * 6.28 : Math.atan2(dy || 1, dx || 1);
+        c.x = o.x + Math.cos(ang) * need;
+        c.y = o.y + Math.sin(ang) * need;
+        if (game && game.area && isPathAt(game.area, c.x, c.y)) nudgeOffPath(game.area, c, c.seed);
+        c.homeX = c.x; c.homeY = c.y;
+      }
+    });
+  }
+  function nudgeOffPath(area, c, seed) {
+
+    if (!area || !isPathAt(area, c.x, c.y)) return;
+    const dirs = [
+      { x: 1, y: 1 }, { x: -1, y: 1 }, { x: 1, y: -1 }, { x: -1, y: -1 },
+      { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 },
+    ];
+    const start = ((seed || 0) * 7) | 0;
+    const ox = c.x, oy = c.y;
+    for (const dist of [36, 52, 72, 96, 120]) {
+      for (let i = 0; i < 8; i++) {
+        const d = dirs[(start + i) % 8];
+        const x = ox + d.x * dist, y = oy + d.y * dist;
+        const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE);
+        if (!isPathAt(area, x, y) && !reserved(area, tx, ty) && walkableLand(area, tx, ty)) {
+          c.x = x; c.y = y; c.homeX = x; c.homeY = y; return;
+        }
+      }
+    }
+  }
 
   /* ——— pooling ——— */
   function alloc() {
@@ -32698,6 +32805,10 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     c.x = s.x + (r() - 0.5) * 18;
     c.y = s.y + (r() - 0.5) * 12;
     c.homeX = c.x; c.homeY = c.y;
+    /* keep ground life in the grass and woods; only brief road crossings are allowed later */
+    if ((OFF_PATH[kind] || kind === 'armadillo' || kind === 'possum') && isPathAt(game.area, c.x, c.y)) {
+      nudgeOffPath(game.area, c, c.seed);
+    }
     c.facing = r() < 0.5 ? -1 : 1;
     if (kind === 'hound') { c.pose = 'sleep'; c.z = 0; }
     if (kind === 'cat') { c.pose = 'sit'; c.perched = true; }
@@ -32712,7 +32823,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     if (kind === 'box_turtle') { c.pose = 'idle'; }
     if (kind === 'deer') { c.pose = c.seed < 0.5 ? 'graze' : 'idle'; c.poseT = (c.seed || 0) * 2.2; }
     if (kind === 'firefly') { c.z = 6 + r() * 14; }
-    if (kind === 'moth') { c.z = 16 + r() * 8; c.orbit = r() * Math.PI * 2; }
+    if (kind === 'moth') { c.z = 32 + r() * 8; c.orbit = r() * Math.PI * 2; }
     if (kind === 'butterfly' || kind === 'dragonfly') { c.z = 8 + r() * 10; }
     if (kind === 'whip') { c.z = 0; c.pose = 'sit'; c.hidden = partNow(game) === 'night' ? false : true; c.alpha = c.hidden ? 0 : 1; }
     c.partHide = !kindOk(kind, partNow(game), game.area && game.area.biome, game.area && game.area.id);
@@ -32761,6 +32872,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
             }
           });
         }
+        deClump(c, Life.list, game);
         Life.list.push(c); used[kind] = (used[kind] || 0) + 1;
       }
     });
@@ -32869,7 +32981,10 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   function landBird(c, game) {
     const sites = Life._sites || gatherSites(game.area);
     const h = heroPos(game);
-    const list = (c.kind === 'crow' ? (sites.fences.length ? sites.fences : sites.roofs) : sites.grass) || sites.grass;
+    const prefer = (c.kind === 'crow'
+      ? (sites.trees.length ? sites.trees : (sites.fences.length ? sites.fences : sites.roofs))
+      : (sites.trees && c.kind !== 'cardinal' ? sites.grass : sites.grass)) || sites.grass;
+    const list = (prefer || sites.grass || []).filter((p) => p && !isPathAt(game.area, p.x, p.y) && !reserved(game.area, Math.floor(p.x / TILE), Math.floor(p.y / TILE)));
     let s = null, best = 0;
     (list || []).forEach((p) => {
       const d = Math.hypot(p.x - h.x, p.y - h.y);
@@ -32886,10 +33001,14 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   function tickOne(c, game, dt) {
     const part = partNow(game);
     const ok = kindOk(c.kind, part, game.area && game.area.biome, game.area && game.area.id);
-    c.partHide = !ok && c.kind !== 'moth';
+    /* hide day birds and water bugs the moment they do not belong, including moths by day */
+    if (WATER_KINDS[c.kind] && game.area && !nearWater(game.area, c.x, c.y, 3) && c.kind !== 'heron' && c.kind !== 'turtle') {
+      c.partHide = true;
+    } else c.partHide = !ok;
     const wantA = (c.partHide || c.hidden) ? 0 : 1;
     c.alpha = lerp(c.alpha, wantA, 1 - Math.pow(0.02, dt));
     if (c.alpha < 0.03 && c.partHide) return;
+    if (c.partHide) return; /* do not hop, flush or jitter while fading out of season */
     c.phase += dt;
     if (c._shotLock) return; /* freeze a showcase pose so a screenshot wait cannot land a hop */
     c.poseT += dt;
@@ -32900,6 +33019,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       /* still notice if Lara has walked close, even at the edge of the cull */
       if (c.noticeR && d < c.noticeR && !c.partHide && !c._shotLock) beginNotice(c, game);
       else if (c.kind === 'firefly' || c.kind === 'moth') tickIdle(c, game, dt, d);
+      else if ((c.kind === 'armadillo' || c.kind === 'possum') && isPathAt(game.area, c.x, c.y)) tickRoadCross(c, game, dt);
+      keepClear(c, game, dt);
       if (c.state === 'idle') return;
     }
 
@@ -32914,12 +33035,38 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     if (c.state === 'react' || c.state === 'return') tickReact(c, game, dt, d);
     else tickIdle(c, game, dt, d);
 
-    /* keep off reserved tiles when on the ground */
-    if (c.z < 4 && game.area) {
+    keepClear(c, game, dt);
+  }
+
+  function keepClear(c, game, dt) {
+    /* keep off reserved tiles when on the ground — never snap back into a reserved home (that jitters) */
+    if (c.z < 4 && game.area && !c._shotLock) {
       const tx = Math.floor(c.x / TILE), ty = Math.floor(c.y / TILE);
-      if (reserved(game.area, tx, ty)) {
-        c.x = c.homeX; c.y = c.homeY;
+      const homeReserved = reserved(game.area, Math.floor((c.homeX || c.x) / TILE), Math.floor((c.homeY || c.y) / TILE));
+      if (reserved(game.area, tx, ty) || homeReserved) {
+        unstick(c, game);
+      } else if (OFF_PATH[c.kind] && isPathAt(game.area, c.x, c.y)) {
+        nudgeOffPath(game.area, c, c.seed);
+        c.vx = 0; c.vy = 0;
+        if (c.pose === 'hop' || c.pose === 'walk' || c.pose === 'scurry') c.pose = 'idle';
       }
+    }
+    /* stuck / oscillation watchdog: moving kinds that go nowhere or bounce in place get a new seat */
+    const busy = c.state === 'return' || c.state === 'react' || c.pose === 'hop' || c.pose === 'scurry'
+      || c.pose === 'cross' || c.pose === 'fly' || c.pose === 'flush' || c.pose === 'bolt'
+      || (c.pose === 'walk' && Math.hypot(c.vx || 0, c.vy || 0) > 8);
+    if (busy && !c._shotLock) {
+      const dxm = c.x - (c._lx == null ? c.x : c._lx);
+      const dym = c.y - (c._ly == null ? c.y : c._ly);
+      const moved = Math.hypot(dxm, dym);
+      if (moved < 1.2) c._stuck = (c._stuck || 0) + dt;
+      else c._stuck = 0;
+      if (c._lvx != null && dxm * c._lvx < 0 && Math.abs(dxm) > 0.4) c._osc = (c._osc || 0) + 1;
+      else c._osc = Math.max(0, (c._osc || 0) - 0.25);
+      c._lvx = dxm; c._lx = c.x; c._ly = c.y;
+      if ((c._stuck > 2.2 || c._osc > 10)) unstick(c, game);
+    } else {
+      c._stuck = 0; c._osc = 0; c._lx = c.x; c._ly = c.y;
     }
   }
 
@@ -32935,6 +33082,9 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
           c.hx = c.x; c.hy = c.y;
           c.tx = c.x + (Math.random() - 0.5) * 16;
           c.ty = c.y + (Math.random() - 0.5) * 10;
+          if (isPathAt(game.area, c.tx, c.ty) || reserved(game.area, Math.floor(c.tx / TILE), Math.floor(c.ty / TILE))) {
+            c.pose = 'idle'; c.tx = c.x; c.ty = c.y;
+          }
         }
         if (c.pose === 'hop') {
           const u = clamp(c.poseT / 0.2, 0, 1);
@@ -32968,9 +33118,12 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         break;
       case 'rabbit':
         if (c.pose !== 'hop' && Math.random() < dt * 0.2) {
-          c.pose = 'hop'; c.poseT = 0; c.hx = c.x; c.hy = c.y;
-          c.tx = c.x + (Math.random() - 0.5) * 22; c.ty = c.y + (Math.random() - 0.5) * 16;
-          c.facing = c.tx >= c.x ? 1 : -1;
+          const tx = c.x + (Math.random() - 0.5) * 22, ty = c.y + (Math.random() - 0.5) * 16;
+          if (!isPathAt(game.area, tx, ty) && !reserved(game.area, Math.floor(tx / TILE), Math.floor(ty / TILE))) {
+            c.pose = 'hop'; c.poseT = 0; c.hx = c.x; c.hy = c.y;
+            c.tx = tx; c.ty = ty;
+            c.facing = c.tx >= c.x ? 1 : -1;
+          }
         }
         if (c.pose === 'hop') {
           const u = clamp(c.poseT / 0.28, 0, 1);
@@ -32997,14 +33150,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         else if ((c.pose === 'idle' || !c.pose) && c.poseT > 1.5 + (c.seed || 0)) { c.pose = 'graze'; c.poseT = 0; }
         break;
       case 'armadillo':
-        c.x += (c.vx || c.facing * 18) * dt;
-        c.y += Math.sin(c.phase * 2) * 2 * dt;
-        c.waddle = Math.sin(c.phase * 8);
-        if (Math.abs(c.x - c.homeX) > 160) { c.facing *= -1; c.vx = c.facing * 18; }
-        break;
       case 'possum':
-        c.x += (c.vx || c.facing * 20) * dt;
-        if (Math.abs(c.x - c.homeX) > 140) { c.facing *= -1; c.vx = c.facing * 20; }
+        tickRoadCross(c, game, dt);
         break;
       case 'heron':
         if (Math.random() < dt * 0.08) c.pose = c.pose === 'stand' ? 'tuck' : 'stand';
@@ -33040,7 +33187,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         c.orbit = (c.orbit || 0) + dt * (1.4 + c.seed);
         c.x = lerp(c.x, lx, 1 - Math.pow(0.08, dt));
         c.y = lerp(c.y, ly, 1 - Math.pow(0.08, dt));
-        c.z = 16 + Math.sin(c.phase * 3) * 3;
+        c.z = 34 + Math.sin(c.phase * 3) * 5;
         break;
       }
       case 'butterfly':
@@ -33084,7 +33231,69 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     }
   }
 
+  function startCross(c, area) {
+    const n = pathNormal(area, c.x, c.y);
+    const spd = c.kind === 'armadillo' ? 28 : 32;
+    c.pose = 'cross';
+    c.crossT = 0;
+    c.vx = n.x * spd;
+    c.vy = n.y * spd;
+    c.facing = (c.vx === 0 ? (c.facing || 1) : (c.vx >= 0 ? 1 : -1));
+  }
+  /* Armadillos and possums live in the grass beside a road. They may briefly
+     cross it perpendicular, then leave. They never patrol up and down the path. */
+  function tickRoadCross(c, game, dt) {
+    const area = game.area;
+    const speed = c.kind === 'armadillo' ? 18 : 22;
+    if (c.state === 'notice' || c.state === 'react' || c.state === 'return') return;
+    if (c.pose === 'hop' || c.pose === 'freeze' || c.pose === 'scurry' || c.pose === 'bolt') return;
+    if (c.pose !== 'cross') {
+      if (isPathAt(area, c.x, c.y)) { startCross(c, area); return; }
+      c.x += (c.vx || 0) * dt;
+      c.y += (c.vy || 0) * dt;
+      c.waddle = Math.sin(c.phase * 8);
+      if (isPathAt(area, c.x, c.y)) { startCross(c, area); return; }
+      if (c.poseT > 1.8) {
+        c.poseT = 0;
+        /* sometimes cross if a road is a step away; otherwise amble in the grass */
+        const n = pathNormal(area, c.x, c.y);
+        const ahead = { x: c.x + n.x * 36, y: c.y + n.y * 36 };
+        const behind = { x: c.x - n.x * 36, y: c.y - n.y * 36 };
+        if (Math.random() < 0.3 && (isPathAt(area, ahead.x, ahead.y) || isPathAt(area, behind.x, behind.y))) {
+          if (isPathAt(area, behind.x, behind.y) && !isPathAt(area, ahead.x, ahead.y)) {
+            c.x -= n.x * 2; c.y -= n.y * 2;
+          }
+          startCross(c, area);
+        } else {
+          const ang = Math.random() * Math.PI * 2;
+          const nx = c.x + Math.cos(ang) * 24, ny = c.y + Math.sin(ang) * 24;
+          if (!isPathAt(area, nx, ny)) {
+            c.vx = Math.cos(ang) * speed * 0.55;
+            c.vy = Math.sin(ang) * speed * 0.55;
+            c.facing = c.vx >= 0 ? 1 : -1;
+            c.pose = 'walk';
+          } else { c.vx = 0; c.vy = 0; c.pose = 'walk'; }
+        }
+      }
+      return;
+    }
+    c.x += c.vx * dt;
+    c.y += c.vy * dt;
+    c.waddle = Math.sin(c.phase * 10);
+    c.crossT = (c.crossT || 0) + dt;
+    if ((!isPathAt(area, c.x, c.y) && c.crossT > 0.4) || c.crossT > 1.6) {
+      c.pose = 'walk';
+      c.crossT = 0;
+      c.poseT = 0;
+      c.homeX = c.x; c.homeY = c.y;
+      const n = pathNormal(area, c.x, c.y);
+      c.vx = n.x * 6; c.vy = n.y * 6;
+      if (isPathAt(area, c.x, c.y)) nudgeOffPath(area, c, c.seed);
+    }
+  }
+
   function tickReact(c, game, dt, d) {
+
     if (c.kind === 'armadillo' && c.pose === 'hop') {
       c.hopT += dt;
       const t = c.hopT;
@@ -33096,7 +33305,10 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       else {
         c.z = 0; c.squash = 1;
         c.pose = 'scurry';
-        c.vx = (c.x < heroPos(game).x ? -1 : 1) * 70;
+        const n = pathNormal(game.area, c.x, c.y);
+        const away = (c.x < heroPos(game).x ? -1 : 1);
+        c.vx = (n.x || away) * 70;
+        c.vy = n.y * 70;
         c.facing = c.vx >= 0 ? 1 : -1;
         c.st = 0;
       }
@@ -33104,22 +33316,37 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     }
     if (c.kind === 'armadillo' && c.pose === 'scurry') {
       c.x += c.vx * dt;
+      c.y += (c.vy || 0) * dt;
       c.waddle = Math.sin(c.phase * 16);
-      if (c.st > 1.2) { c.state = 'idle'; c.pose = 'walk'; c.vx = c.facing * 18; c.homeX = c.x; }
+      if (c.st > 1.2) {
+        c.state = 'idle'; c.pose = 'walk'; c.vx = 0; c.vy = 0;
+        c.homeX = c.x; c.homeY = c.y;
+        if (isPathAt(game.area, c.x, c.y)) nudgeOffPath(game.area, c, c.seed);
+      }
       return;
     }
     if (c.kind === 'possum' && c.pose === 'freeze') {
       c.freezeT = (c.freezeT || 0) + dt;
       if (c.freezeT > 0.8) {
         c.pose = 'bolt';
-        c.vx = (c.x < heroPos(game).x ? -1 : 1) * 80;
-        c.facing = c.vx >= 0 ? 1 : -1;
+        {
+          const n = pathNormal(game.area, c.x, c.y);
+          const away = (c.x < heroPos(game).x ? -1 : 1);
+          c.vx = (n.x || away) * 80;
+          c.vy = n.y * 80;
+          c.facing = c.vx >= 0 ? 1 : -1;
+        }
       }
       return;
     }
     if (c.kind === 'possum' && c.pose === 'bolt') {
       c.x += c.vx * dt;
-      if (c.st > 1.4) { c.state = 'idle'; c.pose = 'walk'; c.vx = c.facing * 20; c.homeX = c.x; }
+      c.y += (c.vy || 0) * dt;
+      if (c.st > 1.4) {
+        c.state = 'idle'; c.pose = 'walk'; c.vx = 0; c.vy = 0;
+        c.homeX = c.x; c.homeY = c.y;
+        if (isPathAt(game.area, c.x, c.y)) nudgeOffPath(game.area, c, c.seed);
+      }
       return;
     }
     if (c.kind === 'box_turtle' && c.pose === 'tuck') {
@@ -33201,6 +33428,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     return phase < 0.34;
   }
   Life.fireflyOn = fireflyOn;
+  Life.isPathAt = isPathAt;
+  Life.unstick = unstick;
 
   function isPaused(game) {
     if (!game) return true;
@@ -33231,7 +33460,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         if (Life.list.length >= cap()) return;
         if (!Life._sites) Life._sites = gatherSites(game.area);
         const c = placeKind(game, kind, r, Life._sites, focus);
-        if (c) { c.alpha = 0; Life.list.push(c); have[kind] = (have[kind] || 0) + 1; }
+        if (c) { c.alpha = 0; deClump(c, Life.list, game); Life.list.push(c); have[kind] = (have[kind] || 0) + 1; }
       });
     }
     if (game.cam) {
@@ -33479,7 +33708,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     const pal = PAL();
     const ink = pal.ink || '#1A1410';
     /* ground shadow underfoot, not up in the air with the body */
-    if (c.z >= 0 && c.kind !== 'ripple' && c.kind !== 'strider' && c.kind !== 'firefly') {
+    if (c.z >= 0 && c.kind !== 'ripple' && c.kind !== 'strider' && c.kind !== 'firefly' && c.kind !== 'moth') {
       const k = 1 / (1 + c.z * 0.04);
       shadow(ctx, 0, 0, (c.kind === 'deer' ? 14 : c.kind === 'heron' || c.kind === 'hound' ? 10 : 6) * k, (c.kind === 'deer' ? 3.2 : 2.4) * k, 0.16 * k);
     }
@@ -33489,7 +33718,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       armadillo: 1.9, deer: 2.15, heron: 1.95, hound: 2.0, chicken: 1.6, cat: 1.55,
       possum: 1.7, cardinal: 1.55, jay: 1.55, sparrow: 1.45, crow: 1.55, whip: 1.5,
       turtle: 1.6, box_turtle: 1.6, rabbit: 1.5, squirrel: 1.5, butterfly: 1.4,
-      dragonfly: 1.35, bat: 1.4, vulture: 1.55, moth: 1.3, firefly: 1.25, strider: 1.3
+      dragonfly: 1.35, bat: 1.4, vulture: 1.55, moth: 1.7, firefly: 1.25, strider: 1.3
     };
     const sc = SC[c.kind] || 1.4;
     ctx.scale(sc, sc);
@@ -34161,14 +34390,31 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   }
 
   function drawMoth(ctx, c, part, ink) {
+    /* Warm woodcut moth, readable at night — never the icy blue 3-bead that the
+       night tint used to turn a pair of tiny cream ellipses into. */
     ctx.save();
-    const flap = Math.sin((c.phase || 0) * 16) * 0.4;
-    const cream = tint('#E8DCC0', part);
-    ctx.rotate((c.orbit || 0) * 0.2);
-    inkFill(ctx, () => { ctx.ellipse(-2.4, flap, 2.6, 1.5, -0.3, 0, Math.PI * 2); }, cream, ink, 0.7);
-    inkFill(ctx, () => { ctx.ellipse(2.4, -flap, 2.6, 1.5, 0.3, 0, Math.PI * 2); }, cream, ink, 0.7);
-    ctx.fillStyle = tint('#4A3728', part);
-    ctx.beginPath(); ctx.ellipse(0, 0, 0.7, 1.3, 0, 0, Math.PI * 2); ctx.fill();
+    const flap = 0.7 + 0.3 * Math.sin((c.phase || 0) * 16);
+    ctx.rotate((c.orbit || 0) * 0.35);
+    const wing = part === 'night' ? '#E6D3A8' : tint('#E8DCC0', part);
+    const body = part === 'night' ? '#5A4634' : tint('#4A3728', part);
+    /* two broad wings */
+    inkFill(ctx, () => {
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(-2.2 * flap, -3.6, -6.2 * flap, -3.2, -6.4 * flap, -0.4);
+      ctx.bezierCurveTo(-5.8 * flap, 2.4, -2.0 * flap, 2.6, 0, 0.6);
+      ctx.closePath();
+    }, wing, ink, 0.75);
+    inkFill(ctx, () => {
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(2.2 * flap, -3.6, 6.2 * flap, -3.2, 6.4 * flap, -0.4);
+      ctx.bezierCurveTo(5.8 * flap, 2.4, 2.0 * flap, 2.6, 0, 0.6);
+      ctx.closePath();
+    }, wing, ink, 0.75);
+    /* body + tiny antennae */
+    inkFill(ctx, () => { ctx.ellipse(0, 0.2, 0.7, 1.8, 0, 0, Math.PI * 2); }, body, ink, 0.7);
+    ctx.strokeStyle = body; ctx.lineWidth = 0.55;
+    ctx.beginPath(); ctx.moveTo(-0.2, -1.6); ctx.quadraticCurveTo(-1.4, -3.2, -2.0, -3.6);
+    ctx.moveTo(0.2, -1.6); ctx.quadraticCurveTo(1.4, -3.2, 2.0, -3.6); ctx.stroke();
     ctx.restore();
   }
 
