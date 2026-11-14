@@ -2018,37 +2018,6 @@ html[data-text] #art-card {
   box-shadow: 0 0 0 2px #B8862E, 0 4px 10px rgba(0,0,0,0.45) !important;
 }
 
-/* ---------- title menu: a weathered sign hung on two ropes ---------- */
-.title-btns {
-  position: relative;
-  padding: 10px 18px 12px;
-  border: 2px solid #1A0F08;
-  border-radius: 6px;
-  background:
-    var(--rw-nail) 12px 12px / 8px 8px no-repeat,
-    var(--rw-nail) calc(100% - 12px) 12px / 8px 8px no-repeat,
-    var(--rw-nail) 12px calc(100% - 12px) / 8px 8px no-repeat,
-    var(--rw-nail) calc(100% - 12px) calc(100% - 12px) / 8px 8px no-repeat,
-    linear-gradient(180deg, rgba(0,0,0,0) 0 49%, rgba(10,6,3,0.55) 49% 51%, rgba(0,0,0,0) 51%),
-    linear-gradient(180deg, #4E3420 0%, #3A2616 55%, #2A1B10 100%);
-  box-shadow: inset 0 1px 0 rgba(255,214,160,0.18), 0 10px 24px rgba(0,0,0,0.6), 0 0 40px rgba(255,170,70,0.10);
-  width: min(300px, 86vw) !important;
-}
-.title-btns::before, .title-btns::after {
-  content: '';
-  position: absolute;
-  top: -26px;
-  width: 4px; height: 28px;
-  background: repeating-linear-gradient(170deg, #B89060 0 3px, #7A5A34 3px 6px);
-  border-radius: 2px;
-}
-.title-btns::before { left: 26%; }
-.title-btns::after { right: 26%; }
-.title-menu-rule { display: none; }
-.title-item { color: rgba(244,228,196,0.82); text-shadow: 0 2px 0 #0B0704, 0 0 10px rgba(0,0,0,0.6); }
-.title-item-primary { color: #FBEBC6; }
-.title-item-primary .title-item-label { border-bottom: 0; box-shadow: none; }
-
 /* ---------- scroll unroll rods (see 26-polish.js) ---------- */
 .hv-scroll-rod {
   position: fixed;
@@ -2083,7 +2052,7 @@ html[data-text] #art-card {
 }
 .eq-row:active { background: linear-gradient(180deg, #FDEFC6, #F3D892); }
 
-.hv-scroll-panel .hv-panel-head h2 { letter-spacing: 0.1em; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+.hv-scroll-panel .hv-panel-head h2 { letter-spacing: 0.08em; line-height: 1.1; overflow-wrap: normal; }
 .hv-scroll-panel .hv-panel-x { padding-left: 14px !important; padding-right: 14px !important; }
 /* the pause grid: a lone last plank spans the row; small save planks drop their nails */
 #pgrid > .ink-btn:last-child:nth-child(odd) { grid-column: 1 / -1; }
@@ -2101,6 +2070,72 @@ html[data-text] #art-card {
   #dialog .who { margin-bottom: 6px; }
   #dialog .line { font-size: 16.5px; line-height: 1.42; }
   #dialog .choices { clear: both; padding-top: 4px; }
+}
+
+/* phone landscape (short screens): a slimmer frame and tighter spacing so lists keep room to scroll */
+@media (orientation: landscape) and (max-height: 500px) {
+  .wood-panel { border-width: 9px; border-image-width: 9px; }
+  .wood-panel h2, .hv-panel-head h2 { font-size: 20px; }
+  .hv-scroll-panel .hv-panel-head { padding-top: 8px; padding-bottom: 12px; margin-bottom: 4px; }
+  .hv-scroll-panel .hv-panel-x { min-height: 34px; padding-top: 4px !important; padding-bottom: 4px !important; }
+  .hv-tab { padding-top: 5px !important; padding-bottom: 5px !important; }
+  .hv-hint, .hv-next-slate { border-width: 3px !important; padding: 5px 8px !important; }
+  .wood-panel .ink-btn { padding-top: 7px; padding-bottom: 7px; }
+  #dialog { border-width: 8px !important; border-image-width: 8px !important; padding: 6px 10px !important; max-height: calc(100dvh - 16px) !important; transform: translate(-50%, -50%) !important; }
+  #dialog .who { padding: 1px 10px; margin-bottom: 3px; }
+  #dialog .line { font-size: 14.5px; line-height: 1.32; }
+  #dialog .choices { gap: 4px; margin-top: 5px; }
+  #dialog .choices button { min-height: 34px !important; padding-top: 4px; padding-bottom: 4px; font-size: 14.5px; }
+  #dialog .portrait-wrap { flex-basis: 72px; }
+  #dialog .portrait-wrap canvas, #dialog .portrait-wrap img { width: 72px !important; height: 72px !important; }
+}
+
+/* iPad portrait: the talk box sits above the pad and action buttons instead of over them */
+@media (orientation: portrait) and (min-width: 600px) {
+  #dialog { bottom: calc(200px + var(--sab)) !important; width: min(720px, calc(100% - 48px)) !important; }
+}
+
+/* ---- hv41: long press never selects, magnifies or calls out ---- */
+canvas, button, #touch-acts, #touch-acts *, #pad, #pad *, .ink-btn, .hv-scroll-panel {
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+canvas, #touch-acts button, #pad { touch-action: none; }
+button, .ink-btn { touch-action: manipulation; }
+input, textarea { -webkit-user-select: text; user-select: text; }
+
+/* ---- hv41: the small Saved tick ---- */
+#hv-saved-tick {
+  position: fixed; z-index: 60; pointer-events: none;
+  left: 50%; top: calc(var(--sat, env(safe-area-inset-top, 0px)) + 8px);
+  transform: translate(-50%, -6px); opacity: 0;
+  padding: 3px 11px 3px 8px; border-radius: 12px;
+  background: rgba(26, 18, 12, 0.82); border: 1px solid rgba(201, 162, 39, 0.65);
+  color: #EADBB8; font: 600 12px/1.3 var(--ui-font, Georgia, serif); letter-spacing: 0.06em;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+#hv-saved-tick .tk { color: #C9A227; font-weight: 700; margin-right: 2px; }
+#hv-saved-tick.on { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---- hv41: the shop fits a short landscape phone ---- */
+@media (orientation: landscape) and (max-height: 500px) {
+  .shop-panel { max-height: calc(100dvh - 24px) !important; }
+}
+
+/* ---- hv41: panels respect the same insets the HUD uses (notch + home bar) ---- */
+.hv-scroll-panel, .settings-panel, .hv-journal, .hv-craft, .hv-epi {
+  max-height: calc((100dvh - 24px - var(--sat, env(safe-area-inset-top, 0px)) - var(--sab, env(safe-area-inset-bottom, 0px))) / var(--text-scale, 1));
+}
+
+/* ---- hv41: phone landscape talk box sits between the pad and the action buttons ---- */
+@media (orientation: landscape) and (max-height: 500px) {
+  #dialog {
+    left: calc(var(--sal, env(safe-area-inset-left, 0px)) + 124px) !important;
+    right: calc(var(--sar, env(safe-area-inset-right, 0px)) + 176px) !important;
+    width: auto !important; max-width: none !important;
+    top: 50% !important; bottom: auto !important;
+    transform: translateY(-50%) !important;
+  }
 }
 
 </style>
@@ -5474,8 +5509,9 @@ html[data-text] #art-card {
 
     /* Paint `fn` in the current user space into one offscreen buffer, then blit
        once at `alpha`. Overlapping fills therefore land at ~alpha, not stacked. */
-    _blitLocal(ctx, alpha, x, y, w, h, fn) {
+    _blitLocal(ctx, alpha, x, y, w, h, fn, key) {
       if (!(alpha < 0.995) || typeof document === 'undefined') { fn(ctx); return; }
+      if (key) return this._blitCached(ctx, alpha, x, y, w, h, fn, key);
       alpha = Math.max(0, alpha);
       const tr = ctx.getTransform();
       const sx = Math.max(0.2, Math.hypot(tr.a, tr.b));
@@ -5506,6 +5542,34 @@ html[data-text] #art-card {
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.drawImage(this._layerC, 0, 0, pw, ph, x - pad / usx, y - pad / usy, pw / usx, ph / usy);
+      ctx.restore();
+    },
+
+    /* faded trees: paint the layer once and reuse it (repainting every frame cost ~15 ms a tree) */
+    _blitCached(ctx, alpha, x, y, w, h, fn, key) {
+      const tr = ctx.getTransform();
+      let usx = Math.max(0.2, Math.hypot(tr.a, tr.b)), usy = Math.max(0.2, Math.hypot(tr.c, tr.d));
+      usx = Math.round(usx * 8) / 8; usy = Math.round(usy * 8) / 8;
+      const pad = 3, maxDim = 640;
+      let pw = Math.ceil(w * usx) + pad * 2, ph = Math.ceil(h * usy) + pad * 2;
+      if (pw > maxDim || ph > maxDim) {
+        const k = maxDim / Math.max(pw, ph); usx *= k; usy *= k;
+        pw = Math.ceil(w * usx) + pad * 2; ph = Math.ceil(h * usy) + pad * 2;
+      }
+      const ck = key + '@' + usx + 'x' + usy;
+      const C = this._fadeCache || (this._fadeCache = new Map());
+      let c = C.get(ck);
+      if (!c) {
+        if (C.size > 48) C.delete(C.keys().next().value);
+        c = document.createElement('canvas'); c.width = pw; c.height = ph;
+        const l = c.getContext('2d');
+        l.setTransform(usx, 0, 0, usy, pad - x * usx, pad - y * usy);
+        fn(l);
+        C.set(ck, c);
+      }
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, alpha) * ctx.globalAlpha;
+      ctx.drawImage(c, 0, 0, pw, ph, x - pad / usx, y - pad / usy, pw / usx, ph / usy);
       ctx.restore();
     },
 
@@ -7440,7 +7504,7 @@ html[data-text] #art-card {
           c.stroke();
         }
       };
-      if (trunkA < 0.995) this._blitLocal(ctx, trunkA, -36, -46, 72, 58, paintTrunk);
+      if (trunkA < 0.995) this._blitLocal(ctx, trunkA, -36, -46, 72, 58, paintTrunk, opts.seed && ('oT' + opts.seed + s));
       else paintTrunk(ctx);
       const canopies = variant === 0 ? [
         { x: -8 + lean, y: -58, rx: 28, ry: 20 },
@@ -7494,7 +7558,7 @@ html[data-text] #art-card {
           }, null, pal.ink, 2.4);
         });
       };
-      if (capA < 0.995) this._blitLocal(ctx, capA, -70, -130, 140, 110, paintCap);
+      if (capA < 0.995) this._blitLocal(ctx, capA, -70, -130, 140, 110, paintCap, opts.seed && ('oC' + opts.seed + s));
       else paintCap(ctx);
       ctx.restore();
     },
@@ -7528,7 +7592,7 @@ html[data-text] #art-card {
         c.moveTo(1, 6); c.lineTo(0.6, -14);
         c.stroke();
       };
-      if (trunkA < 0.995) this._blitLocal(ctx, trunkA, -8, -20, 16, 32, paintTrunk);
+      if (trunkA < 0.995) this._blitLocal(ctx, trunkA, -8, -20, 16, 32, paintTrunk, opts.seed && ('cT' + opts.seed + s));
       else paintTrunk(ctx);
       const layers = variant === 0 ? [
         { y: -8, w: 28, h: 22 },
@@ -7583,7 +7647,7 @@ html[data-text] #art-card {
           }, null, pal.ink, 2.3);
         });
       };
-      if (capA < 0.995) this._blitLocal(ctx, capA, -40, -90, 80, 96, paintCap);
+      if (capA < 0.995) this._blitLocal(ctx, capA, -40, -90, 80, 96, paintCap, opts.seed && ('cC' + opts.seed + s));
       else paintCap(ctx);
       ctx.restore();
     },
@@ -12393,10 +12457,10 @@ html[data-text] #art-card {
       }
       ctx.restore();
 
-      /* mane: solid spikes */
+      /* hackles: short, solid */
       const hackles = [
-        [-14, -9, -16, -18], [-8, -13, -9, -23], [-2, -16, -1, -26],
-        [4, -15, 6, -24], [10, -13, 13, -20],
+        /* a low raised ruff over the shoulders: the sleek panther of the folklore card */
+        [2, -15.5, 3, -19], [7, -14.5, 9, -18.5], [11.5, -13, 14, -16.5],
       ];
       hackles.forEach((h) => {
         fillPath(ctx, () => {
@@ -13089,7 +13153,7 @@ html[data-text] #art-card {
       head: (ctx) => {},
       front: (ctx, t, pal, top) => { shape(ctx, [[-7.6, top + 3], [-5, top + 2], [7.2, top + 16], [6.6, top + 19, 1], [4, top + 18]], '#A83A2A', '#5A1A14', 1.1); },
       hands: [[-8.4, 3], [9, 0]], hold: (ctx, t, pal, h) => PROP.saber(ctx, h[1][0], h[1][1] + 1) },
-    jonas_peck: { coat: ['#2E2822', '#0A0806'], hat: 'wide', scale: 1.22, tall: 1.12, wide: 1.06, robe: false,
+    jonas_peck: { coat: ['#4A3A2A', '#120C08'], hat: 'hornhood', hatCol: '#141010', head: (ctx) => {}, scale: 1.22, tall: 1.12, wide: 1.06, robe: false,
       face: (ctx, hx, hy) => { brimShade(ctx, hx, hy); shape(ctx, [[hx - 3.8, hy + 1.6], [hx, hy + 3.0], [hx + 3.8, hy + 1.6], [hx, hy + 2.2]], '#3A2E24', '#1A1410', 0.9); },
       front: (ctx, t, pal, top) => {
         flat(ctx, [[3.4, top + 8], [4.8, top + 10.4, 1], [3.4, top + 12.4], [2.0, top + 10.4, 1]], '#E8C547', 0.8);
@@ -13314,11 +13378,11 @@ html[data-text] #art-card {
       fangs(ctx, [[13, -26.6, 2.2], [16, -26.8, 2]]);
       /* the approved steer horns: wide, out then up, pale tips */
       if (whelp) {
-        hornQ(ctx, [-2, -47], [-6, -51], [-7, -56], 2.2, '#D8C8A8', '#8A7656', '#F4E8D0');
-        hornQ(ctx, [8, -47], [11, -51], [12, -56], 2.2, '#D8C8A8', '#8A7656', '#F4E8D0');
+        hornQ(ctx, [-1, -47], [-9, -49], [-8, -55], 2.6, '#7A6A56', '#2A2018', '#C8B898');
+        hornQ(ctx, [7, -47], [15, -49], [14, -55], 2.6, '#7A6A56', '#2A2018', '#C8B898');
       } else {
-        hornQ(ctx, [-2, -47], [-16, -56], [-18, -66], 2.4, '#D8C8A8', '#8A7656', '#F4E8D0');
-        hornQ(ctx, [8, -47], [20, -58], [22, -68], 2.4, '#D8C8A8', '#8A7656', '#F4E8D0');
+        hornQ(ctx, [-1, -47], [-22, -50], [-19, -64], 3.6, '#7A6A56', '#2A2018', '#C8B898');
+        hornQ(ctx, [7, -47], [28, -50], [25, -64], 3.6, '#7A6A56', '#2A2018', '#C8B898');
       }
       const pulse = 0.75 + Math.sin(t * 5) * 0.25;
       ctx.save(); ctx.globalAlpha *= pulse;
@@ -13403,32 +13467,35 @@ html[data-text] #art-card {
     whitey(ctx, x, y, opts) {
       opts = opts || {};
       const t = begin(ctx, x, y, opts, 1.6);
-      const roll = Math.sin(t * 1.2) * 1.6;
-      const sk = ['#F0F2F2', '#7A8A96'];
-      glow(ctx, 0, -2, 34, 'rgba(126,200,192,0.8)', 0.3);
+      const roll = Math.sin(t * 1.2) * 1.6, sway = Math.sin(t * 0.9) * 1.4;
+      const sk = ['#E8E0C8', '#5E5848'];
+      glow(ctx, 0, -8, 36, 'rgba(126,200,192,0.8)', 0.3);
       /* water */
-      fillPath(ctx, () => { ctx.ellipse(-4, 10, 38, 7, 0, 0, Math.PI * 2); }, 'rgba(46,72,92,0.55)', false);
-      const back = [[-34, 9], [-28, 2 + roll], [-16, -8 + roll], [0, -12], [12, -10], [20, -4], [24, 4], [22, 10]];
-      shape(ctx, back.concat([[-34, 10, 1]]), sk[0], sk[1], 1.7);
-      ctx.save(); ctx.beginPath(); blob(ctx, back.concat([[-34, 10, 1]])); ctx.clip();
-      ctx.fillStyle = 'rgba(122,138,150,0.35)';
-      for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.ellipse(-22 + i * 9, -2 + Math.abs(i - 1.6) * 1.6, 2.6, 1.6, 0, 0, Math.PI * 2); ctx.fill(); }
-      ctx.restore();
-      [[-14, -7], [2, -11.4]].forEach((p) => flat(ctx, [[p[0] - 3, p[1] + 1], [p[0] + 1, p[1] - 4.6, 1], [p[0] + 3, p[1] + 1.2]], '#C8D0D4', 1.0));
-      rim(ctx, [[-24, -1], [-10, -9], [6, -10.6]], 'rgba(255,255,255,0.55)', 1.2);
-      /* tail fin breaking the water behind */
-      shape(ctx, [[-38, 8], [-44, -2 + roll, 1], [-41, 6], [-47, 9, 1], [-38, 10]], sk[0], sk[1], 1.3);
+      fillPath(ctx, () => { ctx.ellipse(-2, 10, 40, 7, 0, 0, Math.PI * 2); }, 'rgba(46,72,92,0.55)', false);
+      /* a pale serpent: coils breaking the water, the neck rising to a horned head (matches the boss card) */
+      const tube = (pts, w) => {
+        const path = () => { ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i += 2) ctx.quadraticCurveTo(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]); };
+        ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        path(); ctx.strokeStyle = sk[1]; ctx.lineWidth = w + 3.2; ctx.stroke();
+        path(); ctx.strokeStyle = sk[0]; ctx.lineWidth = w; ctx.stroke();
+        path(); ctx.strokeStyle = 'rgba(94,88,72,0.28)'; ctx.lineWidth = w * 0.34; ctx.setLineDash([2.4, 2.6]); ctx.stroke();
+        ctx.restore();
+      };
+      tube([[-40, 10], [-34, -4 + roll], [-28, 10]], 6.5);
+      tube([[-22, 10], [-14, -9 - roll], [-6, 10]], 8);
+      tube([[2, 11], [4, -10], [8 + sway, -22], [11 + sway, -30], [15 + sway, -32]], 8.5);
       /* head */
-      ctx.save(); ctx.translate(20, -2);
-      shape(ctx, [[-4, -6], [6, -8], [14, -5], [18, -1], [16, 3], [6, 5], [-4, 6]], sk[0], sk[1], 1.6);
-      limb(ctx, [14, 1], [19, 4], [22, 9], 0.6, 0.25, '#E8ECEC', '#8A9AA4', 0.7);
-      limb(ctx, [12, 2], [15, 6], [16, 11], 0.6, 0.25, '#E8ECEC', '#8A9AA4', 0.7);
-      eyes(ctx, [[8, -3.4, 1.8, 1.1]], '#B8E0E8', 'rgba(126,200,192,1)', 5);
+      ctx.save(); ctx.translate(17 + sway, -33);
+      shape(ctx, [[-6, -4], [3, -6.4], [11, -3.6], [15, 0], [12, 3.6], [3, 4.4], [-6, 3.6]], sk[0], sk[1], 1.6);
+      hornQ(ctx, [-2, -4.6], [-6, -11], [-11, -12], 1.7, '#D8D0B8', '#5E5848', '#FFFFFF');
+      hornQ(ctx, [2, -5.6], [1, -13], [-3, -16], 1.7, '#D8D0B8', '#5E5848', '#FFFFFF');
+      eyes(ctx, [[5, -1.4, 1.7, 1.1]], '#B8E0E8', 'rgba(126,200,192,1)', 5);
+      ctx.strokeStyle = sk[1]; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(8, 2.2); ctx.lineTo(14, 1); ctx.stroke();
       ctx.restore();
-      /* front of the water over the belly line */
-      fillPath(ctx, () => { ctx.ellipse(-4, 12, 40, 4.6, 0, 0, Math.PI); }, 'rgba(46,72,92,0.7)', false);
+      /* front of the water over the coils */
+      fillPath(ctx, () => { ctx.ellipse(-2, 12, 42, 4.6, 0, 0, Math.PI); }, 'rgba(46,72,92,0.7)', false);
       ctx.save(); ctx.strokeStyle = 'rgba(184,224,232,0.55)'; ctx.lineWidth = 1.1;
-      ctx.beginPath(); ctx.ellipse(-4, 10, 36 + roll, 5.6, 0, 0.1, Math.PI - 0.1); ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.ellipse(-2, 10, 38 + roll, 5.6, 0, 0.1, Math.PI - 0.1); ctx.stroke(); ctx.restore();
       ctx.beginPath();
       ctx.restore();
     },
@@ -13498,7 +13565,7 @@ html[data-text] #art-card {
       opts = opts || {};
       const t = begin(ctx, x, y, opts, 1.7);
       const br = Math.sin(t * 1.0) * 1.0;
-      const st = ['#A89E8C', '#2E2A26'];
+      const st = ['#6A5A46', '#1A140E'];
       glow(ctx, 0, -18, 40, 'rgba(126,200,192,0.9)', 0.4);
       shadow(ctx, 0, 21, 22, 4.6);
       /* orbiting shards */
@@ -13526,7 +13593,14 @@ html[data-text] #art-card {
       shape(ctx, [[14, -32, 1], [24, -24, 1], [26, -10], [22, 4, 1], [18, -6], [16, -20, 1]], st[0], st[1], 1.6);
       /* head: a capstone with one cold eye */
       shape(ctx, [[-8, -40, 1], [-6, -50, 1], [4, -53, 1], [12, -48, 1], [12, -40, 1], [2, -37, 1]], st[0], st[1], 1.7);
-      eyes(ctx, [[4, -45, 2.4, 1.2]], '#DFF6F0', 'rgba(126,200,192,1)', 7);
+      /* a crown and beard of roots, like the boss card */
+      ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#3A2C1E'; ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      [[-6, -49, -12, -58, -16, -60], [0, -52, -2, -61, -6, -66], [6, -52, 8, -61, 12, -64], [11, -48, 17, -54, 20, -54],
+       [-6, -39, -9, -32, -8, -26], [2, -37, 1, -30, 3, -24], [9, -39, 12, -32, 11, -27],
+       [-20, -6, -24, 4, -22, 12], [23, 2, 26, 10, 24, 16]].forEach((r) => { ctx.moveTo(r[0], r[1]); ctx.quadraticCurveTo(r[2], r[3], r[4], r[5]); });
+      ctx.stroke(); ctx.restore();
+      eyes(ctx, [[0, -45, 2.0, 1.1], [8, -45.4, 2.0, 1.1]], '#DFF6F0', 'rgba(126,200,192,1)', 7);
       for (let i = 0; i < 4; i++) {
         const a = t * 0.7 + i * Math.PI / 2;
         const sx = Math.cos(a) * 26, sy = -18 + Math.sin(a) * 8;
@@ -13716,7 +13790,7 @@ html[data-text] #art-card {
       const b = boots(ctx, a, '#2A1C14', 15.5);
       /* skirt */
       const skirt = [[-5.6, -2], [5.6, -2], [8.4, 6], [10.4 + a.sway, 16.6, 1], [4, 18], [0, 17.2], [-4, 18], [-10.4 - a.sway, 16.6, 1], [-8.4, 6]];
-      shape(ctx, skirt, '#E08A50', '#7A3214', 1.7);
+      shape(ctx, skirt, '#6E4E36', '#2E1E12', 1.7);
       ctx.save(); ctx.beginPath(); blob(ctx, skirt); ctx.clip();
       ctx.fillStyle = 'rgba(60,20,8,0.28)';
       ctx.beginPath(); blob(ctx, [[1, 0], [3.6, 8], [4.6, 18], [1.6, 18], [0.4, 8]]); ctx.fill();
@@ -13724,19 +13798,19 @@ html[data-text] #art-card {
       ctx.restore();
       rim(ctx, [[-6.4, 2], [-8.6, 9], [-9.4, 15]], 'rgba(248,220,180,0.32)', 1.1);
       /* bodice */
-      shape(ctx, [[-4.6, -14], [0, -15.6], [4.8, -14], [5.8, -6], [5.4, -1.2, 1], [-5.4, -1.2, 1], [-5.8, -6]], '#C86A34', '#6A2A10', 1.5);
+      shape(ctx, [[-4.6, -14], [0, -15.6], [4.8, -14], [5.8, -6], [5.4, -1.2, 1], [-5.4, -1.2, 1], [-5.8, -6]], '#9A3A22', '#4A1408', 1.5);
       flat(ctx, [[-5.6, -2.6, 1], [5.6, -2.6, 1], [5.8, -0.6, 1], [-5.8, -0.6, 1]], '#3A2418', 1.0);
       /* shawl */
-      shape(ctx, [[-7.8, -12.6], [0, -15.2], [7.8, -12.6], [6.2, -7.4], [0.4, -3.2, 1], [-6.2, -7.4]], '#4E6E58', '#1C2E24', 1.4);
-      flat(ctx, [[0.4, -3.6, 1], [-0.8, 1.6, 1], [0.6, 1.4, 1], [1.4, 1.8, 1], [1.4, -3.4, 1]], '#3E5A48', 0.8);
+      shape(ctx, [[-7.8, -12.6], [0, -15.2], [7.8, -12.6], [6.2, -7.4], [0.4, -3.2, 1], [-6.2, -7.4]], '#8A3020', '#3A1008', 1.4);
+      flat(ctx, [[0.4, -3.6, 1], [-0.8, 1.6, 1], [0.6, 1.4, 1], [1.4, 1.8, 1], [1.4, -3.4, 1]], '#6A2414', 0.8);
       rim(ctx, [[-6.6, -11.6], [-2, -14], [3, -14.2]], 'rgba(220,236,214,0.3)', 1.0);
       /* arms + instrument */
       if (play) {
         /* fiddle tucked under the chin, bow arm sawing */
-        limb(ctx, [-5.2, -12], [-8.4, -6], [-4.2, -11.2], 2.2, 1.6, '#C86A34', '#6A2A10', 1.2);
+        limb(ctx, [-5.2, -12], [-8.4, -6], [-4.2, -11.2], 2.2, 1.6, '#E6D8BC', '#7A6A50', 1.2);
         PROP.fiddle(ctx, -2.6, -11.4, -1.05);
         const saw = Math.sin(a.t * 7) * 2.2;
-        limb(ctx, [5.2, -12], [9.6, -6 + saw * 0.3], [8.4 + saw, -9.6], 2.2, 1.6, '#C86A34', '#6A2A10', 1.2);
+        limb(ctx, [5.2, -12], [9.6, -6 + saw * 0.3], [8.4 + saw, -9.6], 2.2, 1.6, '#E6D8BC', '#7A6A50', 1.2);
         fillPath(ctx, () => { ctx.ellipse(8.4 + saw, -9.4, 1.7, 1.6, 0, 0, Math.PI * 2); }, SKIN, ink, 1);
         flat(ctx, [[8.2 + saw, -9.6, 1], [-6 + saw, -17, 1], [-5.6 + saw, -17.8, 1], [8.8 + saw, -10.4, 1]], '#3A2A1C', 0.8);
         const n = (a.t * 1.3) % 1;
@@ -13745,23 +13819,23 @@ html[data-text] #art-card {
         ctx.restore();
       } else {
         const sw = a.walk * 1.6;
-        limb(ctx, [-5.2, -12], [-8.2, -4 - sw * 0.4], [-8.2 - sw, 3], 2.2, 1.6, '#C86A34', '#6A2A10', 1.2);
+        limb(ctx, [-5.2, -12], [-8.2, -4 - sw * 0.4], [-8.2 - sw, 3], 2.2, 1.6, '#E6D8BC', '#7A6A50', 1.2);
         ctx.save(); ctx.translate(-8.6 - sw, 4.6); ctx.rotate(0.35 + sw * 0.05);
         PROP.fiddle(ctx, 0, 3, 0);
         ctx.restore();
-        limb(ctx, [5.2, -12], [8.2, -4 + sw * 0.4], [8.0 + sw, 3], 2.2, 1.6, '#C86A34', '#6A2A10', 1.2);
+        limb(ctx, [5.2, -12], [8.2, -4 + sw * 0.4], [8.0 + sw, 3], 2.2, 1.6, '#E6D8BC', '#7A6A50', 1.2);
         fillPath(ctx, () => { ctx.ellipse(8.0 + sw, 3.6, 1.7, 1.6, 0, 0, Math.PI * 2); }, SKIN, ink, 1);
         flat(ctx, [[8.0 + sw, 3.4, 1], [10.6 + sw, -10, 1], [11.4 + sw, -9.8, 1], [8.8 + sw, 3.8, 1]], '#3A2A1C', 0.8);
       }
       /* hair: auburn locks over the face, to the waist */
-      const hair = '#7A3A1C', hairD = '#3A160A';
-      shape(ctx, [[-7.8, -21], [-7.6, -28], [0, -32.4], [7.8, -28.4], [8.2, -20], [6.2, -12.4], [3.2, -10.4], [0, -9.4], [-3.6, -10.8], [-6.8, -13.6]], '#9A4E28', hairD, 1.3);
-      shape(ctx, [[-1.8, -30.4], [0.4, -20], [0.8, -11.6], [2.6, -12.4], [1.6, -22], [0.2, -31]], '#B0603A', '#7A3A1C', 0.9);
+      const hair = '#5A3420', hairD = '#2A160A';
+      shape(ctx, [[-7.8, -21], [-7.6, -28], [0, -32.4], [7.8, -28.4], [8.2, -20], [6.2, -12.4], [3.2, -10.4], [0, -9.4], [-3.6, -10.8], [-6.8, -13.6]], '#6E4228', hairD, 1.3);
+      shape(ctx, [[-1.8, -30.4], [0.4, -20], [0.8, -11.6], [2.6, -12.4], [1.6, -22], [0.2, -31]], '#86563A', '#5A3420', 0.9);
       shape(ctx, [[-6.4, -18], [-9.6, -12], [-9.2, -6], [-7.2, -4.6, 1], [-6.6, -9], [-3.4, -15]], hair, hairD, 1.2);
       shape(ctx, [[6.2, -17], [9.6, -11], [9.0, -5.6], [7.0, -4.2, 1], [6.8, -8.6], [3.6, -15]], hair, hairD, 1.2);
       /* green kerchief tied over the crown */
-      shape(ctx, [[-7.8, -24.6], [-6.4, -30.4], [0, -33.2], [6.6, -30.6], [8.0, -24.8], [4, -27.4], [0, -28.2], [-4, -27.4]], '#5E8068', '#24382C', 1.2);
-      flat(ctx, [[7.4, -26, 1], [11.4, -23.6, 1], [10.4, -21.4, 1], [7.6, -24, 1]], '#4E6E58', 0.9);
+      shape(ctx, [[-7.8, -24.6], [-6.4, -30.4], [0, -33.2], [6.6, -30.6], [8.0, -24.8], [4, -27.4], [0, -28.2], [-4, -27.4]], '#6A4A30', '#2A1A0E', 1.2);
+      flat(ctx, [[7.4, -26, 1], [11.4, -23.6, 1], [10.4, -21.4, 1], [7.6, -24, 1]], '#5A3E26', 0.9);
       flat(ctx, [[-1.8, -10.2], [0.4, -8.4], [2.6, -10.0], [0.4, -9.2]], SKIN, 0.85);
       rim(ctx, [[-4.6, -30], [0, -32.2], [4.6, -30.4]], 'rgba(220,240,220,0.35)', 1.0);
       ctx.restore();
@@ -19292,6 +19366,9 @@ html[data-text] #art-card {
         + '<div style="margin-top:16px" class="caps">Weather</div>'
         + '<p style="margin:4px 0 8px;font-size:13px;opacity:0.8">Rain and rare night storms on the road. Off leaves the sky clear. On is the default.</p>'
         + '<div id="weather-opts" class="text-size-row"></div>'
+        + '<div style="margin-top:16px" class="caps">Effects</div>'
+        + '<p style="margin:4px 0 8px;font-size:13px;opacity:0.8">Light draws the world at a lower resolution for a smoother picture on older phones and iPads. Full is the default.</p>'
+        + '<div id="fx-opts" class="text-size-row"></div>'
         + '<div style="margin-top:14px"><button class="ink-btn" id="mute">Mute</button> <button class="ink-btn ghost" id="back">Back</button></div>'
         + '';
       const size0 = this.textSize || 'normal';
@@ -19344,6 +19421,25 @@ html[data-text] #art-card {
             if (handlers.weather) handlers.weather(pair[0]);
             wxBox.querySelectorAll('button').forEach((x) => {
               const on = x.getAttribute('data-weather') === pair[0];
+              x.classList.toggle('gold', on);
+              x.classList.toggle('ghost', !on);
+            });
+          });
+        });
+      }
+      const fxBox = p.querySelector('#fx-opts');
+      if (fxBox) {
+        const fx0 = (HV.LowFx && HV.LowFx.on()) ? 'light' : 'full';
+        [['full', 'Full'], ['light', 'Light']].forEach((pair) => {
+          const b = document.createElement('button');
+          b.className = 'ink-btn text-size-btn' + (pair[0] === fx0 ? ' gold' : ' ghost');
+          b.setAttribute('data-fx', pair[0]);
+          b.textContent = pair[1];
+          fxBox.appendChild(b);
+          b.addEventListener('click', () => {
+            if (HV.LowFx) HV.LowFx.set(pair[0] === 'light');
+            fxBox.querySelectorAll('button').forEach((x) => {
+              const on = x.getAttribute('data-fx') === pair[0];
               x.classList.toggle('gold', on);
               x.classList.toggle('ghost', !on);
             });
@@ -25701,14 +25797,28 @@ html[data-text] #art-card {
 
     /* follower position trails behind Lara */
     _pos: null,
+    groundOk(area, x, y) {
+      if (!area || !HV.getTile) return true;
+      const ch = HV.getTile(area, Math.floor(x / 32), Math.floor(y / 32));
+      return !!ch && ch !== '~' && ch !== 'w' && !(HV.tileSolid && HV.tileSolid(ch)) && (!HV.tileWalkable || HV.tileWalkable(ch));
+    },
+
     update(game, dt) {
       const s = game.state;
       const id = F.current(s);
       if (!id) { F._pos = null; return; }
       const hx = s.world.x, hy = s.world.y;
       const fc = s.world.facing >= 0 ? 1 : -1;
-      const tx = hx - fc * 26, ty = hy - 8;
-      if (!F._pos || Math.hypot(F._pos.x - hx, F._pos.y - hy) > 220) F._pos = { x: tx, y: ty, facing: fc, moving: false, cd: 3, act: 0, actKind: null };
+      let tx = hx - fc * 26, ty = hy - 8;
+      /* in a narrow path or doorway, stand where there is ground: behind, the other side, or at her heels */
+      const okAt = F.groundOk;
+      if (!okAt(game.area, tx, ty)) {
+        const alt = [[hx + fc * 26, hy - 8], [hx, hy + 18], [hx, hy - 22], [hx - fc * 12, hy]].find((c) => okAt(game.area, c[0], c[1]));
+        if (alt) { tx = alt[0]; ty = alt[1]; } else { tx = hx; ty = hy + 2; }
+      }
+      /* warp to Lara when far behind, or when left inside a wall or water for over a second */
+      if (F._pos && !okAt(game.area, F._pos.x, F._pos.y)) F._pos.stuck = (F._pos.stuck || 0) + dt; else if (F._pos) F._pos.stuck = 0;
+      if (!F._pos || Math.hypot(F._pos.x - hx, F._pos.y - hy) > 220 || F._pos.stuck > 1.2) F._pos = { x: tx, y: ty, facing: fc, moving: false, cd: F._pos ? F._pos.cd : 3, act: 0, actKind: null, stuck: 0 };
       const p = F._pos;
       const dx = tx - p.x, dy = ty - p.y, dist = Math.hypot(dx, dy);
       p.moving = dist > 6;
@@ -26362,6 +26472,8 @@ html[data-text] #art-card {
       const nCoins = Math.min(6, 2 + Math.floor(drop.coins / 3));
       for (let i = 0; i < nCoins; i++) B._drops.push({ x: px, y: py - 6, vx: (r() - 0.5) * 120, vz: 90 + r() * 70, z: 0, age: -i * 0.03, kind: 'coin' });
       if (drop.item) B._drops.push({ x: px, y: py - 6, vx: (r() - 0.5) * 60, vz: 140, z: 0, age: 0, kind: drop.tier });
+      /* the pop never arcs over water or into a wall */
+      B._drops.forEach((d) => { if (d.age > 0 || d._safe) return; d._safe = true; if (!B.dropLandOk(game.area, d.x + d.vx * 0.45, py)) d.vx = B.dropLandOk(game.area, d.x - d.vx * 0.45, py) ? -d.vx : 0; });
       game.burst(px, py - 8, k.chip[0], 10, 'spark');
       game.shakeNow && game.shakeNow(3, 0.1);
       const label = '+' + drop.coins + '¢' + (drop.item ? '  ' + drop.item.name : '');
@@ -26396,6 +26508,11 @@ html[data-text] #art-card {
     },
 
     _fx: {}, _chips: [], _puffs: [], _drops: [],
+    dropLandOk(area, x, y) {
+      if (!area || !HV.getTile) return true;
+      const ch = HV.getTile(area, Math.floor(x / TILE), Math.floor(y / TILE));
+      return !!ch && ch !== '~' && ch !== 'w' && !(HV.tileSolid && HV.tileSolid(ch)) && (!HV.tileWalkable || HV.tileWalkable(ch));
+    },
 
     update(game, dt) {
       Object.keys(B._fx).forEach((id) => { const f = B._fx[id]; f.wob = Math.max(0, f.wob - dt); });
@@ -26850,8 +26967,8 @@ html[data-text] #art-card {
     overlay.addEventListener('pointerdown', skip, true);
     anim.onfinish = done;
     anim.oncancel = done;
-    /* safety: never leave a rod behind */
-    setTimeout(done, ms + 400);
+    /* safety: never leave a rod or a half-clipped panel behind, even if frames stall */
+    setTimeout(skip, ms + 120);
     P._anim = anim;
     return anim;
   };
@@ -27037,6 +27154,172 @@ html[data-text] #art-card {
   install();
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
+
+
+/* ==== 27-sweep.js ==== */
+/* THE HOLLOW VEIL — hv41 sweep: Saved tick, touch guards, matching portraits, low effects */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const hasDoc = typeof document !== 'undefined';
+
+  /* ---------- 1. a small "Saved" tick whenever the game keeps progress ---------- */
+  const Tick = HV.SavedTick = { _last: -1e9, shown: 0, now: () => (typeof performance !== 'undefined' ? performance.now() : Date.now()) };
+  Tick.show = function (manual) {
+    const t = Tick.now();
+    if (!manual && t - Tick._last < 45000) return false;   /* autosave: at most every 45 s */
+    Tick._last = t; Tick.shown++;
+    if (!hasDoc || !document.body) return true;
+    let el = document.getElementById('hv-saved-tick');
+    if (!el) {
+      el = document.createElement('div'); el.id = 'hv-saved-tick';
+      el.setAttribute('aria-live', 'polite');
+      el.innerHTML = '<span class="tk">✓</span> Saved';
+      document.body.appendChild(el);
+    }
+    el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+    clearTimeout(Tick._t); Tick._t = setTimeout(() => el.classList.remove('on'), 1600);
+    return true;
+  };
+  if (HV.Save) {
+    const ok = (r) => r && (r === true || r.ok !== false);
+    if (HV.Save.autosave && !HV.Save.autosave._tick) {
+      const _a = HV.Save.autosave;
+      HV.Save.autosave = function (state) { const r = _a.apply(this, arguments); if (ok(r) && state && !state._preview) Tick.show(false); return r; };
+      HV.Save.autosave._tick = true;
+    }
+    if (HV.Save.saveSlot && !HV.Save.saveSlot._tick) {
+      const _s = HV.Save.saveSlot;
+      HV.Save.saveSlot = function () { const r = _s.apply(this, arguments); if (ok(r)) Tick.show(true); return r; };
+      HV.Save.saveSlot._tick = true;
+    }
+  }
+
+  /* ---------- 2. long press / pinch must never select, magnify or zoom ---------- */
+  if (hasDoc) {
+    const keepText = (t) => t && t.closest && t.closest('input, textarea, [contenteditable="true"]');
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach((ev) => document.addEventListener(ev, (e) => e.preventDefault(), { passive: false }));
+    document.addEventListener('contextmenu', (e) => { if (!keepText(e.target)) e.preventDefault(); });
+    document.addEventListener('selectstart', (e) => { if (!keepText(e.target)) e.preventDefault(); });
+    /* double-tap zoom and multi-finger pans are already off via touch-action: none on the page */
+  }
+
+  /* ---------- 3. code portraits drawn from the character's own sprite ---------- */
+  const PORTRAIT_SPRITE = [
+    [/howler/, (R, x) => R.creature(x, 0, 0, 'ridge_howler', { t: 1 })],
+    [/whitey/, (R, x) => R.creature(x, 0, 0, 'whitey', { t: 1 })],
+    [/wampus/, (R, x) => R.creature(x, 0, 0, 'wampus_cat', { t: 1 })],
+    [/under/, (R, x) => R.creature(x, 0, 0, 'under_stone', { t: 1 })],
+    [/peck/, (R, x) => R.figure(x, 0, 0, { id: 'jonas_peck', name: 'Jonas Peck', kind: 'npc', t: 1 })],
+    [/josie/, (R, x) => HV.RenderRich.comp_josie(x, 0, 0, { t: 1, facing: 1 })],
+    [/wren|sheriff/, (R, x) => HV.RenderRich.comp_wren(x, 0, 0, { t: 1, facing: 1 })],
+    [/cole|ferryman/, (R, x) => HV.RenderRich.comp_cole(x, 0, 0, { t: 1, facing: 1 })]
+  ];
+  ['otto', 'mara', 'cald', 'len', 'beek', 'tamsen', 'linwood', 'calva', 'sexton'].forEach((id) =>
+    PORTRAIT_SPRITE.push([new RegExp('\\b' + id), (R, x) => R.figure(x, 0, 0, { id, name: id, kind: 'npc', t: 1 })]));
+  HV.portraitSpriteFor = function (who) {
+    const s = String(who || '').toLowerCase();
+    for (const [re, fn] of PORTRAIT_SPRITE) if (re.test(s)) return fn;
+    return null;
+  };
+  const cache = {};
+  function spriteBust(who, fn) {
+    if (cache[who] !== undefined) return cache[who];
+    cache[who] = null;
+    try {
+      const S = 360, c = document.createElement('canvas'); c.width = S; c.height = S;
+      const x = c.getContext('2d'); x.translate(S / 2, S * 0.84); x.scale(2.4, 2.4);
+      fn(HV.Render, x);
+      const d = x.getImageData(0, 0, S, S).data;
+      let x0 = S, y0 = S, x1 = -1, y1 = -1;
+      for (let y = 0; y < S; y += 2) for (let xx = 0; xx < S; xx += 2) if (d[(y * S + xx) * 4 + 3] > 40) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      if (x1 > x0 && y1 > y0) cache[who] = { c, x0, y0, x1, y1 };
+    } catch (e) { cache[who] = null; }
+    return cache[who];
+  }
+  if (HV.Render && HV.Render.portrait && !HV.Render.portrait._rich && hasDoc) {
+    const _p = HV.Render.portrait;
+    HV.Render.portrait = function (ctx, who, w, h) {
+      const fn = HV.portraitSpriteFor(who);
+      const b = fn && HV.RenderRich && spriteBust(String(who).toLowerCase(), fn);
+      if (!b) return _p.apply(this, arguments);
+      const g = ctx.createRadialGradient(w / 2, h * 0.42, 4, w / 2, h / 2, Math.max(w, h) * 0.75);
+      g.addColorStop(0, '#E8D9B4'); g.addColorStop(1, '#B8A27A');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+      /* upper body for upright figures, the whole body for wide beasts; the full layer is drawn so glows fade off softly */
+      const bw = b.x1 - b.x0, wide = bw > (b.y1 - b.y0) * 1.15, bh = (b.y1 - b.y0) * (wide ? 1 : 0.8);
+      const sc = Math.min((w * (wide ? 0.9 : 0.8)) / bw, (h * 0.88) / bh);
+      const ox = (w - bw * sc) / 2 - b.x0 * sc, oy = (wide ? (h - bh * sc) / 2 : h - bh * sc) - b.y0 * sc;
+      ctx.save(); ctx.beginPath(); ctx.rect(3, 3, w - 6, h - 6); ctx.clip();
+      ctx.drawImage(b.c, ox, oy, b.c.width * sc, b.c.height * sc);
+      ctx.restore();
+      ctx.strokeStyle = '#2A1E14'; ctx.lineWidth = 3; ctx.strokeRect(1.5, 1.5, w - 3, h - 3);
+    };
+    HV.Render.portrait._rich = true;
+  }
+
+  /* ---------- 4. low effects: draw the canvas at a lower resolution ---------- */
+  const FX_KEY = 'hollowVeil.lowfx.v1';
+  const LowFx = HV.LowFx = {
+    _v: null,
+    on() {
+      if (LowFx._v == null) { try { LowFx._v = typeof localStorage !== 'undefined' && localStorage.getItem(FX_KEY) === '1'; } catch (e) { LowFx._v = false; } }
+      return !!LowFx._v;
+    },
+    set(v) {
+      LowFx._v = !!v;
+      try { if (typeof localStorage !== 'undefined') localStorage.setItem(FX_KEY, v ? '1' : '0'); } catch (e) { /* private mode */ }
+      if (hasDoc) document.documentElement.classList.toggle('low-fx', LowFx._v);
+      const G = HV.Game; if (G && G.canvas && G.resize) G.resize();
+      return LowFx._v;
+    },
+    dpr() { const d = (root.devicePixelRatio || 1); return LowFx.on() ? Math.min(1.25, d) : Math.min(2, d); }
+  };
+  HV.lowFx = () => LowFx.on();
+  if (HV.Game && HV.Game.resize && !HV.Game.resize._fx) {
+    HV.Game.resize = function () {
+      const dpr = LowFx.dpr();
+      const w = this.w = (this.canvas.clientWidth || window.innerWidth);
+      const h = this.h = (this.canvas.clientHeight || window.innerHeight);
+      this.canvas.width = Math.floor(w * dpr);
+      this.canvas.height = Math.floor(h * dpr);
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    HV.Game.resize._fx = true;
+  }
+  if (hasDoc) document.documentElement.classList.toggle('low-fx', LowFx.on());
+
+  /* ---------- 5. minimap terrain is static: draw it once per area and size ---------- */
+  if (HV.Game && HV.Game.drawMinimap && !HV.Game.drawMinimap._cache && hasDoc) {
+    const _mm = HV.Game.drawMinimap;
+    HV.Game.drawMinimap = function (ctx, w, h) {
+      const area = this.area;
+      if (!area) return _mm.apply(this, arguments);
+      const key = area.id + ':' + w + 'x' + h + ':' + JSON.stringify(this.safePad ? this.safePad() : 0) + ':' + ctx.getTransform().a;
+      let c = this._mmCache && this._mmCache.key === key ? this._mmCache.c : null;
+      const tr = ctx.getTransform();
+      if (!c) {
+        c = document.createElement('canvas'); c.width = ctx.canvas.width; c.height = ctx.canvas.height;
+        const cx = c.getContext('2d'); cx.setTransform(tr);
+        const s = this.state, wx = s.world.x, wy = s.world.y;
+        s.world.x = -1e6; s.world.y = -1e6;               /* paint without the gold marker */
+        try { _mm.call(this, cx, w, h); } finally { s.world.x = wx; s.world.y = wy; }
+        this._mmCache = { key, c };
+      }
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(c, 0, 0); ctx.restore();
+      /* live parts: Lara's marker */
+      const pad = this.safePad(), compact = h < 500;
+      const mw = compact ? 100 : 128, mh = compact ? 70 : 90;
+      const x = w - mw - 12 - pad.r, y = 12 + pad.t;
+      const ix = x + 4, iy = y + 4, iw = mw - 8, ih = mh - 8, TILE = HV.TILE || 32;
+      const sx = iw / area.w, sy = ih / area.h, s = this.state;
+      const px = Math.max(ix, Math.min(ix + iw, ix + (s.world.x / TILE) * sx)), py = Math.max(iy, Math.min(iy + ih, iy + (s.world.y / TILE) * sy));
+      ctx.fillStyle = HV.PAL.gold; ctx.fillRect(px - 2, py - 2, 5, 5);
+      ctx.strokeStyle = HV.PAL.ink; ctx.lineWidth = 1; ctx.strokeRect(px - 2, py - 2, 5, 5);
+    };
+    HV.Game.drawMinimap._cache = true;
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
 </body>
