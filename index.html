@@ -2174,6 +2174,38 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-saved-tick { display: none; 
 body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
 @media (orientation: landscape) and (max-height: 520px) { #hv-plank { top: calc(var(--sat, env(safe-area-inset-top, 0px)) + 12px); } #hv-plank .pk-name { font-size: 17px; } }
 
+/* ---------- the tally: a carved ledger after the last plate ---------- */
+.hv-tally { width: min(500px, 94vw); padding: 14px 20px 14px; text-align: center; }
+.hv-tally .tl-head { justify-content: center; margin-bottom: 2px; }
+.hv-tally .tl-head h2 { font-size: 24px; margin: 0; }
+.hv-tally .tl-ending {
+  display: inline-block; margin: 4px auto 10px; padding: 5px 22px 6px;
+  background: var(--rw-plank); color: #F2DDB0; border-radius: 3px;
+  font-family: var(--title-font); font-size: 14px; letter-spacing: 0.14em;
+  box-shadow: inset 0 1px 0 rgba(255,220,170,0.3), inset 0 -2px 0 rgba(30,14,4,0.5), 0 2px 4px rgba(0,0,0,0.35);
+  text-shadow: 0 -1px 0 rgba(20,8,2,0.7);
+}
+.hv-tally .tl-ledger { text-align: left; margin: 0 auto; max-width: 420px; }
+.hv-tally .tl-row { display: flex; align-items: baseline; gap: 6px; font-size: 16px; line-height: 1.5; color: #2E1607; }
+.hv-tally .tl-k { white-space: nowrap; }
+.hv-tally .tl-dots { flex: 1; border-bottom: 2px dotted rgba(46,22,7,0.45); transform: translateY(-4px); min-width: 12px; }
+.hv-tally .tl-v { font-weight: bold; white-space: nowrap; }
+.hv-tally .tl-sub { font-size: 13px; font-style: italic; color: #5A3A1E; margin: -2px 0 4px 10px; line-height: 1.3; }
+.hv-tally .tl-close { margin: 12px 4px 4px; font-style: italic; font-size: 15px; color: #3A2210; line-height: 1.4; }
+@media (orientation: landscape) and (max-height: 520px) {
+  .hv-tally { width: min(640px, 80vw); padding: 8px 16px 10px; }
+  .hv-tally .tl-ledger { columns: 2; column-gap: 22px; max-width: none; }
+  .hv-tally .tl-row, .hv-tally .tl-sub { break-inside: avoid; }
+  .hv-tally .tl-row { font-size: 14px; line-height: 1.35; }
+  .hv-tally .tl-ending { margin: 2px auto 6px; }
+  .hv-tally .tl-close { margin-top: 6px; font-size: 13px; }
+}
+
+/* long toasts can be tapped away; short ones never catch a tap */
+#toast.tap-away { pointer-events: auto; cursor: pointer; }
+/* portrait phones: long notes sit below the spell slots so nothing overlaps while they are read */
+@media (orientation: portrait) and (max-width: 600px) { #toast { top: calc(var(--sat) + 178px); } }
+
 </style>
 </head>
 <body>
@@ -2996,7 +3028,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       { name: 'of the Karst', stats: { wit: 3, find: 6 } },
       { name: 'Lantern-Blessed', stats: { light: 6, ward: 4 } },
       { name: 'of the Yarb Woman', stats: { herb: 8, spirit: 2 } },
-      { name: 'Night-Ridge', stats: { crit: 6, speed: 2 } },
+      { name: 'Bald Knobber', stats: { crit: 6, speed: 2 } },
       { name: 'River-Washed', stats: { stam: 10, grace: 2 } },
     ],
   };
@@ -3040,7 +3072,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       drop: { chest: 'fog_caves' } },
 
     { id: 'night_ridge_carbine', name: 'Peck\'s Hornwood Carbine', slot: 'staff', rarity: 'legendary', unique: true, set: 'night_ridge',
-      flavor: 'A short rifle stocked in hornwood, carried like a walking staff along the Night-Ridge trace. The brass is worn where a thumb once worried it before a raid.',
+      flavor: 'A short rifle stocked in hornwood, carried like a walking staff along the Bald Knobber trace. The brass is worn where a thumb once worried it before a raid.',
       stats: S(20, { grace: 5, crit: 12 }),
       effects: [{ type: 'ranged', value: true }, { type: 'nightBonus', crit: 10 }, { type: 'firstShot', mul: 1.5 }],
       drop: { boss: 'jonas_peck' } },
@@ -3219,7 +3251,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       },
     },
     night_ridge: {
-      name: 'Night-Ridge',
+      name: 'Bald Knobber',
       pieces: ['night_ridge_carbine', 'knobber_night_coat', 'lead_camp_signet'],
       bonusNeed: { 2: 'In the dark, your first blow falls harder.', 3: 'Night crits can rattle a foe into a short fear.' },
       bonuses: {
@@ -3555,6 +3587,9 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     st.cachesOpened = st.cachesOpened || {};
     st.herbsPicked = st.herbsPicked || {};
     st.killCount = st.killCount || {};
+    if (HV.Tally && HV.Tally.ensure) HV.Tally.ensure(st);
+    /* the Night-Ridge riders are the Bald Knobbers now; carried names follow */
+    (((st.hero && st.hero.inventory) || []).concat(Object.values((st.hero && st.hero.equipped) || {}))).forEach((it) => { if (it && typeof it.name === 'string') it.name = it.name.replace(/Night-Ridge/g, 'Bald Knobber'); });
     st.discovered = st.discovered || {};
     /* Old saves: treat the current area (and anything already flagged) as visited. */
     if (st.world && st.world.area) st.discovered[st.world.area] = true;
@@ -3858,7 +3893,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     N({ id: 'post_oak_stance', tree: 'steel', name: 'Post-Oak Stance', max: 1, cost: 2, req: { node: 'iron_sand', rank: 2 },
       desc: 'Toggle: slower, sturdier, a little of what hits you goes back.',
       type: 'toggle', stam: 0, cd: 1, effects: (r) => [{ type: 'stance', id: 'post_oak', def: 10, speed: -12, thorns: 0.12 }] }),
-    N({ id: 'night_ridge_stance', tree: 'steel', name: 'Night-Ridge Stance', max: 1, cost: 2, req: { node: 'riposte', rank: 2 },
+    N({ id: 'night_ridge_stance', tree: 'steel', name: 'Bald Knobber Stance', max: 1, cost: 2, req: { node: 'riposte', rank: 2 },
       desc: 'Toggle: lean, mean, and hungry for a clean opening.',
       type: 'toggle', stam: 0, cd: 1, effects: (r) => [{ type: 'stance', id: 'night_ridge', crit: 12, speed: 6, def: -4 }] }),
     N({ id: 'execute', tree: 'steel', name: 'Killing Stroke', max: 3, cost: 2, req: { node: 'split_rail' },
@@ -4163,11 +4198,11 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       tint: '#4A3728', desc: 'He would rather you had not found the still.' }),
     E({ id: 'night_rider', name: 'Night Rider', tags: ['living'], hp: 58, pow: 12, def: 6, speed: 95, xp: 22, ai: 'melee',
       tint: '#1A1410', desc: 'A horned hood and a long coat. The county has seen this cut of man before.' }),
-    E({ id: 'night_captain', name: 'Night-Ridge Captain', tags: ['living'], hp: 80, pow: 15, def: 8, speed: 95, xp: 34, ai: 'melee',
+    E({ id: 'night_captain', name: 'Bald Knobber Captain', tags: ['living'], hp: 80, pow: 15, def: 8, speed: 95, xp: 34, ai: 'melee',
       tint: '#1A1410', desc: 'He keeps the riders in a line, and the line is not kind.' }),
     E({ id: 'jonas_peck', name: 'Jonas Peck', tags: ['living'], hp: 400, pow: 24, def: 13, speed: 100, xp: 260, ai: 'boss',
       tint: '#1A1410', boss: true, special: { id: 'volley', shots: 4 },
-      desc: 'Head of the new Night-Ridge riders. He talks like a lawman and rides like a knobber.' }),
+      desc: 'Head of the new Bald Knobber riders. He talks like a lawman and rides like a knobber.' }),
 
     E({ id: 'haint_wisp', name: 'Will-o\'-the-Wisp', tags: ['haint'], hp: 20, pow: 6, def: 0, speed: 100, xp: 11, ai: 'skittish',
       tint: '#7EC8C0', glow: '#B8E0C8', flying: true, desc: 'A cold light that wants you off the path and into the wet.' }),
@@ -5852,6 +5887,31 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       this.paper = c;
     },
 
+    /* The ground a lone rock or gravel cell would have been: the commonest open neighbour,
+       stamped with the very tile that neighbour uses, so no square edge shows in any light. */
+    groundFor(area, tx, ty) {
+      const open = { '.': 1, d: 1, ';': 1, ',': 1, g: 1 };
+      const n = {};
+      let best = area && area.biome === 'cave' ? 'g' : '.', bestN = 0;
+      for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) {
+        if (!ox && !oy) continue;
+        const c = HV.getTile ? HV.getTile(area, tx + ox, ty + oy) : '.';
+        if (!open[c]) continue;
+        n[c] = (n[c] || 0) + 1;
+        if (n[c] > bestN) { bestN = n[c]; best = c; }
+      }
+      return best;
+    },
+    isLoneRock(area, tx, ty, c) {
+      if (!area || area.biome === 'cave') return c === 's';
+      if (c !== '#' && c !== 's') return false;
+      if (c === '#' && (tx <= 0 || ty <= 0 || tx >= area.w - 1 || ty >= area.h - 1)) return false;
+      return true;
+    },
+    groundStamp(ctx, area, tx, ty, x, y) {
+      const img = this.tileFor(this.groundFor(area, tx, ty), tx, ty);
+      if (img) ctx.drawImage(img, x, y, TILE, TILE);
+    },
     tileFor(ch, tx, ty) {
       const m = {
         '.': 'grass', ',': 'path', d: 'dirt', '~': 'water', 'w': 'deep',
@@ -5875,9 +5935,20 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     drawGroundDecals(ctx, area, camX, camY, x0, x1, t0, t1, time) {
       const pal = PAL();
       time = time || 0;
-      const get = (tx, ty) => {
+      const rawGet = (tx, ty) => {
         if (!area || !HV.getTile) return '.';
         return HV.getTile(area, tx, ty);
+      };
+      /* lone rocks and gravel take their neighbours' ground for every decal pass, so the
+         grain, tufts and hatching run straight under them with no square edge */
+      const groundCache = {};
+      const get = (tx, ty) => {
+        const c = rawGet(tx, ty);
+        if (this.isLoneRock(area, tx, ty, c)) {
+          const k = tx + ':' + ty;
+          return groundCache[k] || (groundCache[k] = this.groundFor(area, tx, ty));
+        }
+        return c;
       };
       const isPath = (c) => c === ',' || c === 'd';
       const isLand = (c) => c === '.' || c === 'd' || c === 's' || c === ';';
@@ -6465,11 +6536,11 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         const caveWalls = area.biome === 'cave';
         for (let ty = t0; ty < t1; ty++) {
           for (let tx = x0; tx < x1; tx++) {
-            if (get(tx, ty) !== '#') continue;
+            if (rawGet(tx, ty) !== '#') continue;
             if (!caveWalls && (tx <= 0 || ty <= 0 || tx >= area.w - 1 || ty >= area.h - 1)) continue;
             const x = tx * TILE - camX, y = ty * TILE - camY;
-            ctx.fillStyle = caveWalls ? '#15191C' : '#3C4F46';
-            ctx.fillRect(x - 1, y - 1, TILE + 2, TILE + 2);
+            /* sit the boulder on the same ground as its neighbours, never a flat square */
+            if (caveWalls) { ctx.fillStyle = '#15191C'; ctx.fillRect(x - 1, y - 1, TILE + 2, TILE + 2); }
             if (caveWalls) { if ((HV.hash((area.id || '') + ':' + tx + ':' + ty) % 7) !== 0) continue; }
             this.rock(ctx, x + 16, y + 18, (area.id || '') + ':' + tx + ':' + ty);
           }
@@ -6726,7 +6797,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       if (biome === 'karst') {
         for (let ty = t0; ty < t1; ty++) {
           for (let tx = x0; tx < x1; tx++) {
-            const ch = get(tx, ty);
+            const ch = rawGet(tx, ty);
             if (ch !== 's' && !(ch === '.' && (HV.hash((area.id || '') + ':sk:' + tx + ':' + ty) % 37 === 0))) continue;
             if (ch !== 's' && get(tx, ty) !== '.') continue;
             const h = HV.hash((area.id || '') + ':sink:' + tx + ':' + ty);
@@ -6736,10 +6807,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
             const rx = (ch === 's' ? 22 : 13) + (h % 6), ry = rx * 0.62;
             ctx.save();
             /* hide the square gravel tile under an earth patch */
-            if (ch === 's') {
-              ctx.fillStyle = '#3C4F46';
-              ctx.fillRect(tx * TILE - camX - 2, ty * TILE - camY - 2, TILE + 4, TILE + 4);
-            }
+            /* the gravel cell already sits on real ground (see the tile pass), so no cover patch */
             /* limestone lip */
             ctx.beginPath();
             ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
@@ -15770,10 +15838,10 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       ],
     },
     peck_problem: {
-      name: 'Night-Ridge',
+      name: 'The Bald Knobbers',
       stages: [
         { id: 'ask', journal: 'Jonas Peck\'s riders have been seen on Bald Knob. Wren cannot spare a deputy. He asked me to go up and come back with more than a rumor.' },
-        { id: 'done', journal: 'Peck is dealt with, or bargained with. The Night-Ridge carbine remembers a thumb that worried the brass.' },
+        { id: 'done', journal: 'Peck is dealt with, or bargained with. The Bald Knobber carbine remembers a thumb that worried the brass.' },
       ],
     },
   };
@@ -16376,7 +16444,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
 
   D.peck = {
     start: (s) => (HV.questDone(s, 'peck_problem') || s.flags.chose_peck) ? 'after' : (s.flags.met_peck ? 'terms' : 'meet'),
-    meet: node('Jonas Peck', 'Found the knob, did you? Good. The Night-Ridge rides to keep a county the law forgot about. I talk like a lawman because somebody\'s got to. Now, you here to hear terms, or did Wren send you up to put a hole in me?', [
+    meet: node('Jonas Peck', 'Found the knob, did you? Good. The Bald Knobbers ride to keep a county the law forgot about. I talk like a lawman because somebody\'s got to. Now, you here to hear terms, or did Wren send you up to put a hole in me?', [
       { t: 'I\'ll hear your terms.', next: 'terms', set: { met_peck: true } },
       { t: 'I came to end the riding.', next: null, set: { met_peck: true, peck_hostile: true } },
     ]),
@@ -18621,19 +18689,19 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       hintHere: 'Face the Howler here, or stand and listen if you mean to leave it its voice.',
       hintGo: 'Walk Howler Run and face the Howler.',
       missing: 'Face the Howler in its den off Howler Run',
-      completeToast: 'The Thing That Screams is told. Next: Night-Ridge.',
+      completeToast: 'The Thing That Screams is told. Next: Bald Knob.',
     },
     {
       id: 'jonas_peck',
       name: 'Jonas Peck',
       chapter: 'night_ridge',
-      chapterTitle: 'Night-Ridge',
+      chapterTitle: 'Bald Knob',
       area: 'bald_knob',
       expectedLevel: 10,
       hintHere: 'Settle with Jonas Peck here on Bald Knob — stand with him, or end the riding.',
       hintGo: 'Settle with Jonas Peck on Bald Knob.',
       missing: 'Settle with Jonas Peck on Bald Knob',
-      completeToast: 'Night-Ridge is told. The Under-Karst will open to you now.',
+      completeToast: 'Bald Knob is told. The Under-Karst will open to you now.',
     },
   ];
   HV.FINAL_BOSS = { id: 'under_stone', name: 'The Under-Stone', chapter: 'caves', chapterTitle: 'Under the Hills', area: 'under_karst', expectedLevel: 12 };
@@ -19070,6 +19138,11 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       this.root.appendChild(this.overlay);
       this.toastEl = el('<div id="toast" class="hidden"></div>');
       this.root.appendChild(this.toastEl);
+      this.toastEl.addEventListener('pointerdown', (e) => {
+        if (!this.toastEl.classList.contains('tap-away')) return;
+        e.preventDefault(); e.stopPropagation();
+        this.dismissToast();
+      });
       this.card = el('<div id="art-card" class="hidden"></div>');
       this.root.appendChild(this.card);
       if (!document.getElementById('safe-probe')) {
@@ -19078,11 +19151,35 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       this.loadTextSize();
     },
 
+    /* Hold long enough to read: 1.6 s plus about 55 ms a letter, never less than the
+       caller asked for, capped near 8 s. Short ones like '+5¢' stay quick. */
+    toastHold(text, ms) {
+      const n = String(text == null ? '' : text).length;
+      const read = Math.min(8000, 1600 + 55 * n);
+      return Math.max(ms || 0, read);
+    },
     toast(text, ms, tag) {
       if (!this.toastEl) return;
       this._toastQ = this._toastQ || [];
-      this._toastQ.push({ text: text, ms: ms || 1600, tag: tag || null });
+      const hold = this.toastHold(text, ms);
+      /* the same words never stack: refresh the one showing, or skip the queued copy */
+      if (this._toastBusy && this._toastCur && this._toastCur.text === text) {
+        clearTimeout(this._tt);
+        const self = this;
+        this._tt = setTimeout(() => self._pumpToast(), hold);
+        return;
+      }
+      if (this._toastQ.some((q) => q.text === text)) return;
+      this._toastQ.push({ text: text, ms: hold, tag: tag || null });
       if (!this._toastBusy) this._pumpToast();
+    },
+    /* tap a long toast to put it away early */
+    dismissToast() {
+      if (!this._toastBusy) return false;
+      clearTimeout(this._tt);
+      this._toastCur = null;
+      this._pumpToast();
+      return true;
     },
     _pumpToast() {
       if (!this.toastEl) return;
@@ -19095,6 +19192,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       const next = this._toastQ.shift();
       this._toastCur = next;
       this.toastEl.textContent = next.text;
+      this.toastEl.classList.toggle('tap-away', String(next.text || '').length > 40);
       this.toastEl.classList.remove('hidden');
       clearTimeout(this._tt);
       const self = this;
@@ -21964,6 +22062,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
           if (ch === 'T' || ch === 'C' || ch === '@' || ch === 'N' || ch === 'X' || ch === 'E' || ch === '?' || ch === '&' || ch === '+' || ch === 'c') {
             ch = (ch === '+' || ch === 'c') ? ',' : (this.area.biome === 'cave' ? 'g' : '.');
           }
+          if (HV.Render.isLoneRock && HV.Render.isLoneRock(this.area, tx, ty, ch)) ch = HV.Render.groundFor(this.area, tx, ty);   /* rocks and gravel sit on real ground */
           const img = HV.Render.tileFor(ch, tx, ty);
           const dx = Math.floor(tx * TILE - camX), dy = Math.floor(ty * TILE - camY);
           if (img) ctx.drawImage(img, dx, dy, TILE, TILE);
@@ -23428,7 +23527,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       blurb: 'He would rather burn a thin place shut than leave it mended with thread.',
       home: 'yarrow_crossing' },
     { id: 'peck', name: 'Jonas Peck', portrait: 'portrait_jonas_peck', start: 10, questAt: 55, questId: 'peck_name',
-      role: 'Night-Ridge rider',
+      role: 'Bald Knobber rider',
       blurb: 'He talks like a lawman and rides like a knobber. The ridge has not forgotten him.',
       home: 'bald_knob' },
     { id: 'wren', name: 'Sheriff Wren', portrait: null, start: 18, questAt: 60, questId: 'wren_report',
@@ -23703,7 +23802,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       high: {
         seal: 'Peck took his riders off the knob when the marks held. He has not said it was for you, but it was.',
         purge: 'Peck watched the fires from the ridge and kept his people out of them. That is a kind of peace.',
-        warden: 'Peck understands a long watch. The Night-Ridge keeps its own hours, and yours.',
+        warden: 'Peck understands a long watch. The Bald Knobbers keep their own hours, and yours.',
         tear: 'Peck said the county was always going to change hands. He meant to be there when it did.',
         drown: 'Peck moved his camp to higher ground and sent no one down for looting. That surprised even Wren.',
         true_sign: 'Peck heard the seventh sign and laughed, once, like a man who had lost a bet he was glad to lose.',
@@ -24134,7 +24233,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       item: { id: 'nell_pew_ribbon', name: 'Nell\'s Church Ribbon', flavor: 'Caught on a step the water had given back.' } },
     { id: 'peck_hat', area: 'bolin_camp', x: 24, y: 22, needQuest: 'peck_name', flag: 'peck_hat_found', advance: { id: 'peck_name', to: 1 },
       toast: 'A night-rider\'s hat. The sweatband says Cal.',
-      item: { id: 'peck_rider_hat', name: 'Cal\'s Night-Ridge Hat', flavor: 'A name scratched in the sweatband, left in an old fire-ring.' } },
+      item: { id: 'peck_rider_hat', name: 'Cal\'s Bald Knobber Hat', flavor: 'A name scratched in the sweatband, left in an old fire-ring.' } },
     { id: 'cole_token', area: 'drowned_shore', x: 36, y: 24, needQuest: 'cole_crossing', flag: 'cole_token_found', advance: { id: 'cole_crossing', to: 1 },
       toast: 'A pewter church token, a name still cut in it.',
       item: { id: 'cole_church_token', name: 'A Drowned-Church Token', flavor: 'Pewter, with a name the water did not quite take.' } },
@@ -24762,9 +24861,9 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     rawhead: 'Rawhead-and-Bloody-Bones, the old threat used on children who would not come in at dark. In a thinning year the threat has a shadow, and the shadow has teeth.',
     hill_thief: 'A lean man with a grain sack over his face and a short club. The ridge has always had thieves. Hunger makes them, and a thinning year does not unmake them.',
     moonshiner: 'He would rather you had not found the still. The mash in Stillhouse Hollow went sour the year the marks failed, and some of the still-hands went with it.',
-    night_rider: 'A horned hood and a long coat. The county has seen this cut of man before — Bald Knobbers first, and now the Night-Ridge, who talk like lawmen and ride like what they are.',
+    night_rider: 'A horned hood and a long coat. The county has seen this cut of man before. The Bald Knobbers rode in the old days, and now they ride again, talking like lawmen and riding like what they are.',
     night_captain: 'He keeps the riders in a line, and the line is not kind. Peck\'s people use the panic the way a fire uses wind.',
-    jonas_peck: 'Head of the new Night-Ridge riders. He talks like a lawman and rides like a knobber. Wren cannot spare a deputy. The carbine he carries is worn where a thumb once worried the brass.',
+    jonas_peck: 'Head of the new Bald Knobber riders. He talks like a lawman and rides like a knobber. Wren cannot spare a deputy. The carbine he carries is worn where a thumb once worried the brass.',
     haint_wisp: 'A cold light that wants you off the path and into the wet. Will-o-the-wisps have always walked the bottoms. In a thinning year they are bolder about a road.',
     porch_haint: 'Someone who sat too long in the evening and did not go in when they were called. A haint-blue porch ceiling will fool such a spirit into thinking it has found the sky.',
     churchyard_wight: 'It keeps a Sunday it never finished. The sexton will not sleep in the shed anymore, and a second mark is scarred in the churchyard stone.',
@@ -25510,7 +25609,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     { id: 'howl', title: 'THE THING THAT SCREAMS', art: 'chapter_howl',
       line: 'A cut in the ridge where a cry carries too far. Hunters hear it. Few will swear they have seen it.',
       areas: ['howler_run', 'howler_den'] },
-    { id: 'night_ridge', title: 'NIGHT-RIDGE', art: 'chapter_night_ridge',
+    { id: 'night_ridge', title: 'BALD KNOB', art: 'chapter_night_ridge',
       line: 'A bare rise, and a memory of night riders. Men have talked like lawmen on this knob before.',
       areas: ['bald_knob'] },
     { id: 'caves', title: 'UNDER THE HILLS', art: 'chapter_caves', packed: true,
@@ -25571,7 +25670,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     show(game, ending, handlers) {
       handlers = handlers || {};
       const slides = HV.Chapters.slides(game.state, ending);
-      let i = 0;
+      let i = 0, tallied = false;
       const paintCredits = () => {
         const p = document.createElement('div');
         p.className = 'wood-panel hv-epi hv-scroll-panel hv-credits';
@@ -25589,7 +25688,10 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         p.querySelector('#done').addEventListener('click', () => { if (handlers.title) handlers.title(); });
       };
       const paint = () => {
-        if (i >= slides.length) { paintCredits(); return; }
+        if (i >= slides.length) {
+          if (HV.Tally && HV.Tally.show && !tallied) { tallied = true; HV.Tally.show(game, ending, paintCredits); return; }
+          paintCredits(); return;
+        }
         const s = slides[i];
         const hasArt = !!(s.art && HV.artUrl && HV.artUrl(s.art));
         const p = document.createElement('div');
@@ -27653,6 +27755,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     if (!el) { el = document.createElement('div'); el.id = 'hv-plank'; el.setAttribute('aria-live', 'polite'); el.innerHTML = '<span class="pk-name"></span>'; document.body.appendChild(el); }
     Plank.el = el;
     el.querySelector('.pk-name').textContent = Plank.nameFor(area);
+    /* the plank says the name, so a matching name toast is dropped */
+    try { const U = HV.UI; const nm = Plank.nameFor(area); if (U) { if (U._toastQ) U._toastQ = U._toastQ.filter((q) => q.text !== nm); if (U._toastCur && U._toastCur.text === nm && U.dismissToast) U.dismissToast(); } } catch (e) { /* ignore */ }
     el.classList.toggle('still', reduced() || light());
     el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
     clearTimeout(Plank._t); Plank._t = setTimeout(() => el.classList.remove('on'), Plank.T * 1000);
@@ -27674,6 +27778,349 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     };
     G.enterArea._plank = true;
   }
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ==== 29-bosses.js ==== */
+/* THE HOLLOW VEIL — boss second phases: at half health each story boss staggers, roars,
+   says its piece in porch voice, then fights with a new pattern that fits its telling */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const G = HV.Game;
+  const light = () => !!(HV.LowFx && HV.LowFx.on && HV.LowFx.on());
+  const P2 = HV.BossPhase = {
+    AT: 0.5, STAGGER: 1.0,
+    DEFS: {
+      whitey: { tag: 'THE RIVER RISES', line: 'The river\'s come up mean now, child. Mind where the water pools before it bursts.', color: '#7EC8C0' },
+      ridge_howler: { tag: 'THE HOWLER IS RILED', line: 'Now he\'s riled. Old Howler don\'t run at you once, he runs twice.', color: '#E07B39' },
+      jonas_peck: { tag: 'PECK STOPS TALKING', line: 'Peck\'s done talking. That\'s lead in the air, so keep your feet moving.', color: '#E8C547' },
+      under_stone: { tag: 'THE STONE WAKES', line: 'The stone\'s waking all the way. Watch the ground go pale before it bites.', color: '#7EC8C0' },
+      rawhead: { tag: 'THE BONES RATTLE', line: 'Hear them bones rattle? Don\'t stand close to Rawhead when they do.', color: '#C45C26' },
+      bolin_shade: { tag: 'THE RIDER WHEELS', line: 'The Raider\'s wheeling his horse. He\'ll come through you twice.', color: '#C45C26' }
+    }
+  };
+  P2.isPhaseBoss = (en) => !!(en && en.boss && P2.DEFS[en.id]);
+
+  /* ---- ground marks: a clean ring that fills, then bites ---- */
+  P2.hazards = [];
+  P2.addHazard = function (h) {
+    P2.hazards.push(Object.assign({ r: 40, t: 0.85, t0: 0.85, dmgMul: 1, hit: false, after: 0.28 }, h, { t0: h.t != null ? h.t : 0.85 }));
+  };
+  P2.tickHazards = function (game, dt) {
+    const s = game.state; if (!s) { P2.hazards = []; return; }
+    const d = s.hero._derived || HV.refreshDerived(s);
+    P2.hazards = P2.hazards.filter((h) => {
+      if (h.delay > 0) { h.delay -= dt; return true; }
+      h.t -= dt;
+      if (h.t <= 0 && !h.hit) {
+        h.hit = true;
+        if (h.dmgMul > 0 && Math.hypot(s.world.x - h.x, s.world.y - h.y) < h.r && game.invuln <= 0 && h.en && h.en.alive) {
+          game._harmHero(h.en, d, h.dmgMul, h.status ? { status: h.status, dur: h.dur || 2.5 } : null);
+        }
+        if (game.burst && !light()) game.burst(h.x, h.y, h.color || HV.PAL.haint, 8);
+      }
+      return h.t > -h.after;
+    });
+  };
+  P2.drawHazards = function (ctx, camX, camY) {
+    P2.hazards.forEach((h) => {
+      if (h.delay > 0) return;
+      const x = h.x - camX, y = h.y - camY;
+      ctx.save();
+      if (h.t > 0) {
+        const u = 1 - h.t / h.t0;
+        ctx.globalAlpha = 0.18 + u * 0.22;
+        ctx.fillStyle = '#140F0C';
+        ctx.beginPath(); ctx.ellipse(x, y, h.r, h.r * 0.62, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.85;
+        ctx.strokeStyle = h.color || '#E8DCC0'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.ellipse(x, y, h.r, h.r * 0.62, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.globalAlpha = 0.5 + u * 0.4; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.ellipse(x, y, h.r * u, h.r * 0.62 * u, 0, 0, Math.PI * 2); ctx.stroke();
+      } else {
+        const v = Math.min(1, -h.t / h.after);
+        ctx.globalAlpha = (1 - v) * 0.9;
+        ctx.fillStyle = h.color || '#E8DCC0';
+        ctx.beginPath(); ctx.ellipse(x, y, h.r * (1 + v * 0.25), h.r * 0.62 * (1 + v * 0.25), 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#140F0C'; ctx.lineWidth = 2; ctx.stroke();
+      }
+      ctx.restore();
+    });
+  };
+  if (HV.Breakables && HV.Breakables.pushSprites && !HV.Breakables.pushSprites._p2) {
+    const _ps = HV.Breakables.pushSprites;
+    HV.Breakables.pushSprites = function (game, sprites, camX, camY) {
+      const r = _ps.apply(this, arguments);
+      if (P2.hazards.length) sprites.push({ y: -1e9, z: 0, draw: () => P2.drawHazards(game.ctx || (game.canvas && game.canvas.getContext('2d')), camX, camY) });
+      return r;
+    };
+    Object.assign(HV.Breakables.pushSprites, _ps); HV.Breakables.pushSprites._p2 = true;
+  }
+
+  /* ---- the turn ---- */
+  P2.enter = function (game, en) {
+    const def = P2.DEFS[en.id];
+    en._p2 = true; en._p2T = P2.STAGGER; en._pat = 0;
+    en.winding = false; en.charging = 0; en._chainLeft = 0;
+    en.atkCd = Math.max(en.atkCd || 0, P2.STAGGER + 0.35);
+    en._flashT = 0.2;
+    /* the tag rides between Lara and the boss so it stays on screen */
+    const hx = game.state && game.state.world ? game.state.world.x : en.x;
+    if (game.floater) game.floater(def.tag, (en.x + hx) / 2, en.y - 62, def.color, { kind: 'tag', t: 1.6, en: en });
+    if (HV.Audio) { if (en.id === 'ridge_howler' && HV.Audio.sfxHowler) HV.Audio.sfxHowler(); else if (HV.Audio.sfxBossStinger) HV.Audio.sfxBossStinger(); }
+    if (!light()) {
+      if (game.flashNow) game.flashNow(def.color, 0.14);
+      if (game.shakeNow) game.shakeNow(4, 0.25);
+      P2.addHazard({ x: en.x, y: en.y, r: 70, t: 0.01, dmgMul: 0, color: def.color, after: 0.45 });
+    }
+    /* the porch line jumps the toast queue so it lands with the roar */
+    if (HV.UI && HV.UI._toastQ && HV.UI._pumpToast && HV.UI.toastEl) { HV.UI._toastQ.unshift({ text: def.line, ms: 3400, tag: 'boss' }); HV.UI._pumpToast(); }
+    else if (HV.UI && HV.UI.toast) HV.UI.toast(def.line, 3400);
+    P2.last = { id: en.id, line: def.line };
+  };
+
+  if (G && G._enemyNextKind && !G._enemyNextKind._p2) {
+    const _nk = G._enemyNextKind;
+    G._enemyNextKind = function (en) {
+      if (!en || !en._p2 || !P2.DEFS[en.id]) return _nk.apply(this, arguments);
+      en._pat = (en._pat || 0) + 1;
+      const n = en._pat;
+      switch (en.id) {
+        case 'whitey': return n % 3 === 1 ? 'surge' : 'melee';
+        case 'ridge_howler': if (n % 5 === 0) return 'howl'; if (n % 3 === 1) { en._chainLeft = 1; return 'charge'; } return 'melee';
+        case 'jonas_peck': return n % 3 === 1 ? 'volley' : 'melee';
+        case 'under_stone': return n % 3 === 1 ? 'tear' : (n % 3 === 2 ? 'ring' : 'melee');
+        case 'rawhead': return n % 3 === 1 ? 'rattle' : 'melee';
+        case 'bolin_shade': if (n % 3 === 1) { en._chainLeft = 1; return 'charge'; } return 'melee';
+      }
+      return 'melee';
+    };
+    Object.assign(G._enemyNextKind, _nk); G._enemyNextKind._p2 = true;
+  }
+  P2.release = function (game, en, d, feel, px, py, kind) {
+    const dx = px - en.x, dy = py - en.y, dist = Math.hypot(dx, dy) || 1, ang = Math.atan2(dy, dx);
+    const col = P2.DEFS[en.id] ? P2.DEFS[en.id].color : HV.PAL.haint;
+    game.bolts = game.bolts || [];
+    const bolt = (a, sp, mul) => game.bolts.push({ x: en.x, y: en.y - 8, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1.9, r: 7, dmgMul: mul, en: en, color: col });
+    if (kind === 'surge') { P2.addHazard({ x: px, y: py, r: 46, t: 0.85, dmgMul: 1.1, en, color: col }); return true; }
+    if (kind === 'volley') { [-0.42, 0, 0.42].forEach((o) => bolt(ang + o, feel.proj * 0.85, 0.8)); return true; }
+    if (kind === 'ring') { for (let i = 0; i < 6; i++) bolt(ang + i * Math.PI / 3, feel.proj * 0.65, 0.8); return true; }
+    if (kind === 'tear') {
+      const nx = -dy / dist, ny = dx / dist;
+      [[0, 0, 0], [nx * 56, ny * 56, 0.32], [-nx * 56, -ny * 56, 0.64]].forEach(([ox, oy, dl]) =>
+        P2.addHazard({ x: px + ox, y: py + oy, r: 34, t: 0.8, delay: dl, dmgMul: 1.05, en, color: col }));
+      return true;
+    }
+    if (kind === 'rattle') { P2.addHazard({ x: en.x, y: en.y, r: 76, t: 0.8, dmgMul: 0.8, en, color: col, status: 'howl', dur: 2.5 }); return true; }
+    return false;
+  };
+  if (G && G._enemyRelease && !G._enemyRelease._p2) {
+    const _er = G._enemyRelease;
+    G._enemyRelease = function (en, d, feel, px, py, kind) {
+      kind = kind || en.windKind || 'melee';
+      let r;
+      if (en && en._p2 && !en._whiff && P2.release(this, en, d, feel, px, py, kind)) r = undefined;
+      else r = _er.apply(this, arguments);
+      if (en && en._p2) en.atkCd = (en.atkCd || 0) * 0.85;   /* a touch quicker, never frantic */
+      if (en && en._p2 && kind === 'charge' && en._chainLeft > 0) en._chainPending = true;
+      return r;
+    };
+    Object.assign(G._enemyRelease, _er); G._enemyRelease._p2 = true;
+  }
+
+  P2.tick = function (game, dt, pre) {
+    (game.entities || []).forEach((en) => {
+      if (!P2.isPhaseBoss(en) || !en.alive) return;
+      const p = pre.get(en);
+      if (en._p2T > 0) {                                  /* stagger: rooted in place */
+        en._p2T -= dt; if (p) { en.x = p.x; en.y = p.y; }
+        en.winding = false; en.charging = 0;
+        return;
+      }
+      if (!en._p2 && en.hpMax && en.hp > 0 && en.hp <= en.hpMax * P2.AT) { P2.enter(game, en); return; }
+      /* the second run of a chained charge, re-aimed with its own short tell */
+      if (en._chainPending && !(en.charging > 0) && !en.winding) {
+        en._chainPending = false; en._chainLeft -= 1;
+        en.winding = true; en.windKind = 'charge'; en._whiff = false; en.windup = 0.55;
+      }
+    });
+    P2.tickHazards(game, dt);
+  };
+  if (G && G.tick && !G.tick._p2) {
+    const _t = G.tick;
+    G.tick = function (dt) {
+      const live = this.mode === 'play' && this.state && this.entities;
+      const pre = new Map();
+      if (live) this.entities.forEach((en) => { if (en._p2T > 0) pre.set(en, { x: en.x, y: en.y }); });
+      _t.call(this, dt);
+      if (live && this.mode === 'play' && !(this._hitstop > 0)) P2.tick(this, dt, pre);
+      if (this.mode === 'title' || !this.state) P2.hazards = [];
+    };
+    Object.assign(G.tick, _t); G.tick._p2 = true;
+  }
+  if (G && G.enterArea && !G.enterArea._p2) {
+    const _ea = G.enterArea;
+    G.enterArea = function () { P2.hazards = []; return _ea.apply(this, arguments); };
+    Object.assign(G.enterArea, _ea); G.enterArea._p2 = true;
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ==== 30-tally.js ==== */
+/* THE HOLLOW VEIL — the tally: real playtime, coins earned, falls, who walked with you,
+   and a carved stats card after the last epilogue plate */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const G = HV.Game;
+  const STORY_BOSSES = ['whitey', 'ridge_howler', 'jonas_peck', 'under_stone'];
+  const T = HV.Tally = { STORY_BOSSES };
+  const INGAME = { play: 1, menu: 1, inventory: 1, skills: 1, journal: 1, dialogue: 1, shop: 1, card: 1, letter: 1, map: 1, guide: 1, rhythm: 1, dead: 1 };
+
+  T.ensure = function (s) {
+    if (!s) return null;
+    if (typeof s.playTime !== 'number' || !isFinite(s.playTime) || s.playTime < 0) s.playTime = 0;
+    const st = s.stats = (s.stats && typeof s.stats === 'object') ? s.stats : {};
+    if (typeof st.coins !== 'number' || !isFinite(st.coins)) st.coins = 0;
+    if (typeof st.deaths !== 'number' || !isFinite(st.deaths)) st.deaths = 0;
+    if (!Array.isArray(st.walked)) st.walked = [];
+    if (st.lastGold == null) st.lastGold = (s.hero && s.hero.gold) || 0;
+    return st;
+  };
+  /* runs every frame from the game tick */
+  T.track = function (game, dt) {
+    const s = game.state; if (!s || !s.hero) return;
+    const st = T.ensure(s);
+    const mode = game.mode;
+    /* the core loop only counts walking time; menus, talk and duels are real time too */
+    if (INGAME[mode] && mode !== 'play' && !game.preview) s.playTime += dt;
+    const g = s.hero.gold || 0;
+    if (g > st.lastGold) st.coins += g - st.lastGold;
+    st.lastGold = g;
+    if (mode === 'dead' && T._lastMode !== 'dead') st.deaths += 1;
+    T._lastMode = mode;
+    if (HV.Companions && HV.Companions.following && (T._walkT = (T._walkT || 0) - dt) <= 0) {
+      T._walkT = 2;
+      try { HV.Companions.following(s).forEach((id) => { if (st.walked.indexOf(id) < 0) st.walked.push(id); }); } catch (e) { /* no companions yet */ }
+    }
+  };
+  if (G && G.tick && !G.tick._tally) {
+    const _t = G.tick;
+    G.tick = function (dt) {
+      _t.call(this, dt);
+      if (this.state && this.mode !== 'title' && this.mode !== 'create' && this.mode !== 'ending') { try { T.track(this, dt); } catch (e) { /* never break play */ } }
+    };
+    Object.assign(G.tick, _t); G.tick._tally = true;
+  }
+  T.fmtTime = function (sec) {
+    sec = Math.max(0, Math.floor(sec || 0));
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+    if (h) return h + (h === 1 ? ' hour ' : ' hours ') + m + (m === 1 ? ' minute' : ' minutes');
+    if (m) return m + (m === 1 ? ' minute' : ' minutes');
+    return 'under a minute';
+  };
+  const nameOf = (id) => { const e = HV.ENEMY_BY_ID && HV.ENEMY_BY_ID[id]; return (e && e.name) || id; };
+  T.compute = function (s, ending) {
+    const st = T.ensure(s) || {};
+    const kc = s.killCount || {};
+    let foes = 0; const bosses = [];
+    Object.keys(kc).forEach((id) => {
+      const e = HV.ENEMY_BY_ID && HV.ENEMY_BY_ID[id];
+      if (e && e.boss) { if (kc[id] > 0) bosses.push(id); } else foes += kc[id] || 0;
+    });
+    bosses.sort((a, b) => (STORY_BOSSES.indexOf(a) + 1 || 99) - (STORY_BOSSES.indexOf(b) + 1 || 99));
+    const best = s.bestiary || {};
+    const beastsSeen = Object.keys(best).filter((k) => best[k] && best[k].seen).length;
+    const beastsAll = (HV.BESTIARY && HV.BESTIARY.length) || Object.keys(HV.BESTIARY_BY_ID || {}).length;
+    const walked = (st.walked || []).slice();
+    try { (HV.Companions && HV.Companions.following ? HV.Companions.following(s) : []).forEach((id) => { if (walked.indexOf(id) < 0) walked.push(id); }); } catch (e) { /* none */ }
+    const compName = (id) => { const c = HV.COMPANION_BY_ID && HV.COMPANION_BY_ID[id]; return (c && c.name) || id; };
+    ending = ending || (s.flags && s.flags.ending) || 'seal';
+    const def = (HV.ENDINGS && HV.ENDINGS[ending]) || { title: 'THE MARKS HOLD' };
+    return {
+      ending, endingTitle: def.title,
+      time: T.fmtTime(s.playTime), seconds: Math.floor(s.playTime || 0),
+      foes, bosses: bosses.map(nameOf), storyBosses: bosses.filter((b) => STORY_BOSSES.indexOf(b) >= 0).length,
+      beastsSeen, beastsAll, pages: (s.journal || []).length,
+      coins: Math.round(st.coins || 0), deaths: st.deaths || 0,
+      walked: walked.map(compName)
+    };
+  };
+  T.closing = function (t) {
+    if (t.deaths === 0) return 'Never once went down. That\'s the tally, child, and the hills will be telling it a while.';
+    if (t.walked.length >= 3) return 'That\'s the tally, child. Good folk walked with you, and that counts for more than coin.';
+    if (t.ending === 'tear' || t.ending === 'drown') return 'That\'s the tally. Some will tell it kinder than others, but they\'ll tell it.';
+    return 'That\'s the tally, child. Not bad for one lantern and a pair of boots.';
+  };
+  const esc = (v) => String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  T.html = function (t) {
+    const row = (k, v, sub) => '<div class="tl-row"><span class="tl-k">' + esc(k) + '</span><span class="tl-dots"></span><span class="tl-v">' + esc(v) + '</span></div>'
+      + (sub ? '<div class="tl-sub">' + esc(sub) + '</div>' : '');
+    return '<div class="hv-panel-head tl-head"><h2>THE TALLY</h2></div>'
+      + '<div class="tl-ending">' + esc(t.endingTitle) + '</div>'
+      + '<div class="tl-ledger">'
+      + row('Time on the road', t.time)
+      + row('Foes felled', t.foes)
+      + row('Bosses beaten', t.bosses.length, t.bosses.join(' · '))
+      + row('Haints & beasts recorded', t.beastsSeen + ' of ' + t.beastsAll)
+      + row('Journal pages written', t.pages)
+      + row('Coins earned', t.coins + '¢')
+      + row('Times you fell', t.deaths)
+      + row('Walked with you', t.walked.length ? t.walked.length : 'nobody', t.walked.join(' · '))
+      + '</div>'
+      + '<p class="tl-close">' + esc(T.closing(t)) + '</p>';
+  };
+  T.show = function (game, ending, next) {
+    const t = T.compute(game.state, ending);
+    const p = document.createElement('div');
+    p.className = 'wood-panel hv-tally hv-scroll-panel';
+    p.innerHTML = T.html(t) + '<div class="hv-epi-nav"><button class="ink-btn gold" id="tally-next" style="width:100%">Continue</button></div>';
+    if (HV.UI && HV.UI.showOverlay) HV.UI.showOverlay(p, false);
+    p.querySelector('#tally-next').addEventListener('click', () => { if (next) next(); });
+    return t;
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ==== 31-blurbs.js ==== */
+/* THE HOLLOW VEIL — area card blurbs retold in the porch voice.
+   PREVIEW ONLY until Nick approves: off by default. Turn on with ?blurbs=new,
+   localStorage 'hollowVeil.blurbs.v1' = 'new', or HV.AreaBlurbs.apply(). */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const B = HV.AreaBlurbs = {
+    KEY: 'hollowVeil.blurbs.v1',
+    NEW: {
+      scored_mark: 'That bluff hangs right out over the crooked water. Somebody took a knife to the old mark up there, like they meant to scratch out a prayer.',
+      promenade: 'A light\'s been walking that gravel road longer than I\'ve been alive. Down at the fork, something\'s always waiting on you.',
+      second_mark: 'Little white church back in the shortleaf pines. There\'s a second mark scarred in that yard, and the sexton won\'t sleep in his own shed.',
+      drowned: 'They dammed the river and the whole town went under. On a still night you can hear the church bells turning down there.',
+      howl: 'There\'s a cut in the ridge where a scream carries a mile. Every hunter\'s heard it, and only a few will swear they seen it.',
+      night_ridge: 'Folks say the Bald Knobbers first met on Snapp\'s Bald, and this knob looks just like it. Some nights you can still see their torches up top.',
+      caves: 'Under these hills it\'s all hollow rock and dripping water. They say the marks were cut down there first, before the county had a name.'
+    },
+    OLD: {},
+    on: false
+  };
+  const ART_FOR = { promenade: 'chapter_promenade', drowned: 'chapter_drowned', caves: 'chapter_caves' };
+  B.set = function (useNew) {
+    (HV.CHAPTERS || []).forEach((ch) => {
+      if (!(ch.id in B.OLD)) B.OLD[ch.id] = ch.line;
+      if (B.NEW[ch.id]) ch.line = useNew ? B.NEW[ch.id] : B.OLD[ch.id];
+      const art = ART_FOR[ch.id], copy = HV.Game && HV.Game.CHAPTER_COPY && HV.Game.CHAPTER_COPY[art];
+      if (copy) copy.line = ch.line;
+    });
+    B.on = !!useNew;
+    return B.on;
+  };
+  B.apply = () => B.set(true);
+  B.revert = () => B.set(false);
+  B.set(false);   /* records the old lines */
+  let want = true;   /* approved by Nick, Nov 13 */
+  try { if (root.localStorage && root.localStorage.getItem(B.KEY) === 'old') want = false; } catch (e) { /* keep new */ }
+  if (want) B.apply();
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
