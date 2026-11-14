@@ -19801,6 +19801,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         + '<label class="sound-vol">Volume <input id="vol-master" class="wood-slider" type="range" min="0" max="1" step="0.05"></label></div>'
         + '<label style="display:block;margin-top:12px">Music <input id="vol-music" class="wood-slider" type="range" min="0" max="1" step="0.05"></label>'
         + '<label style="display:block;margin-top:12px">Ambience <input id="vol-amb" class="wood-slider" type="range" min="0" max="1" step="0.05"></label>'
+        + '<label style="display:block;margin-top:12px">Wildlife <input id="vol-life" class="wood-slider" type="range" min="0" max="1" step="0.05"></label>'
+        + '<p style="margin:4px 0 0;font-size:13px;opacity:0.8">Birds, peepers, and the other hill life. Separate from talk and hits.</p>'
         + '<label style="display:block;margin-top:12px">Effects <input id="vol-sfx" class="wood-slider" type="range" min="0" max="1" step="0.05"></label>'
         + '<label style="display:block;margin-top:14px">Rhythm latency <span id="latv">' + lat0 + '</span> ms'
         + '<input id="lat" class="wood-slider" type="range" min="-250" max="250" step="5"></label>'
@@ -19853,6 +19855,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       }
       bindVol('#vol-music', audio && audio.musicVol, handlers.music, 0.7);
       bindVol('#vol-amb', audio && audio.ambVol, handlers.ambience, 0.62);
+      bindVol('#vol-life', audio && audio.lifeVol, handlers.wildlife, 0.7);
       bindVol('#vol-sfx', audio && audio.sfxVol, handlers.effects, 0.9);
       const lat = p.querySelector('#lat');
       const latv = p.querySelector('#latv');
@@ -21122,6 +21125,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         volume: (v) => HV.Audio.setVolume(v),
         music: (v) => HV.Audio.setMusicVolume && HV.Audio.setMusicVolume(v),
         ambience: (v) => HV.Audio.setAmbVolume && HV.Audio.setAmbVolume(v),
+        wildlife: (v) => HV.Audio.setLifeVolume && HV.Audio.setLifeVolume(v),
         effects: (v) => HV.Audio.setSfxVolume && HV.Audio.setSfxVolume(v),
         mute: () => { HV.Audio.toggleMute(); HV.UI.toast(HV.Audio.muted ? 'Muted' : 'Unmuted'); },
         sound: (on) => { if (HV.Audio.setMuted) HV.Audio.setMuted(!on); else if (!!HV.Audio.muted === !!on) HV.Audio.toggleMute(); },
@@ -22561,6 +22565,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       });
       if (HV.Breakables && HV.Breakables.pushSprites) HV.Breakables.pushSprites(this, sprites, camX, camY, now);
       if (HV.Followers && HV.Followers.pushSprites) HV.Followers.pushSprites(this, sprites, camX, camY, now);
+      if (HV.Ambient && HV.Ambient.pushSprites && !(HV.Followers && HV.Followers.pushSprites && HV.Followers.pushSprites._ambient)) HV.Ambient.pushSprites(this, sprites, camX, camY, now);
       /* walking = she actually moved in the last ~0.12s; joystick released, centred or in the deadzone = standing */
       const hpMv = this._lastHeroPos ? Math.hypot(s.world.x - this._lastHeroPos.x, s.world.y - this._lastHeroPos.y) : 0;
       if (hpMv > 0.25 && hpMv < 64) this._heroMoveT = now;
@@ -29799,15 +29804,20 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     if (typeof j.music === 'number') A.musicVol = clamp(j.music, 0, 1);
     if (typeof j.amb === 'number') A.ambVol = clamp(j.amb, 0, 1);
     if (typeof j.sfx === 'number') A.sfxVol = clamp(j.sfx, 0, 1);
+    if (typeof j.life === 'number') A.lifeVol = clamp(j.life, 0, 1);
     A.muted = !!j.muted;
     if (A._applyBusses) A._applyBusses();
     return j;
   };
   S.save = function () {
     const ls = store(); if (!ls) return;
-    try { ls.setItem(S.KEY, JSON.stringify({ vol: A.volume, music: A.musicVol, amb: A.ambVol, sfx: A.sfxVol, muted: !!A.muted })); } catch (e) { /* private mode */ }
+    try { ls.setItem(S.KEY, JSON.stringify({ vol: A.volume, music: A.musicVol, amb: A.ambVol, sfx: A.sfxVol, life: A.lifeVol == null ? 0.7 : A.lifeVol, muted: !!A.muted })); } catch (e) { /* private mode */ }
   };
-  ['setVolume', 'setMusicVolume', 'setAmbVolume', 'setSfxVolume', 'toggleMute'].forEach((k) => {
+  if (typeof A.setLifeVolume !== 'function') {
+    A.lifeVol = A.lifeVol != null ? A.lifeVol : 0.7;
+    A.setLifeVolume = function (v) { this.lifeVol = clamp(v, 0, 1); if (this.life && this.ctx) this.life.gain.value = (this.muted ? 0 : 1) * this.lifeVol; return this.lifeVol; };
+  }
+  ['setVolume', 'setMusicVolume', 'setAmbVolume', 'setSfxVolume', 'setLifeVolume', 'toggleMute'].forEach((k) => {
     const f = A[k]; if (!f || f._s47) return;
     A[k] = function () { const r = f.apply(this, arguments); S.save(); return r; };
     A[k]._s47 = true;
@@ -32162,6 +32172,2279 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   HV.ART_META.item_night_watch = { w: 256, h: 256, bytes: 11196 };
   HV.ART.item_haint_rinse = 'data:image/webp;base64,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';
   HV.ART_META.item_haint_rinse = { w: 256, h: 256, bytes: 9336 };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ==== 43-ambient.js ==== */
+/* THE HOLLOW VEIL — ambient life (hv52 preview)
+   Cosmetic critters so the hills feel lived in. Woodcut solids, no hatching,
+   nothing anime, never confused with a haint or a boss. Purely cosmetic:
+   no collisions, no combat, no path blocking, never covers UI, pickups,
+   barrels or exits. Caps + pooling; update only near the camera; pause in
+   menus and dialogue. Sounds are quiet, spaced, and use a Wildlife volume
+   bus separate from talk and hits, respecting Sound On/Off and master volume. */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const TILE = 32;
+  const MAX = 18;
+  const MAX_LOW = 9;
+  const CAM_PAD = 110;
+  const PAL = () => HV.PAL || {};
+
+  const Life = HV.Ambient = HV.Ambient || {};
+  Life.list = [];
+  Life._pool = [];
+  Life._game = null;
+  Life._areaId = '';
+  Life._part = 'day';
+  Life._t = 0;
+  Life._sndAt = 0;
+  Life._sndKindAt = {};
+  Life._sites = null;
+  Life._view = { x: 0, y: 0, w: 400, h: 700 };
+  Life._paused = true;
+  Life._shot = null;
+
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function easeOut(t) { t = clamp(t, 0, 1); return 1 - (1 - t) * (1 - t); }
+  function easeIn(t) { t = clamp(t, 0, 1); return t * t; }
+  function easeInOut(t) { t = clamp(t, 0, 1); return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+  function easeOutBack(t) { const c = 1.70158; t = clamp(t, 0, 1); return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); }
+  function hash(s) { return HV.hash ? HV.hash(String(s)) : 1; }
+  function rng(seed) { return HV.rng ? HV.rng(seed) : Math.random; }
+  function pick(r, arr) { return arr[(r() * arr.length) | 0]; }
+  function low() { return !!(HV.LowFx && HV.LowFx.on && HV.LowFx.on()); }
+  function cap() { return low() ? MAX_LOW : MAX; }
+
+  function daypart(tm) {
+    tm = ((tm % 1) + 1) % 1;
+    if (tm < 0.2 || tm > 0.82) return 'night';
+    if (tm < 0.32) return 'dawn';
+    if (tm > 0.68) return 'dusk';
+    return 'day';
+  }
+  Life.daypart = daypart;
+  Life.cap = cap;
+
+  function worldTime(g) {
+    const t = g && g.state && g.state.world ? g.state.world.time : 0.5;
+    return ((t % 1) + 1) % 1;
+  }
+
+  function tint(hex, part) {
+    if (!hex || hex[0] !== '#') return hex;
+    let h = hex.replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    let r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+    if (part === 'night') { r = r * 0.42 + 26; g = g * 0.46 + 34; b = b * 0.62 + 52; }
+    else if (part === 'dusk') { r = r * 0.86 + 38; g = g * 0.74 + 18; b = b * 0.68 + 14; }
+    else if (part === 'dawn') { r = r * 0.9 + 34; g = g * 0.84 + 22; b = b * 0.8 + 18; }
+    r = clamp(r | 0, 0, 255); g = clamp(g | 0, 0, 255); b = clamp(b | 0, 0, 255);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  function inkFill(ctx, fn, fill, ink, lw) {
+    ctx.beginPath();
+    fn();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    ctx.strokeStyle = ink || '#1A1410';
+    ctx.lineWidth = lw == null ? 1.15 : lw;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  function ellipse(ctx, x, y, rx, ry) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+  }
+
+  function shadow(ctx, x, y, rx, ry, a) {
+    if (low()) {
+      ctx.fillStyle = 'rgba(8,10,12,' + (a == null ? 0.28 : a) + ')';
+      ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+      return;
+    }
+    if (HV.Light && HV.Light.cast) HV.Light.cast(ctx, x, y, rx, ry, a == null ? 0.18 : a);
+    else {
+      ctx.fillStyle = 'rgba(8,10,12,' + (a == null ? 0.28 : a) + ')';
+      ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  function inView(c, pad) {
+    const v = Life._view;
+    const p = pad == null ? CAM_PAD : pad;
+    return c.x > v.x - p && c.x < v.x + v.w + p && c.y > v.y - p && c.y < v.y + v.h + p;
+  }
+
+  function reserved(area, tx, ty) {
+    if (!area || tx < 1 || ty < 1 || tx >= (area.w || 2) - 1 || ty >= (area.h || 2) - 1) return true;
+    const near = (list, r) => (list || []).some((o) => o && Math.abs((o.x | 0) - tx) <= r && Math.abs((o.y | 0) - ty) <= r);
+    if (near(area.exits, 1)) return true;
+    if (near(area.chests, 0)) return true;
+    if (near(area.caches, 0)) return true;
+    if (near(area.herbs, 0)) return true;
+    if (HV.Breakables && HV.Breakables.layout) {
+      try {
+        if (near(HV.Breakables.layout(area), 0)) return true;
+      } catch (e) { /* ignore */ }
+    }
+    return false;
+  }
+
+  function walkableLand(area, tx, ty) {
+    if (!area || reserved(area, tx, ty)) return false;
+    const ch = HV.getTile(area, tx, ty);
+    if (HV.tileWater && HV.tileWater(ch)) return false;
+    return !!(HV.tileWalkable && HV.tileWalkable(ch));
+  }
+
+  function isWater(area, tx, ty) {
+    const ch = HV.getTile(area, tx, ty);
+    return !!(HV.tileWater && HV.tileWater(ch));
+  }
+
+  /* ——— pooling ——— */
+  function alloc() {
+    const c = Life._pool.pop() || {};
+    for (const k in c) delete c[k];
+    c.state = 'idle';
+    c.st = 0;
+    c.z = 0;
+    c.alpha = 1;
+    c.facing = 1;
+    c.vx = 0; c.vy = 0; c.vz = 0;
+    c.look = 0;
+    c.wing = 0;
+    c.phase = 0;
+    c.pose = 'idle';
+    c.poseT = 0;
+    c.delay = 0.3;
+    c.hidden = false;
+    return c;
+  }
+  function release(c) {
+    if (!c) return;
+    Life._pool.push(c);
+  }
+  function clearList() {
+    Life.list.forEach(release);
+    Life.list = [];
+  }
+
+  /* ——— haunted / healed world ——— */
+  const HAUNT_AREA = {
+    the_gallows: 0.88, pine_churchyard: 0.55, devil_promenade: 0.5,
+    the_crossroads: 0.55, howler_run: 0.7, howler_den: 0.9,
+    burned_mill: 0.42, wisp_bottoms: 0.5, drowned_shore: 0.38,
+    harthall_ruins: 0.5, snawfus_glade: 0.32, howler_whelp: 0,
+    fog_caves: 0.2, under_karst: 0.35,
+  };
+  function questDone(state, id) {
+    return !!(HV.questDone && state && HV.questDone(state, id));
+  }
+  function hauntOf(game) {
+    const area = game && game.area;
+    if (!area) return 0;
+    let h = HAUNT_AREA[area.id] || 0;
+    const ents = game.entities || [];
+    if (ents.some((e) => e && e.alive && e.boss)) h = Math.max(h, 0.82);
+    if (ents.some((e) => e && e.alive && e.tags && e.tags.indexOf && e.tags.indexOf('haint') >= 0)) h = Math.max(h, 0.58);
+    const st = game.state;
+    if (area.id === 'wisp_bottoms' && questDone(st, 'bottoms_walker')) h *= 0.28;
+    if (area.id === 'pine_churchyard' && (questDone(st, 'churchyard') || (st && st.flags && st.flags.churchyard_cleared))) h *= 0.35;
+    if (area.id === 'the_gallows' && (questDone(st, 'gallows') || (st && st.flags && st.flags.gallows_cleared))) h *= 0.4;
+    if (st && st.flags && st.flags.ending === 'seal') h *= 0.7;
+    return clamp(h, 0, 1);
+  }
+  Life.hauntOf = hauntOf;
+
+  function isOldChristmas(state) {
+    if (!state) return false;
+    if (questDone(state, 'old_christmas')) return true;
+    if (state.flags && (state.flags.old_christmas_eve || state.flags.cedar_bough && questDone(state, 'old_christmas'))) return true;
+    if (HV.hasItem && HV.hasItem(state, 'old_christmas_band')) return true;
+    if (HV.Rhythm && HV.Rhythm.isUnlocked && HV.Rhythm.isUnlocked(state, 'oldchristmas')) return true;
+    return false;
+  }
+  Life.isOldChristmas = isOldChristmas;
+
+  /* ——— sites in an area ——— */
+  function gatherSites(area) {
+    const sites = { grass: [], path: [], water: [], edge: [], trees: [], fences: [], roofs: [], porches: [], logs: [] };
+    if (!area) return sites;
+    const W = area.w || 0, H = area.h || 0;
+    const step = (W * H > 2800) ? 2 : 1;
+    for (let ty = 1; ty < H - 1; ty += step) {
+      for (let tx = 1; tx < W - 1; tx += step) {
+        if (reserved(area, tx, ty)) continue;
+        const ch = HV.getTile(area, tx, ty);
+        const wx = tx * TILE + 16, wy = ty * TILE + 16;
+        if (HV.tileWater && HV.tileWater(ch)) {
+          sites.water.push({ x: wx, y: wy, tx: tx, ty: ty });
+          continue;
+        }
+        if (!HV.tileWalkable || !HV.tileWalkable(ch)) continue;
+        if (ch === ',' || ch === '=' || ch === 'd') sites.path.push({ x: wx, y: wy, tx: tx, ty: ty });
+        else sites.grass.push({ x: wx, y: wy, tx: tx, ty: ty });
+        let wet = false;
+        for (let dy = -1; dy <= 1 && !wet; dy++) for (let dx = -1; dx <= 1; dx++) {
+          if (isWater(area, tx + dx, ty + dy)) wet = true;
+        }
+        if (wet) sites.edge.push({ x: wx, y: wy, tx: tx, ty: ty });
+      }
+    }
+    (area.trees || []).forEach((tr) => {
+      sites.trees.push({ x: tr.x * TILE + 16, y: tr.y * TILE + 24, tx: tr.x, ty: tr.y });
+    });
+    (area.props || []).forEach((pr) => {
+      if (pr.kind === 'fence') {
+        const x1 = pr.x1 * TILE, y1 = pr.y1 * TILE, x2 = pr.x2 * TILE, y2 = pr.y2 * TILE;
+        const n = Math.max(1, Math.round(Math.hypot(x2 - x1, y2 - y1) / 28));
+        for (let i = 0; i <= n; i++) {
+          const u = i / n;
+          const x = x1 + (x2 - x1) * u, y = y1 + (y2 - y1) * u;
+          const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE);
+          if (!reserved(area, tx, ty)) sites.fences.push({ x: x, y: y + 6 });
+        }
+      }
+    });
+    (area.buildings || []).forEach((b) => {
+      sites.roofs.push({ x: (b.x + b.w * 0.55) * TILE, y: (b.y + 0.6) * TILE });
+      const door = b.door || 's';
+      let px = (b.x + b.w * 0.5) * TILE, py = (b.y + b.h) * TILE + 8;
+      if (door === 'n') py = b.y * TILE - 8;
+      if (door === 'e') { px = (b.x + b.w) * TILE + 10; py = (b.y + b.h * 0.7) * TILE; }
+      if (door === 'w') { px = b.x * TILE - 10; py = (b.y + b.h * 0.7) * TILE; }
+      sites.porches.push({ x: px, y: py, b: b });
+    });
+    /* fallen logs: water-edge tiles near trees, used by turtles */
+    sites.edge.forEach((e) => {
+      if (sites.trees.some((tr) => Math.hypot(tr.x - e.x, tr.y - e.y) < 80)) sites.logs.push(e);
+    });
+    if (!sites.logs.length) sites.logs = sites.edge.slice();
+    return sites;
+  }
+
+  function nearPick(r, list, x, y, spread) {
+    if (!list || !list.length) return null;
+    let best = null, bestD = 1e9;
+    for (let i = 0; i < 8; i++) {
+      const s = list[(r() * list.length) | 0];
+      const d = Math.hypot(s.x - x, s.y - y) + r() * (spread || 40);
+      if (d < bestD) { best = s; bestD = d; }
+    }
+    return best || list[0];
+  }
+
+  /* ——— kind recipes per area ——— */
+  const GLADES = { cedar_glade: 1, snawfus_glade: 1, ila_cabin: 1, white_stag_woods: 1 };
+  const HOLLOWS = { stillhouse_hollow: 1, howler_run: 1 };
+  const ROADS = { devil_promenade: 1, the_crossroads: 1, post_oak_ridge: 1, bald_knob: 1 };
+  const BLUFFS = { widows_bluff: 1, bald_knob: 1, high_ledge: 1, post_oak_ridge: 1 };
+  const WATERISH = { wisp_bottoms: 1, ferry_crossing: 1, crooked_river: 1, drowned_shore: 1 };
+
+  function kindOk(kind, part, biome, id) {
+    const day = part === 'day' || part === 'dawn' || part === 'dusk';
+    const duskish = part === 'dusk' || part === 'dawn';
+    const night = part === 'night' || part === 'dusk';
+    switch (kind) {
+      case 'cardinal': case 'jay': case 'sparrow': return day;
+      case 'crow': return true;
+      case 'vulture': return part === 'day' || part === 'dawn';
+      case 'heron': return true;
+      case 'turtle': return day;
+      case 'strider': return day;
+      case 'box_turtle': return day;
+      case 'armadillo': return part === 'dusk' || part === 'night';
+      case 'possum': return part === 'dusk' || part === 'night';
+      case 'deer': return duskish;
+      case 'hound': return true;
+      case 'chicken': return day;
+      case 'cat': return true;
+      case 'rabbit': return day;
+      case 'squirrel': return day;
+      case 'firefly': return night;
+      case 'moth': return night;
+      case 'bat': return part === 'night' || biome === 'cave';
+      case 'butterfly': return day;
+      case 'dragonfly': return day;
+      case 'ripple': return true;
+      case 'whip': return part === 'dusk' || part === 'night';
+      case 'leaf': return biome !== 'cave';
+      default: return true;
+    }
+  }
+
+  function planFor(game, part) {
+    const area = game.area;
+    if (!area) return [];
+    const id = area.id, biome = area.biome || '';
+    const haunt = hauntOf(game);
+    const life = 1 - haunt * 0.72;
+    const healed = (id === 'wisp_bottoms' && questDone(game.state, 'bottoms_walker'))
+      || (game.state && game.state.flags && game.state.flags.ending === 'seal');
+    const add = (out, kind, n, flag) => {
+      if (!kindOk(kind, part, biome, id)) return;
+      let c = Math.round(n * (kind === 'crow' ? (0.55 + haunt * 1.6) : life));
+      if (healed && kind !== 'crow' && kind !== 'bat') c = Math.max(c, Math.round(n * 1.25));
+      if (flag) c = Math.max(c, 1);
+      for (let i = 0; i < c; i++) out.push(kind);
+    };
+    const out = [];
+    /* signatures first so the cap never drops them */
+    if (id === 'ila_cabin' || id === 'yarrow_crossing') {
+      add(out, 'hound', 1, true);
+      add(out, 'chicken', id === 'yarrow_crossing' ? 3 : 2, true);
+      add(out, 'cat', 1, true);
+      add(out, 'cardinal', 1, true);
+      add(out, 'jay', 1, true);
+      add(out, 'sparrow', 1);
+      add(out, 'crow', id === 'yarrow_crossing' ? 2 : 1);
+    }
+    if (id === 'wisp_bottoms') {
+      add(out, 'heron', 1, true);
+      add(out, 'turtle', 1, true);
+      add(out, 'strider', healed ? 4 : 2, true);
+      add(out, 'ripple', 3, true);
+      add(out, 'dragonfly', 2);
+      add(out, 'firefly', healed ? 8 : 5, true);
+    }
+    if (WATERISH[id] && id !== 'wisp_bottoms') {
+      add(out, 'ripple', 3, true);
+      add(out, 'strider', 2, true);
+      add(out, 'dragonfly', 2);
+      add(out, 'turtle', 1);
+    }
+    if (GLADES[id] || (biome === 'woods' && id !== 'howler_den')) {
+      if (id === 'cedar_glade' || id === 'snawfus_glade' || id === 'ila_cabin' || id === 'white_stag_woods') {
+        add(out, 'butterfly', id === 'snawfus_glade' ? 5 : 3, true);
+        add(out, 'box_turtle', 1, true);
+      }
+      add(out, 'rabbit', 2);
+      add(out, 'squirrel', 2);
+      add(out, 'sparrow', 2);
+      if (id !== 'howler_run' && id !== 'howler_den') add(out, 'deer', 2);
+      add(out, 'firefly', 5);
+      add(out, 'whip', 1);
+    }
+    if (biome === 'town' && id !== 'yarrow_crossing') {
+      add(out, 'chicken', 2);
+      add(out, 'crow', 2);
+    }
+    if (BLUFFS[id] || biome === 'bluff') add(out, 'vulture', 2, true);
+    if (ROADS[id] || biome === 'road' || id === 'yarrow_crossing' || id === 'post_oak_ridge') {
+      add(out, 'armadillo', 1, true);
+      add(out, 'possum', 1);
+    }
+    if (biome === 'cave' || HOLLOWS[id] || id === 'fog_caves' || id === 'under_karst') {
+      add(out, 'bat', biome === 'cave' ? 5 : 3, true);
+    }
+    if (id === 'the_gallows' || id === 'pine_churchyard' || id === 'the_crossroads') {
+      add(out, 'crow', 4, true);
+      add(out, 'vulture', id === 'the_gallows' ? 1 : 0);
+    }
+    if (part === 'night' || part === 'dusk') {
+      if (biome === 'town' || id === 'ila_cabin') add(out, 'moth', 4, true);
+      else if (biome !== 'cave') add(out, 'moth', 2);
+      if (biome === 'woods' || biome === 'bottoms' || biome === 'river' || biome === 'bluff') add(out, 'firefly', 3);
+      if (biome !== 'cave' && biome !== 'town') add(out, 'whip', 1);
+    }
+    /* always a few moths around Lara's lantern at night */
+    if (part === 'night' || part === 'dusk') add(out, 'moth', 2);
+    return out;
+  }
+
+  function placeKind(game, kind, r, sites, focus) {
+    const c = alloc();
+    c.kind = kind;
+    c.phase = r() * Math.PI * 2;
+    c.seed = r();
+    c.noticeR = ({
+      cardinal: 52, jay: 56, sparrow: 50, crow: 44, vulture: 0, heron: 70,
+      turtle: 48, strider: 0, box_turtle: 42, armadillo: 58, possum: 54,
+      deer: 78, hound: 64, chicken: 46, cat: 40, rabbit: 60, squirrel: 50,
+      firefly: 0, moth: 0, bat: 0, butterfly: 28, dragonfly: 0, ripple: 0, whip: 64,
+    })[kind] || 50;
+    c.delay = 0.16 + r() * 0.55;
+    c.sync = kind === 'firefly' ? ((r() < 0.45) ? 0 : (r() < 0.5 ? 1 : -1)) : -1;
+    const fx = focus ? focus.x : 16, fy = focus ? focus.y : 16;
+    let s = null;
+    const want = (list, spread) => nearPick(r, list, fx, fy, spread);
+    if (kind === 'hound') s = want(sites.porches, 20) || want(sites.grass, 80);
+    else if (kind === 'cat') s = want(sites.fences, 20) || want(sites.porches, 40) || want(sites.grass, 80);
+    else if (kind === 'crow') s = want(sites.fences, 30) || want(sites.roofs, 40) || want(sites.trees, 80);
+    else if (kind === 'chicken') s = want(sites.grass, 60) || want(sites.path, 80);
+    else if (kind === 'heron') s = want(sites.edge, 40) || want(sites.water, 80);
+    else if (kind === 'turtle') s = want(sites.logs, 50) || want(sites.edge, 80);
+    else if (kind === 'strider' || kind === 'ripple' || kind === 'dragonfly') s = want(sites.water, 80) || want(sites.edge, 80);
+    else if (kind === 'armadillo' || kind === 'possum') s = want(sites.path, 40) || want(sites.grass, 120);
+    else if (kind === 'deer') s = want(sites.grass, 140) || want(sites.trees, 140);
+    else if (kind === 'box_turtle') s = want(sites.grass, 90);
+    else if (kind === 'squirrel') s = want(sites.trees, 40) || want(sites.grass, 80);
+    else if (kind === 'vulture') s = want(sites.roofs, 200) || want(sites.grass, 200) || { x: fx, y: fy };
+    else if (kind === 'bat') s = { x: fx + (r() - 0.5) * 220, y: fy + (r() - 0.5) * 180 };
+    else if (kind === 'moth') s = { x: fx + (r() - 0.5) * 40, y: fy - 20 };
+    else if (kind === 'firefly') s = want(sites.grass, 160) || want(sites.edge, 160) || { x: fx + (r() - 0.5) * 180, y: fy + (r() - 0.5) * 180 };
+    else if (kind === 'whip') s = want(sites.path, 80) || want(sites.grass, 80);
+    else s = want(sites.grass, 100) || want(sites.path, 120);
+    if (!s) { release(c); return null; }
+    c.x = s.x + (r() - 0.5) * 18;
+    c.y = s.y + (r() - 0.5) * 12;
+    c.homeX = c.x; c.homeY = c.y;
+    c.facing = r() < 0.5 ? -1 : 1;
+    if (kind === 'hound') { c.pose = 'sleep'; c.z = 0; }
+    if (kind === 'cat') { c.pose = 'sit'; c.perched = true; }
+    if (kind === 'crow' || kind === 'cardinal' || kind === 'jay' || kind === 'sparrow') {
+      c.perched = (kind === 'crow' && (s === sites.fences || true) && (sites.fences || []).length && Math.hypot((s.x || 0) - c.x, (s.y || 0) - c.y) < 8);
+    }
+    if (kind === 'vulture') { c.z = 96 + r() * 36; c.orbit = r() * Math.PI * 2; c.orbitR = 70 + r() * 50; c.homeX = c.x; c.homeY = c.y; }
+    if (kind === 'bat') { c.z = 48 + r() * 28; c.orbit = r() * Math.PI * 2; }
+    if (kind === 'heron') { c.pose = 'stand'; c.z = 0; }
+    if (kind === 'armadillo' || kind === 'possum') { c.pose = 'walk'; c.facing = r() < 0.5 ? -1 : 1; c.vx = c.facing * (kind === 'armadillo' ? 18 : 22); }
+    if (kind === 'turtle') { c.pose = 'log'; }
+    if (kind === 'box_turtle') { c.pose = 'idle'; }
+    if (kind === 'deer') { c.pose = c.seed < 0.5 ? 'graze' : 'idle'; c.poseT = (c.seed || 0) * 2.2; }
+    if (kind === 'firefly') { c.z = 6 + r() * 14; }
+    if (kind === 'moth') { c.z = 16 + r() * 8; c.orbit = r() * Math.PI * 2; }
+    if (kind === 'butterfly' || kind === 'dragonfly') { c.z = 8 + r() * 10; }
+    if (kind === 'whip') { c.z = 0; c.pose = 'sit'; c.hidden = partNow(game) === 'night' ? false : true; c.alpha = c.hidden ? 0 : 1; }
+    c.partHide = !kindOk(kind, partNow(game), game.area && game.area.biome, game.area && game.area.id);
+    if (c.partHide && kind !== 'whip') c.alpha = 0;
+    return c;
+  }
+
+  function partNow(game) { return daypart(worldTime(game)); }
+
+  function rebuild(game, keepIfSame) {
+    if (!game || !game.area) { clearList(); return; }
+    const part = partNow(game);
+    if (keepIfSame && Life._areaId === game.area.id && Life._part === part && Life.list.length) {
+      Life.list.forEach((c) => {
+        const ok = kindOk(c.kind, part, game.area.biome, game.area.id);
+        c.partHide = !ok;
+      });
+      return;
+    }
+    Life._areaId = game.area.id;
+    Life._part = part;
+    Life._sites = gatherSites(game.area);
+    clearList();
+    const focus = game.state && game.state.world ? { x: game.state.world.x, y: game.state.world.y } : { x: 16, y: 16 };
+    const r = rng('life:' + game.area.id + ':' + ((game.state && game.state.world && game.state.world.day) || 1));
+    const plan = planFor(game, part);
+    const limit = cap();
+    const used = {};
+    plan.forEach((kind) => {
+      if (Life.list.length >= limit) return;
+      /* keep at most one signature of some kinds */
+      const unique = { hound: 1, heron: 1, cat: 1, box_turtle: 1, deer: 2, armadillo: 1, possum: 1, whip: 1 };
+      if (unique[kind] && (used[kind] || 0) >= unique[kind]) return;
+      const c = placeKind(game, kind, r, Life._sites, focus);
+      if (c) {
+        if (kind === 'deer') {
+          Life.list.forEach((o) => {
+            if (o === c || o.kind !== 'deer') return;
+            const dx = c.x - o.x, dy = c.y - o.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist < 110) {
+              const ang = dist < 1 ? 0.6 : Math.atan2(dy || 1, dx || 1);
+              c.x = o.x + Math.cos(ang) * 124;
+              c.y = o.y + Math.sin(ang) * 48 + 20;
+              c.homeX = c.x; c.homeY = c.y;
+            }
+          });
+        }
+        Life.list.push(c); used[kind] = (used[kind] || 0) + 1;
+      }
+    });
+  }
+
+  Life.enter = function (game) {
+    Life._game = game;
+    rebuild(game, false);
+  };
+
+  Life.reset = function () {
+    clearList();
+    Life._areaId = '';
+    Life._sites = null;
+    Life._shot = null;
+  };
+
+  function heroPos(game) {
+    const w = game && game.state && game.state.world;
+    return w ? { x: w.x, y: w.y } : { x: 0, y: 0 };
+  }
+  function toward(c, x, y) {
+    return (x < c.x) ? -1 : 1;
+  }
+  function distH(c, game) {
+    const h = heroPos(game);
+    return Math.hypot(c.x - h.x, c.y - h.y);
+  }
+
+  function beginNotice(c, game) {
+    if (c.state === 'notice' || c.state === 'react' || c.state === 'return' || c.state === 'hide') return;
+    if (!c.noticeR) return;
+    c.state = 'notice';
+    c.st = 0;
+    c.look = toward(c, heroPos(game).x, heroPos(game).y);
+    /* keep a little extra random so a flock never flushes as one */
+    c.delay = (c.delay || 0.3) * (0.75 + Math.random() * 0.6);
+  }
+
+  function beginReact(c, game) {
+    c.state = 'react';
+    c.st = 0;
+    const h = heroPos(game);
+    const away = Math.atan2(c.y - h.y, c.x - h.x);
+    c.away = away;
+    if (c.kind === 'cardinal' || c.kind === 'jay' || c.kind === 'sparrow' || c.kind === 'whip') {
+      c.pose = 'flush';
+      c.vz = 46 + Math.random() * 18;
+      c.vx = Math.cos(away) * (70 + Math.random() * 30);
+      c.vy = Math.sin(away) * (50 + Math.random() * 24);
+      c.facing = c.vx >= 0 ? 1 : -1;
+      sfx('flutter', 0.7);
+      if (c.kind === 'whip') sfx('whip', 1);
+    } else if (c.kind === 'crow') {
+      /* hop or walk along the perch first; only take off up and away, never at Lara */
+      c.pose = 'flush';
+      c.vz = 38;
+      c.vx = Math.cos(away) * 48;
+      c.vy = Math.sin(away) * 30;
+      c.facing = c.vx >= 0 ? 1 : -1;
+      sfx('flutter', 0.45);
+    } else if (c.kind === 'heron') {
+      c.pose = 'lift';
+      c.vz = 22;
+      c.vx = Math.cos(away) * 28;
+      c.vy = Math.sin(away) * 16;
+      sfx('flutter', 0.5);
+    } else if (c.kind === 'deer') {
+      c.pose = 'bound';
+      c.boundN = 0;
+      c.vx = Math.cos(away) * 110;
+      c.vy = Math.sin(away) * 80;
+      c.facing = c.vx >= 0 ? 1 : -1;
+    } else if (c.kind === 'armadillo') {
+      c.pose = 'hop';
+      c.hopT = 0;
+      c.vz = 0;
+      sfx('hop', 0.8);
+    } else if (c.kind === 'possum') {
+      c.pose = 'freeze';
+      c.freezeT = 0;
+    } else if (c.kind === 'box_turtle') {
+      c.pose = 'tuck';
+    } else if (c.kind === 'turtle') {
+      c.pose = 'slide';
+      c.vx = (c.facing || 1) * 12;
+      c.vy = 8;
+      sfx('plop', 0.7);
+    } else if (c.kind === 'rabbit' || c.kind === 'squirrel' || c.kind === 'chicken') {
+      c.pose = c.kind === 'squirrel' ? 'climb' : 'bolt';
+      c.vx = Math.cos(away) * (c.kind === 'chicken' ? 50 : 90);
+      c.vy = Math.sin(away) * (c.kind === 'chicken' ? 36 : 70);
+      c.facing = c.vx >= 0 ? 1 : -1;
+      if (c.kind === 'chicken') sfx('cluck', 0.5);
+    } else if (c.kind === 'hound') {
+      c.pose = 'watch';
+      sfx('thump', 0.55);
+    } else if (c.kind === 'cat') {
+      c.pose = 'watch';
+    } else if (c.kind === 'butterfly') {
+      c.vx = Math.cos(away) * 16;
+      c.vy = Math.sin(away) * 12;
+    }
+  }
+
+  function landBird(c, game) {
+    const sites = Life._sites || gatherSites(game.area);
+    const h = heroPos(game);
+    const list = (c.kind === 'crow' ? (sites.fences.length ? sites.fences : sites.roofs) : sites.grass) || sites.grass;
+    let s = null, best = 0;
+    (list || []).forEach((p) => {
+      const d = Math.hypot(p.x - h.x, p.y - h.y);
+      if (d > 70 && d < 260 && Math.random() > best) { s = p; best = Math.random(); }
+    });
+    if (!s && list && list.length) s = list[(Math.random() * list.length) | 0];
+    if (!s) { c.state = 'idle'; c.pose = 'idle'; c.z = 0; return; }
+    c.state = 'return';
+    c.st = 0;
+    c.tx = s.x; c.ty = s.y;
+    c.pose = 'fly';
+  }
+
+  function tickOne(c, game, dt) {
+    const part = partNow(game);
+    const ok = kindOk(c.kind, part, game.area && game.area.biome, game.area && game.area.id);
+    c.partHide = !ok && c.kind !== 'moth';
+    const wantA = (c.partHide || c.hidden) ? 0 : 1;
+    c.alpha = lerp(c.alpha, wantA, 1 - Math.pow(0.02, dt));
+    if (c.alpha < 0.03 && c.partHide) return;
+    c.phase += dt;
+    if (c._shotLock) return; /* freeze a showcase pose so a screenshot wait cannot land a hop */
+    c.poseT += dt;
+    c.st += dt;
+    const d = distH(c, game);
+    const flying = c.pose === 'flush' || c.pose === 'fly' || c.pose === 'lift' || c.pose === 'bound' || c.kind === 'vulture' || c.kind === 'bat' || c.kind === 'moth' || c.kind === 'firefly' || c.kind === 'butterfly' || c.kind === 'dragonfly';
+    if (Life._viewSet && !inView(c, flying ? 220 : CAM_PAD) && c.state === 'idle') {
+      /* still notice if Lara has walked close, even at the edge of the cull */
+      if (c.noticeR && d < c.noticeR && !c.partHide && !c._shotLock) beginNotice(c, game);
+      else if (c.kind === 'firefly' || c.kind === 'moth') tickIdle(c, game, dt, d);
+      if (c.state === 'idle') return;
+    }
+
+    if (c.state === 'idle' && c.noticeR && d < c.noticeR && !c.partHide && !c._shotLock) beginNotice(c, game);
+    if (c.state === 'notice') {
+      c.look = toward(c, heroPos(game).x, heroPos(game).y);
+      if (c.kind === 'deer') c.pose = 'look';
+      if (c.kind === 'hound' && c.pose === 'sleep') c.pose = 'liftHead';
+      if (c.st >= c.delay) beginReact(c, game);
+    }
+
+    if (c.state === 'react' || c.state === 'return') tickReact(c, game, dt, d);
+    else tickIdle(c, game, dt, d);
+
+    /* keep off reserved tiles when on the ground */
+    if (c.z < 4 && game.area) {
+      const tx = Math.floor(c.x / TILE), ty = Math.floor(c.y / TILE);
+      if (reserved(game.area, tx, ty)) {
+        c.x = c.homeX; c.y = c.homeY;
+      }
+    }
+  }
+
+  function tickIdle(c, game, dt, d) {
+    const h = heroPos(game);
+    switch (c.kind) {
+      case 'cardinal': case 'jay': case 'sparrow': case 'crow':
+        c.wing = 0;
+        if (c.pose !== 'peck' && Math.random() < dt * 0.25) { c.pose = 'peck'; c.poseT = 0; }
+        if (c.pose === 'peck' && c.poseT > 0.45) c.pose = 'idle';
+        if (c.pose === 'idle' && Math.random() < dt * 0.2) {
+          c.pose = 'hop'; c.poseT = 0;
+          c.hx = c.x; c.hy = c.y;
+          c.tx = c.x + (Math.random() - 0.5) * 16;
+          c.ty = c.y + (Math.random() - 0.5) * 10;
+        }
+        if (c.pose === 'hop') {
+          const u = clamp(c.poseT / 0.2, 0, 1);
+          c.x = lerp(c.hx, c.tx, easeOut(u));
+          c.y = lerp(c.hy, c.ty, easeOut(u));
+          c.z = Math.sin(u * Math.PI) * 5;
+          if (u >= 1) { c.pose = 'idle'; c.z = 0; }
+        }
+        if ((c.kind === 'cardinal' || c.kind === 'jay') && Math.random() < dt * 0.04) sfx('chirp', 0.4, c.kind);
+        break;
+      case 'chicken':
+        if (c.pose !== 'peck' && Math.random() < dt * 0.45) { c.pose = 'peck'; c.poseT = 0; }
+        if (c.pose === 'peck' && c.poseT > 0.5 + Math.random() * 0.4) {
+          c.pose = 'walk'; c.poseT = 0;
+          c.vx = (Math.random() < 0.5 ? -1 : 1) * 16;
+          c.facing = c.vx >= 0 ? 1 : -1;
+        }
+        if (c.pose === 'walk') {
+          c.x += c.vx * dt; c.y += Math.sin(c.phase * 6) * 4 * dt;
+          if (c.poseT > 0.8) { c.pose = 'idle'; c.vx = 0; }
+        }
+        break;
+      case 'hound':
+        if (c.pose === 'sleep') { c.z = 0; }
+        else if (c.pose === 'liftHead' && c.poseT > 0.5) c.pose = 'watch';
+        else if (c.pose === 'watch' && d > (c.noticeR || 64) + 20) { c.pose = 'sleep'; c.state = 'idle'; }
+        break;
+      case 'cat':
+        c.tail = Math.sin(c.phase * 1.6) * 0.4;
+        if (c.pose === 'watch' && d > 80) c.pose = 'sit';
+        break;
+      case 'rabbit':
+        if (c.pose !== 'hop' && Math.random() < dt * 0.2) {
+          c.pose = 'hop'; c.poseT = 0; c.hx = c.x; c.hy = c.y;
+          c.tx = c.x + (Math.random() - 0.5) * 22; c.ty = c.y + (Math.random() - 0.5) * 16;
+          c.facing = c.tx >= c.x ? 1 : -1;
+        }
+        if (c.pose === 'hop') {
+          const u = clamp(c.poseT / 0.28, 0, 1);
+          c.x = lerp(c.hx, c.tx, easeOut(u));
+          c.y = lerp(c.hy, c.ty, easeOut(u));
+          c.z = Math.sin(u * Math.PI) * 7;
+          if (u >= 1) { c.pose = 'idle'; c.z = 0; }
+        }
+        break;
+      case 'squirrel':
+        if (Math.random() < dt * 0.3 && c.pose !== 'scurry') {
+          c.pose = 'scurry'; c.poseT = 0;
+          c.vx = (Math.random() < 0.5 ? -1 : 1) * 55;
+          c.facing = c.vx >= 0 ? 1 : -1;
+        }
+        if (c.pose === 'scurry') {
+          c.x += c.vx * dt;
+          if (c.poseT > 0.35) { c.pose = 'idle'; c.vx = 0; }
+        }
+        break;
+      case 'deer':
+        c.z = 0;
+        if (c.pose === 'graze' && c.poseT > 2.1 + (c.seed || 0) * 1.4) { c.pose = 'idle'; c.poseT = 0; }
+        else if ((c.pose === 'idle' || !c.pose) && c.poseT > 1.5 + (c.seed || 0)) { c.pose = 'graze'; c.poseT = 0; }
+        break;
+      case 'armadillo':
+        c.x += (c.vx || c.facing * 18) * dt;
+        c.y += Math.sin(c.phase * 2) * 2 * dt;
+        c.waddle = Math.sin(c.phase * 8);
+        if (Math.abs(c.x - c.homeX) > 160) { c.facing *= -1; c.vx = c.facing * 18; }
+        break;
+      case 'possum':
+        c.x += (c.vx || c.facing * 20) * dt;
+        if (Math.abs(c.x - c.homeX) > 140) { c.facing *= -1; c.vx = c.facing * 20; }
+        break;
+      case 'heron':
+        if (Math.random() < dt * 0.08) c.pose = c.pose === 'stand' ? 'tuck' : 'stand';
+        break;
+      case 'vulture':
+        c.orbit += dt * 0.28;
+        c.x = c.homeX + Math.cos(c.orbit) * (c.orbitR || 80);
+        c.y = c.homeY + Math.sin(c.orbit) * (c.orbitR || 80) * 0.45;
+        c.z = 100 + Math.sin(c.orbit * 2) * 8;
+        c.facing = Math.cos(c.orbit) >= 0 ? 1 : -1;
+        c.bank = Math.sin(c.orbit) * 0.35;
+        break;
+      case 'bat':
+        c.orbit += dt * (1.6 + c.seed);
+        c.x += Math.cos(c.orbit) * 28 * dt;
+        c.y += Math.sin(c.orbit * 1.3) * 16 * dt;
+        c.z = 52 + Math.sin(c.orbit * 0.7) * 10;
+        /* never descend toward Lara */
+        if (c.z < 40) c.z = 40;
+        c.wing = Math.sin(c.phase * 22);
+        break;
+      case 'firefly': {
+        c.x += Math.sin(c.phase * 0.7 + c.seed * 8) * 10 * dt;
+        c.y += Math.cos(c.phase * 0.5 + c.seed * 5) * 8 * dt;
+        const pulse = fireflyOn(c, game);
+        c.on = pulse;
+        break;
+      }
+      case 'moth': {
+        /* follow Lara's lantern at night, plus any nearby building light */
+        const lx = h.x + Math.cos(c.orbit || 0) * (16 + (c.seed % 1) * 10);
+        const ly = h.y - 18 + Math.sin((c.orbit || 0) * 1.3) * 8;
+        c.orbit = (c.orbit || 0) + dt * (1.4 + c.seed);
+        c.x = lerp(c.x, lx, 1 - Math.pow(0.08, dt));
+        c.y = lerp(c.y, ly, 1 - Math.pow(0.08, dt));
+        c.z = 16 + Math.sin(c.phase * 3) * 3;
+        break;
+      }
+      case 'butterfly':
+        c.x += Math.sin(c.phase * 1.1 + c.seed * 6) * 18 * dt;
+        c.y += Math.cos(c.phase * 0.8 + c.seed) * 12 * dt;
+        c.z = 10 + Math.sin(c.phase * 2) * 3;
+        c.wing = 0.5 + 0.5 * Math.sin(c.phase * 14);
+        break;
+      case 'dragonfly':
+        if (c.pose !== 'dart' && Math.random() < dt * 0.35) {
+          c.pose = 'dart'; c.poseT = 0;
+          c.tx = c.x + (Math.random() - 0.5) * 36;
+          c.ty = c.y + (Math.random() - 0.5) * 24;
+          c.hx = c.x; c.hy = c.y;
+        }
+        if (c.pose === 'dart') {
+          const u = clamp(c.poseT / 0.22, 0, 1);
+          c.x = lerp(c.hx, c.tx, easeOut(u));
+          c.y = lerp(c.hy, c.ty, easeOut(u));
+          if (u >= 1) c.pose = 'hover';
+        }
+        c.z = 12 + Math.sin(c.phase * 2) * 2;
+        c.wing = Math.sin(c.phase * 40);
+        break;
+      case 'strider':
+        if (Math.random() < dt * 0.4) {
+          c.x += (Math.random() - 0.5) * 10;
+          c.y += (Math.random() - 0.5) * 8;
+        }
+        break;
+      case 'ripple':
+        if (c.poseT > 1.8 + c.seed * 1.5) { c.poseT = 0; c.ripple = 0; }
+        c.ripple = c.poseT;
+        break;
+      case 'box_turtle':
+        if (c.pose !== 'tuck' && Math.random() < dt * 0.05) { c.facing *= -1; }
+        break;
+      case 'whip':
+        /* mostly unseen; a silhouette sitting by a path until dusk stirs it */
+        break;
+    }
+  }
+
+  function tickReact(c, game, dt, d) {
+    if (c.kind === 'armadillo' && c.pose === 'hop') {
+      c.hopT += dt;
+      const t = c.hopT;
+      /* squash, then a straight-up hop, a hang, then down, then scurry */
+      if (t < 0.08) { c.z = 0; c.squash = 1 - t / 0.08 * 0.28; }
+      else if (t < 0.28) { const u = (t - 0.08) / 0.2; c.z = easeOut(u) * 34; c.squash = 0.75 + u * 0.4; }
+      else if (t < 0.36) { c.z = 34; c.squash = 1.05; }
+      else if (t < 0.52) { const u = (t - 0.36) / 0.16; c.z = 34 * (1 - easeIn(u)); c.squash = 1.05 - u * 0.2; }
+      else {
+        c.z = 0; c.squash = 1;
+        c.pose = 'scurry';
+        c.vx = (c.x < heroPos(game).x ? -1 : 1) * 70;
+        c.facing = c.vx >= 0 ? 1 : -1;
+        c.st = 0;
+      }
+      return;
+    }
+    if (c.kind === 'armadillo' && c.pose === 'scurry') {
+      c.x += c.vx * dt;
+      c.waddle = Math.sin(c.phase * 16);
+      if (c.st > 1.2) { c.state = 'idle'; c.pose = 'walk'; c.vx = c.facing * 18; c.homeX = c.x; }
+      return;
+    }
+    if (c.kind === 'possum' && c.pose === 'freeze') {
+      c.freezeT = (c.freezeT || 0) + dt;
+      if (c.freezeT > 0.8) {
+        c.pose = 'bolt';
+        c.vx = (c.x < heroPos(game).x ? -1 : 1) * 80;
+        c.facing = c.vx >= 0 ? 1 : -1;
+      }
+      return;
+    }
+    if (c.kind === 'possum' && c.pose === 'bolt') {
+      c.x += c.vx * dt;
+      if (c.st > 1.4) { c.state = 'idle'; c.pose = 'walk'; c.vx = c.facing * 20; c.homeX = c.x; }
+      return;
+    }
+    if (c.kind === 'box_turtle' && c.pose === 'tuck') {
+      if (d > (c.noticeR || 42) + 30 && c.st > 1.6) { c.pose = 'idle'; c.state = 'idle'; }
+      return;
+    }
+    if (c.kind === 'hound') {
+      if (c.pose === 'liftHead' && c.st > 0.4) c.pose = 'watch';
+      if (d > (c.noticeR || 64) + 30 && c.st > 1.2) { c.pose = 'sleep'; c.state = 'idle'; }
+      return;
+    }
+    if (c.kind === 'cat') {
+      if (d > 90 && c.st > 1) { c.pose = 'sit'; c.state = 'idle'; }
+      return;
+    }
+    if (c.kind === 'turtle' && c.pose === 'slide') {
+      c.x += (c.vx || 10) * dt;
+      c.y += (c.vy || 8) * dt;
+      c.z = Math.max(0, 4 - c.st * 8);
+      if (c.st > 0.7) { c.hidden = true; c.state = 'hide'; }
+      return;
+    }
+    if (c.kind === 'deer' && c.pose === 'bound') {
+      const u = (c.st % 0.42) / 0.42;
+      c.x += c.vx * dt; c.y += c.vy * dt;
+      c.z = Math.sin(u * Math.PI) * 26;
+      c.boundN = (c.boundN || 0);
+      if (u < dt / 0.42) c.boundN++;
+      if (c.boundN >= 3 || c.st > 1.5) { c.hidden = true; c.state = 'hide'; c.z = 0; }
+      return;
+    }
+    if (c.kind === 'squirrel' && c.pose === 'climb') {
+      c.z += 50 * dt;
+      if (c.st > 0.55) { c.hidden = true; c.state = 'hide'; }
+      return;
+    }
+    if (c.pose === 'flush' || c.pose === 'lift' || c.pose === 'fly' || c.pose === 'bolt') {
+      if (c.state === 'return') {
+        const dx = (c.tx || c.homeX) - c.x, dy = (c.ty || c.homeY) - c.y;
+        const len = Math.hypot(dx, dy) || 1;
+        c.vx = dx / len * 80; c.vy = dy / len * 80;
+        c.x += c.vx * dt; c.y += c.vy * dt;
+        c.z = lerp(c.z, 18, 1 - Math.pow(0.1, dt));
+        c.wing = 0.5 + 0.5 * Math.sin(c.phase * 16);
+        if (len < 8) {
+          c.z = lerp(c.z, 0, 0.2);
+          if (c.z < 2) { c.z = 0; c.state = 'idle'; c.pose = 'idle'; c.x = c.tx; c.y = c.ty; c.homeX = c.x; c.homeY = c.y; }
+        }
+        return;
+      }
+      c.x += (c.vx || 0) * dt;
+      c.y += (c.vy || 0) * dt;
+      if (c.pose === 'lift') {
+        c.z += (c.vz || 20) * dt;
+        c.vz = (c.vz || 20) + 8 * dt;
+        c.wing = 0.5 + 0.5 * Math.sin(c.phase * 6);
+        if (c.st > 2.2) { c.hidden = true; c.state = 'hide'; }
+      } else if (c.pose === 'bolt') {
+        c.z = Math.sin(clamp(c.st / 0.6, 0, 1) * Math.PI) * 5;
+        if (c.st > 0.9) { c.state = 'idle'; c.pose = 'idle'; c.z = 0; c.homeX = c.x; c.homeY = c.y; }
+      } else {
+        c.z += (c.vz || 40) * dt;
+        c.vz = (c.vz || 40) - 28 * dt;
+        c.wing = 0.5 + 0.5 * Math.sin(c.phase * 18);
+        if (c.st > 1.1) landBird(c, game);
+      }
+    }
+  }
+
+  /* fireflies: slow on/off pulses; groups 0 and 1 blink in sync, -1 is independent */
+  function fireflyOn(c, game) {
+    const t = (game && game.state && game.state.playTime) || c.phase;
+    const period = 2.15;
+    let phase;
+    if (c.sync === 0) phase = (t % period) / period;
+    else if (c.sync === 1) phase = ((t + period * 0.5) % period) / period;
+    else phase = ((t + c.seed * period) % period) / period;
+    /* on for ~0.7s of the cycle, with a soft attack/release */
+    return phase < 0.34;
+  }
+  Life.fireflyOn = fireflyOn;
+
+  function isPaused(game) {
+    if (!game) return true;
+    const m = game.mode;
+    return m !== 'play' && m !== 'preview';
+  }
+
+  Life.tick = function (game, dt) {
+    if (!game) return;
+    Life._game = game;
+    Life._paused = isPaused(game);
+    if (Life._paused) return;
+    if (!game.area) return;
+    const part = partNow(game);
+    if (game.area.id !== Life._areaId) rebuild(game, false);
+    else if (part !== Life._part) {
+      Life._part = part;
+      /* fade kinds in/out; spawn missing night/day signatures without reshuffling everything */
+      const have = {};
+      Life.list.forEach((c) => { have[c.kind] = (have[c.kind] || 0) + 1; });
+      const r = rng('life-add:' + game.area.id + ':' + part);
+      const focus = heroPos(game);
+      planFor(game, part).forEach((kind) => {
+        const unique = { hound: 1, heron: 1, cat: 1, box_turtle: 1, armadillo: 1, possum: 1, whip: 1, deer: 2 };
+        if (unique[kind] && (have[kind] || 0) >= unique[kind]) return;
+        if (!kindOk(kind, part, game.area.biome, game.area.id)) return;
+        if (have[kind] && !unique[kind] && have[kind] >= 2) return;
+        if (Life.list.length >= cap()) return;
+        if (!Life._sites) Life._sites = gatherSites(game.area);
+        const c = placeKind(game, kind, r, Life._sites, focus);
+        if (c) { c.alpha = 0; Life.list.push(c); have[kind] = (have[kind] || 0) + 1; }
+      });
+    }
+    if (game.cam) {
+      Life._view.x = game.cam.x;
+      Life._view.y = game.cam.y;
+      Life._viewSet = true;
+    }
+    if (game.w && game.h) {
+      const zoom = game.camZoom || 1;
+      Life._view.w = (game.w || 400) / zoom;
+      Life._view.h = (game.h || 700) / zoom;
+    }
+    Life._t += dt;
+    Life.list.forEach((c) => tickOne(c, game, dt));
+    /* respawn hidden animals after a short rest so the area never feels emptied */
+    Life.list.forEach((c) => {
+      if (c.state === 'hide' && c.st > 3.5 && !c.partHide) {
+        c.hidden = false; c.alpha = 0; c.state = 'idle'; c.pose = 'idle'; c.z = 0; c.st = 0;
+        if (c.kind === 'turtle') { c.x = c.homeX; c.y = c.homeY; c.pose = 'log'; }
+        if (c.kind === 'deer') { c.x = c.homeX; c.y = c.homeY; c.pose = 'graze'; }
+        if (c.kind === 'squirrel') { c.x = c.homeX; c.y = c.homeY; }
+      }
+    });
+    tickSounds(game, dt);
+  };
+
+  /* ——— sounds: quiet, spaced, Wildlife bus, respect mute + master ——— */
+  function ensureLifeBus() {
+    const A = HV.Audio;
+    if (!A) return null;
+    A.lifeVol = A.lifeVol != null ? A.lifeVol : 0.7;
+    if (typeof A.setLifeVolume !== 'function') {
+      A.setLifeVolume = function (v) {
+        this.lifeVol = clamp(v, 0, 1);
+        if (this.life && this.ctx) {
+          const t = this.ctx.currentTime;
+          try {
+            this.life.gain.cancelScheduledValues(t);
+            this.life.gain.setValueAtTime(this.life.gain.value, t);
+            this.life.gain.linearRampToValueAtTime((this.muted ? 0 : 1) * this.lifeVol, t + 0.05);
+          } catch (e) { this.life.gain.value = (this.muted ? 0 : 1) * this.lifeVol; }
+        }
+        if (HV.Sound47 && HV.Sound47.save) HV.Sound47.save();
+        return this.lifeVol;
+      };
+    }
+    if (!A.ctx) { try { A.init && A.init(); } catch (e) { /* no AudioContext in tests */ } }
+    if (!A.ctx) return null;
+    if (!A.life) {
+      A.life = A.ctx.createGain();
+      A.life.gain.value = (A.muted ? 0 : 1) * A.lifeVol;
+      A.life.connect(A.master || A.ctx.destination);
+    }
+    return A.life;
+  }
+  Life.ensureLifeBus = ensureLifeBus;
+
+  function canPlay() {
+    const A = HV.Audio;
+    if (!A || A.muted) return false;
+    if (A._hidden) return false;
+    if (Life._paused) return false;
+    ensureLifeBus();
+    return !!(A.ctx && A.life);
+  }
+
+  function sfx(kind, urgency, tag) {
+    if (!canPlay()) return false;
+    const A = HV.Audio;
+    const now = (A.ctx && A.ctx.currentTime) || 0;
+    const tWorld = Life._t;
+    /* global spacing so calls never stack into noise or fight voice blips */
+    const minGap = kind === 'flutter' || kind === 'hop' || kind === 'plop' || kind === 'thump' ? 0.45 : 1.6;
+    if (tWorld < (Life._sndAt || 0) + minGap && kind !== 'hop') return false;
+    const key = tag || kind;
+    const kindGap = kind === 'chirp' ? 3.5 : (kind === 'whip' ? 16 : (kind === 'peeper' ? 2.2 : (kind === 'cicada' ? 10 : (kind === 'katydid' ? 6 : 1.2))));
+    if (tWorld < (Life._sndKindAt[key] || 0) + kindGap) return false;
+    if (HV.Sound47 && HV.Sound47.voiceOk && !HV.Sound47.voiceOk(now)) return false;
+    const dest = A.life;
+    const g0 = 0.028 * (urgency == null ? 1 : urgency) * (A.lifeVol == null ? 0.7 : A.lifeVol);
+    try {
+      playKind(A, now, dest, kind, g0);
+    } catch (e) { return false; }
+    Life._sndAt = tWorld;
+    Life._sndKindAt[key] = tWorld;
+    return true;
+  }
+  Life.sfx = sfx;
+
+  function toneTo(A, dest, t, dur, type, f0, f1, gain, attack) {
+    const o = A.ctx.createOscillator();
+    const g = A.ctx.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(f0, t);
+    if (f1) {
+      try { o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur); }
+      catch (e) { o.frequency.linearRampToValueAtTime(f1, t + dur); }
+    }
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(gain, t + (attack || Math.min(0.02, dur * 0.2)));
+    try { g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
+    catch (e) { g.gain.linearRampToValueAtTime(0, t + dur); }
+    o.connect(g); g.connect(dest);
+    o.start(t); o.stop(t + dur + 0.04);
+  }
+  function noiseTo(A, dest, t, dur, gain, type, f0, q, attack) {
+    if (!A._bufPink && !A._bufWhite && !A._bufBrown) return;
+    const src = A.ctx.createBufferSource();
+    src.buffer = A._bufPink || A._bufWhite || A._bufBrown;
+    const f = A.ctx.createBiquadFilter();
+    f.type = type || 'bandpass';
+    f.frequency.value = f0 || 1200;
+    f.Q.value = q || 1;
+    const g = A.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(gain, t + (attack || 0.01));
+    try { g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
+    catch (e) { g.gain.linearRampToValueAtTime(0, t + dur); }
+    src.connect(f); f.connect(g); g.connect(dest);
+    try { src.start(t, Math.random() * 0.2); } catch (e) { src.start(t); }
+    src.stop(t + dur + 0.04);
+  }
+
+  function playKind(A, t, dest, kind, g0) {
+    if (kind === 'chirp') {
+      const base = 2400 + Math.random() * 1200;
+      toneTo(A, dest, t, 0.08, 'sine', base, base * 0.78, g0 * 0.9);
+      toneTo(A, dest, t + 0.1, 0.07, 'sine', base * 1.12, base * 0.85, g0 * 0.7);
+    } else if (kind === 'flutter') {
+      noiseTo(A, dest, t, 0.16, g0 * 0.7, 'bandpass', 1800, 1.1, 0.01);
+      noiseTo(A, dest, t + 0.07, 0.12, g0 * 0.45, 'bandpass', 1400, 1, 0.01);
+    } else if (kind === 'whip') {
+      /* whip-poor-will: three falling notes, the Ozarks dusk call */
+      toneTo(A, dest, t, 0.1, 'sine', 980, 860, g0 * 1.1);
+      toneTo(A, dest, t + 0.14, 0.11, 'sine', 720, 640, g0 * 0.95);
+      toneTo(A, dest, t + 0.3, 0.18, 'sine', 1100, 900, g0 * 1.15);
+    } else if (kind === 'cicada') {
+      noiseTo(A, dest, t, 1.15, g0 * 0.55, 'bandpass', 4200, 4, 0.08);
+      toneTo(A, dest, t, 1.1, 'square', 3100, 3000, g0 * 0.22, 0.08);
+    } else if (kind === 'peeper') {
+      const n = 2 + (Math.random() * 3) | 0;
+      for (let i = 0; i < n; i++) toneTo(A, dest, t + i * 0.14, 0.05, 'sine', 3400 + Math.random() * 600, 3000, g0 * 0.55);
+    } else if (kind === 'katydid') {
+      toneTo(A, dest, t, 0.05, 'square', 3400, 3000, g0 * 0.4);
+      toneTo(A, dest, t + 0.09, 0.05, 'square', 3000, 2600, g0 * 0.32);
+    } else if (kind === 'cluck') {
+      toneTo(A, dest, t, 0.08, 'triangle', 720, 500, g0 * 0.7);
+      toneTo(A, dest, t + 0.1, 0.07, 'triangle', 640, 480, g0 * 0.5);
+    } else if (kind === 'thump') {
+      toneTo(A, dest, t, 0.07, 'sine', 90, 60, g0 * 0.8);
+      toneTo(A, dest, t + 0.16, 0.07, 'sine', 80, 55, g0 * 0.65);
+    } else if (kind === 'hop') {
+      noiseTo(A, dest, t, 0.08, g0 * 0.5, 'bandpass', 700, 1, 0.005);
+      toneTo(A, dest, t, 0.06, 'sine', 180, 90, g0 * 0.4);
+    } else if (kind === 'plop') {
+      toneTo(A, dest, t, 0.1, 'sine', 240, 90, g0 * 0.7);
+      noiseTo(A, dest, t, 0.12, g0 * 0.4, 'lowpass', 800, 0.8, 0.01);
+    }
+  }
+
+  function tickSounds(game, dt) {
+    if (!canPlay()) return;
+    const part = partNow(game);
+    const biome = game.area && game.area.biome;
+    const id = game.area && game.area.id;
+    if ((part === 'dusk' || part === 'night') && biome !== 'cave' && biome !== 'town') {
+      if (Math.random() < dt * 0.04) sfx('whip', 0.85);
+    }
+    if (part === 'day' && (biome === 'woods' || biome === 'town' || GLADES[id] || biome === 'bluff')) {
+      if (Math.random() < dt * 0.03) sfx('cicada', 0.55);
+    }
+    if ((part === 'dusk' || part === 'night') && (biome === 'bottoms' || biome === 'river' || WATERISH[id])) {
+      if (Math.random() < dt * 0.08) sfx('peeper', 0.5);
+    }
+    if (part === 'night' && (biome === 'woods' || biome === 'bottoms' || biome === 'bluff')) {
+      if (Math.random() < dt * 0.05) sfx('katydid', 0.4);
+    }
+  }
+
+  /* hook persistence for lifeVol into Sound47 if present */
+  function hookLifePersist() {
+    const S = HV.Sound47, A = HV.Audio;
+    if (!S || !A) return;
+    const _load = S.load, _save = S.save;
+    if (_load && !_load._life) {
+      S.load = function () {
+        const j = _load.apply(this, arguments);
+        try {
+          const ls = (typeof localStorage !== 'undefined') ? localStorage : null;
+          const raw = ls && ls.getItem(S.KEY);
+          const o = raw ? JSON.parse(raw) : j;
+          if (o && typeof o.life === 'number') A.lifeVol = clamp(o.life, 0, 1);
+        } catch (e) { /* ignore */ }
+        ensureLifeBus();
+        if (A.life && A.ctx) A.life.gain.value = (A.muted ? 0 : 1) * (A.lifeVol == null ? 0.7 : A.lifeVol);
+        return j;
+      };
+      S.load._life = true;
+    }
+    if (_save && !_save._life) {
+      S.save = function () {
+        _save.apply(this, arguments);
+        try {
+          const ls = (typeof localStorage !== 'undefined') ? localStorage : null;
+          if (!ls) return;
+          const o = JSON.parse(ls.getItem(S.KEY) || '{}');
+          o.life = A.lifeVol == null ? 0.7 : A.lifeVol;
+          ls.setItem(S.KEY, JSON.stringify(o));
+        } catch (e) { /* ignore */ }
+      };
+      S.save._life = true;
+    }
+  }
+
+  /* ——— drawing: clean woodcut solids, ink outlines, no hatching ——— */
+  function partTint(game) { return partNow(game); }
+
+  function drawGround(c, ctx, game, camX, camY) {
+    if (c.alpha < 0.04 || c.hidden) return;
+    if (c.kind === 'vulture' || c.kind === 'bat' || c.kind === 'moth' || c.kind === 'firefly' || c.kind === 'whip' && c.z > 8) return;
+    if (!inView(c, 40)) return;
+    ctx.save();
+    ctx.globalAlpha = c.alpha;
+    ctx.translate(c.x - camX, c.y - camY);
+    drawKind(c, ctx, game, false);
+    ctx.restore();
+  }
+
+  function drawAir(c, ctx, game, camX, camY) {
+    if (c.alpha < 0.04 || c.hidden) return;
+    const air = c.kind === 'vulture' || c.kind === 'bat' || c.kind === 'moth' || c.kind === 'firefly'
+      || c.pose === 'flush' || c.pose === 'fly' || c.pose === 'lift' || c.kind === 'whip' && c.z > 4
+      || c.kind === 'butterfly' || c.kind === 'dragonfly';
+    if (!air && c.z < 6) return;
+    if (!inView(c, 60)) return;
+    ctx.save();
+    ctx.globalAlpha = c.alpha;
+    ctx.translate(c.x - camX, c.y - camY);
+    drawKind(c, ctx, game, true);
+    ctx.restore();
+  }
+
+  function drawKind(c, ctx, game, air) {
+    const part = partTint(game);
+    const pal = PAL();
+    const ink = pal.ink || '#1A1410';
+    /* ground shadow underfoot, not up in the air with the body */
+    if (c.z >= 0 && c.kind !== 'ripple' && c.kind !== 'strider' && c.kind !== 'firefly') {
+      const k = 1 / (1 + c.z * 0.04);
+      shadow(ctx, 0, 0, (c.kind === 'deer' ? 14 : c.kind === 'heron' || c.kind === 'hound' ? 10 : 6) * k, (c.kind === 'deer' ? 3.2 : 2.4) * k, 0.16 * k);
+    }
+    ctx.save();
+    ctx.translate(0, -c.z);
+    const SC = {
+      armadillo: 1.9, deer: 2.15, heron: 1.95, hound: 2.0, chicken: 1.6, cat: 1.55,
+      possum: 1.7, cardinal: 1.55, jay: 1.55, sparrow: 1.45, crow: 1.55, whip: 1.5,
+      turtle: 1.6, box_turtle: 1.6, rabbit: 1.5, squirrel: 1.5, butterfly: 1.4,
+      dragonfly: 1.35, bat: 1.4, vulture: 1.55, moth: 1.3, firefly: 1.25, strider: 1.3
+    };
+    const sc = SC[c.kind] || 1.4;
+    ctx.scale(sc, sc);
+    switch (c.kind) {
+      case 'cardinal': drawBird(ctx, c, part, ink, 'cardinal'); break;
+      case 'jay': drawBird(ctx, c, part, ink, 'jay'); break;
+      case 'sparrow': drawBird(ctx, c, part, ink, 'sparrow'); break;
+      case 'crow': drawBird(ctx, c, part, ink, 'crow'); break;
+      case 'whip': drawBird(ctx, c, part, ink, 'whip'); break;
+      case 'vulture': drawVulture(ctx, c, part, ink); break;
+      case 'heron': drawHeron(ctx, c, part, ink); break;
+      case 'turtle': drawTurtle(ctx, c, part, ink, false); break;
+      case 'box_turtle': drawTurtle(ctx, c, part, ink, true); break;
+      case 'strider': drawStrider(ctx, c, part, ink); break;
+      case 'ripple': drawRipple(ctx, c, part, ink); break;
+      case 'armadillo': drawArmadillo(ctx, c, part, ink); break;
+      case 'possum': drawPossum(ctx, c, part, ink); break;
+      case 'deer': drawDeer(ctx, c, part, ink); break;
+      case 'hound': drawHound(ctx, c, part, ink); break;
+      case 'chicken': drawChicken(ctx, c, part, ink); break;
+      case 'cat': drawCat(ctx, c, part, ink); break;
+      case 'rabbit': drawRabbit(ctx, c, part, ink); break;
+      case 'squirrel': drawSquirrel(ctx, c, part, ink); break;
+      case 'firefly': drawFirefly(ctx, c, part, ink, game); break;
+      case 'moth': drawMoth(ctx, c, part, ink); break;
+      case 'bat': drawBat(ctx, c, part, ink); break;
+      case 'butterfly': drawButterfly(ctx, c, part, ink); break;
+      case 'dragonfly': drawDragonfly(ctx, c, part, ink); break;
+    }
+    ctx.restore();
+  }
+
+  function drawBird(ctx, c, part, ink, typ) {
+    const flying = c.pose === 'flush' || c.pose === 'fly' || (c.z > 5 && typ !== 'crow' && c.pose !== 'hop');
+    const peck = c.pose === 'peck';
+    ctx.save();
+    ctx.scale(c.facing || 1, 1);
+    const cols = {
+      cardinal: { body: '#8A2A1E', wing: '#6A1C14', breast: '#9A3224', crest: '#8A2A1E', beak: '#C45C26', mask: '#1A1410' },
+      jay: { body: '#3D5A7A', wing: '#2A3A52', breast: '#F4E8D0', crest: '#3D5A7A', beak: '#1A1410', mask: '#1A1410' },
+      sparrow: { body: '#5A4030', wing: '#3A2C20', breast: '#C8B898', crest: null, beak: '#4A3728', mask: null },
+      crow: { body: '#1A1410', wing: '#2A2420', breast: '#221C18', crest: null, beak: '#1A1410', mask: null },
+      whip: { body: '#4A3A28', wing: '#3A2C20', breast: '#6A5238', crest: null, beak: '#3A2C20', mask: null },
+    }[typ];
+    const body = tint(cols.body, part), wing = tint(cols.wing, part), breast = tint(cols.breast, part), beak = tint(cols.beak, part);
+    const headY = peck ? 1.5 : -3.2;
+    const headX = peck ? 4.2 : 3.4;
+    /* body */
+    inkFill(ctx, () => { ctx.ellipse(0, 0, typ === 'crow' ? 5.4 : 4.6, typ === 'crow' ? 3.4 : 2.9, -0.25, 0, Math.PI * 2); }, body, ink, 1.05);
+    inkFill(ctx, () => { ctx.ellipse(0.6, 0.6, 3.2, 2.1, -0.2, 0, Math.PI * 2); }, breast, ink, 0.7);
+    /* tail */
+    inkFill(ctx, () => {
+      ctx.moveTo(-3.8, -0.4); ctx.lineTo(-8.2, -1.6); ctx.lineTo(-7.6, 1.4); ctx.closePath();
+    }, typ === 'jay' ? tint('#2A3A52', part) : body, ink, 1);
+    /* wing */
+    const flap = flying ? Math.sin((c.phase || 0) * 18) * 5.5 : 0;
+    ctx.save();
+    ctx.translate(-0.4, -0.6);
+    if (flying) ctx.rotate(-0.4 + flap * 0.12);
+    inkFill(ctx, () => { ctx.ellipse(0, flying ? -flap * 0.15 : 0.4, flying ? 5.2 : 3.6, flying ? 1.6 : 2.2, flying ? -0.2 : 0.35, 0, Math.PI * 2); }, wing, ink, 1);
+    if (typ === 'jay' && !flying) {
+      ctx.fillStyle = tint('#F4E8D0', part);
+      ctx.fillRect(-1.2, 0.2, 2.4, 0.7);
+    }
+    ctx.restore();
+    /* head + crest */
+    const look = (c.look && c.state === 'notice') ? (c.look === (c.facing || 1) ? 0.6 : -0.5) : 0;
+    ctx.save();
+    ctx.translate(headX + look, headY);
+    if (peck) ctx.rotate(0.7);
+    inkFill(ctx, () => { ctx.arc(0, 0, typ === 'crow' ? 2.5 : 2.2, 0, Math.PI * 2); }, typ === 'cardinal' ? tint(cols.mask, part) : body, ink, 1);
+    if (typ === 'cardinal') {
+      inkFill(ctx, () => { ctx.arc(0.3, 0.2, 1.6, 0, Math.PI * 2); }, body, ink, 0.6);
+      inkFill(ctx, () => { ctx.moveTo(-0.2, -1.8); ctx.lineTo(0.4, -4.6); ctx.lineTo(1.4, -1.6); ctx.closePath(); }, tint(cols.crest, part), ink, 1);
+    }
+    if (typ === 'jay') {
+      inkFill(ctx, () => { ctx.moveTo(-0.2, -1.8); ctx.lineTo(0.2, -4.2); ctx.lineTo(1.6, -1.5); ctx.closePath(); }, tint(cols.crest, part), ink, 1);
+      ctx.fillStyle = tint('#F4E8D0', part);
+      ctx.beginPath(); ctx.arc(0.7, 0.15, 1.05, 0, Math.PI * 2); ctx.fill();
+    }
+    /* beak */
+    inkFill(ctx, () => { ctx.moveTo(1.7, -0.15); ctx.lineTo(4.1, 0.15); ctx.lineTo(1.7, 0.7); ctx.closePath(); }, beak, ink, 0.8);
+    /* eye — a tiny dark dot, never a glow */
+    ctx.fillStyle = ink;
+    ctx.beginPath(); ctx.arc(0.55, -0.35, 0.42, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    if (!flying) {
+      ctx.strokeStyle = ink; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-0.6, 2.4); ctx.lineTo(-1.1, 4.5); ctx.moveTo(1.1, 2.4); ctx.lineTo(1.6, 4.5); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawVulture(ctx, c, part, ink) {
+    ctx.save();
+    ctx.scale((c.facing || 1) * 0.95, 0.7);
+    ctx.rotate(c.bank || 0);
+    const body = tint('#2A2420', part), wing = tint('#3A332C', part), head = tint('#8A4A32', part);
+    const flap = Math.sin((c.phase || 0) * 1.2) * 0.08;
+    inkFill(ctx, () => { ctx.ellipse(0, 0, 4.2, 1.5, 0, 0, Math.PI * 2); }, body, ink, 1);
+    ctx.save(); ctx.rotate(-0.15 + flap);
+    inkFill(ctx, () => { ctx.moveTo(0, 0); ctx.quadraticCurveTo(-10, -6, -16, -1); ctx.quadraticCurveTo(-8, 1.5, 0, 0); }, wing, ink, 1);
+    ctx.restore();
+    ctx.save(); ctx.rotate(0.15 - flap);
+    inkFill(ctx, () => { ctx.moveTo(0, 0); ctx.quadraticCurveTo(10, -6, 16, -1); ctx.quadraticCurveTo(8, 1.5, 0, 0); }, wing, ink, 1);
+    ctx.restore();
+    inkFill(ctx, () => { ctx.arc(4.4, -0.2, 1.15, 0, Math.PI * 2); }, head, ink, 0.8);
+    inkFill(ctx, () => { ctx.moveTo(-3.5, 0); ctx.lineTo(-7.2, 1.2); ctx.lineTo(-3.8, 1.1); ctx.closePath(); }, body, ink, 0.8);
+    ctx.restore();
+  }
+
+  function drawHeron(ctx, c, part, ink) {
+    ctx.save();
+    ctx.scale(c.facing || 1, 1);
+    const slate = tint('#5B7C99', part), white = tint('#F8F1E3', part), leg = tint('#4A3728', part);
+    const lift = c.pose === 'lift';
+    const tuck = c.pose === 'tuck';
+    /* long legs */
+    if (!lift || c.z < 10) {
+      ctx.strokeStyle = ink; ctx.lineWidth = 1.15;
+      ctx.beginPath(); ctx.moveTo(-1.2, 2); ctx.lineTo(-2.2, 14); ctx.moveTo(1.4, 2); ctx.lineTo(2.2, 14); ctx.stroke();
+      ctx.strokeStyle = leg; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(-1.2, 2); ctx.lineTo(-2.2, 14); ctx.moveTo(1.4, 2); ctx.lineTo(2.2, 14); ctx.stroke();
+    }
+    inkFill(ctx, () => { ctx.ellipse(0, 0, 5.2, 2.6, -0.2, 0, Math.PI * 2); }, slate, ink, 1.1);
+    inkFill(ctx, () => { ctx.ellipse(1.4, 0.4, 3.2, 1.8, -0.15, 0, Math.PI * 2); }, white, ink, 0.7);
+    /* S-neck */
+    const neck = tuck ? -2 : (lift ? 6 : 4);
+    ctx.strokeStyle = ink; ctx.lineWidth = 2.2;
+    ctx.beginPath(); ctx.moveTo(3.6, -1); ctx.quadraticCurveTo(8, tuck ? 2 : -8, 5.5, -neck); ctx.stroke();
+    ctx.strokeStyle = slate; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(3.6, -1); ctx.quadraticCurveTo(8, tuck ? 2 : -8, 5.5, -neck); ctx.stroke();
+    inkFill(ctx, () => { ctx.arc(6.2, -neck - 1.2, 1.7, 0, Math.PI * 2); }, slate, ink, 1);
+    inkFill(ctx, () => { ctx.moveTo(7.6, -neck - 1.2); ctx.lineTo(11.2, -neck - 0.6); ctx.lineTo(7.6, -neck - 0.4); ctx.closePath(); }, tint('#E8C547', part), ink, 0.7);
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(6.6, -neck - 1.5, 0.35, 0, Math.PI * 2); ctx.fill();
+    if (lift) {
+      const flap = Math.sin((c.phase || 0) * 6) * 4;
+      inkFill(ctx, () => { ctx.ellipse(-1, -2 - flap * 0.3, 9, 2.2, -0.3, 0, Math.PI * 2); }, slate, ink, 1);
+    }
+    ctx.restore();
+  }
+
+  function drawTurtle(ctx, c, part, ink, box) {
+    const tucked = c.pose === 'tuck';
+    const slide = c.pose === 'slide';
+    ctx.save();
+    ctx.scale(c.facing || 1, 1);
+    const shell = tint(box ? '#3E6A52' : '#4A5A38', part);
+    const scute = tint(box ? '#2F4F3E' : '#3A4A32', part);
+    const skin = tint('#6A7A48', part);
+    /* log under a sunning turtle */
+    if (c.kind === 'turtle' && c.pose === 'log') {
+      inkFill(ctx, () => { ctx.ellipse(0, 5.2, 14, 2.6, 0, 0, Math.PI * 2); }, tint('#4A3728', part), ink, 1.1);
+    }
+    if (!tucked) {
+      inkFill(ctx, () => { ctx.ellipse(6.2, 1.4, 2.1, 1.5, 0.2, 0, Math.PI * 2); }, skin, ink, 0.9); /* head */
+      ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(7.1, 1.1, 0.3, 0, Math.PI * 2); ctx.fill();
+      inkFill(ctx, () => { ctx.ellipse(-1.5, 3.2, 1.4, 0.7, 0, 0, Math.PI * 2); }, skin, ink, 0.8);
+      inkFill(ctx, () => { ctx.ellipse(2.6, 3.2, 1.4, 0.7, 0, 0, Math.PI * 2); }, skin, ink, 0.8);
+    }
+    inkFill(ctx, () => { ctx.ellipse(0, 1.2, 6.2, 3.4, 0, 0, Math.PI * 2); }, shell, ink, 1.15);
+    /* two clean plate seams — form, not hatching */
+    ctx.strokeStyle = ink; ctx.lineWidth = 0.7; ctx.globalAlpha = (c.alpha || 1) * 0.7;
+    ctx.beginPath(); ctx.ellipse(0, 1.0, 3.4, 1.8, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, -1.8); ctx.lineTo(0, 4.2); ctx.stroke();
+    ctx.globalAlpha = c.alpha || 1;
+    if (box && tucked) {
+      /* head and legs gone; a tidy closed box */
+    }
+    if (slide) {
+      ctx.globalAlpha = (c.alpha || 1) * 0.5;
+      ctx.strokeStyle = tint('#5B7C99', part); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.ellipse(0, 8, 6 + c.st * 10, 1.4 + c.st, 0, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawStrider(ctx, c, part, ink) {
+    ctx.save();
+    ctx.strokeStyle = ink; ctx.lineWidth = 0.8;
+    const j = Math.sin((c.phase || 0) * 8) * 0.4;
+    ctx.beginPath();
+    ctx.moveTo(-5, 2 + j); ctx.lineTo(0, 0); ctx.lineTo(5, 2 - j);
+    ctx.moveTo(-4.2, -1.5); ctx.lineTo(0, 0); ctx.lineTo(4.2, -1.5);
+    ctx.stroke();
+    ctx.fillStyle = tint('#1A1410', part);
+    ctx.beginPath(); ctx.ellipse(0, 0, 1.5, 0.7, 0, 0, Math.PI * 2); ctx.fill();
+    /* dimple rings */
+    ctx.globalAlpha = (c.alpha || 1) * 0.35;
+    ctx.strokeStyle = tint('#5B7C99', part); ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.ellipse(-4, 2, 1.6, 0.5, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(4, 2, 1.6, 0.5, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawRipple(ctx, c, part, ink) {
+    const t = c.ripple || c.poseT || 0;
+    const u = (t % 1.8) / 1.8;
+    ctx.save();
+    ctx.globalAlpha = (c.alpha || 1) * (1 - u) * 0.55;
+    ctx.strokeStyle = tint('#5B7C99', part);
+    ctx.lineWidth = 1.1;
+    ctx.beginPath(); ctx.ellipse(0, 0, 4 + u * 16, 1.3 + u * 4.5, 0, 0, Math.PI * 2); ctx.stroke();
+    if (u < 0.6) {
+      ctx.globalAlpha = (c.alpha || 1) * (0.6 - u) * 0.7;
+      ctx.beginPath(); ctx.ellipse(0, 0, 2 + u * 8, 0.7 + u * 2.2, 0, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawArmadillo(ctx, c, part, ink) {
+    /* Standout: banded shell, pointed snout, long tapered tail, a comic little waddle,
+       and when startled a straight-up hop with tucked feet. */
+    ctx.save();
+    const hop = c.pose === 'hop';
+    const squash = c.squash || 1;
+    ctx.scale((c.facing || 1), hop ? squash : 1);
+    if (!hop) ctx.rotate((c.waddle || 0) * 0.16);
+    const shell = tint('#8A7A64', part);
+    const band = tint('#5A4E3E', part);
+    const belly = tint('#C8BCA8', part);
+    const skin = tint('#6A5A48', part);
+    /* tail */
+    inkFill(ctx, () => {
+      ctx.moveTo(-6, 1.2); ctx.quadraticCurveTo(-12, 2.4, -15.5, 3.6); ctx.quadraticCurveTo(-11, 3.4, -6, 2.4); ctx.closePath();
+    }, band, ink, 1);
+    /* body / shell */
+    inkFill(ctx, () => { ctx.ellipse(0.6, 0.2, 8.0, 3.7, 0, 0, Math.PI * 2); }, shell, ink, 1.2);
+    /* three clean armor bands — form, not hatching */
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(0.6, 0.2, 8.0, 3.7, 0, 0, Math.PI * 2); ctx.clip();
+    ctx.strokeStyle = band; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(-2.4, -4.2); ctx.quadraticCurveTo(-2.0, 0, -2.4, 4.2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0.6, -4.4); ctx.quadraticCurveTo(0.9, 0, 0.6, 4.3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(3.4, -4.0); ctx.quadraticCurveTo(3.7, 0, 3.4, 4.0); ctx.stroke();
+    ctx.strokeStyle = ink; ctx.lineWidth = 0.7;
+    ctx.beginPath(); ctx.moveTo(-2.4, -4.2); ctx.quadraticCurveTo(-2.0, 0, -2.4, 4.2);
+    ctx.moveTo(0.6, -4.4); ctx.quadraticCurveTo(0.9, 0, 0.6, 4.3);
+    ctx.moveTo(3.4, -4.0); ctx.quadraticCurveTo(3.7, 0, 3.4, 4.0); ctx.stroke();
+    ctx.restore();
+    /* belly hint */
+    inkFill(ctx, () => { ctx.ellipse(0.6, 2.4, 4.4, 1.3, 0, 0, Math.PI * 2); }, belly, ink, 0.6);
+    /* head and long snout */
+    const look = (c.state === 'notice') ? 0.35 : 0;
+    ctx.save(); ctx.translate(6.2, -0.4 + look);
+    inkFill(ctx, () => { ctx.ellipse(0, 0, 2.6, 2.2, 0.15, 0, Math.PI * 2); }, skin, ink, 1);
+    inkFill(ctx, () => { ctx.moveTo(2, 0.2); ctx.lineTo(6.2, 1.15); ctx.lineTo(2, 1.3); ctx.closePath(); }, skin, ink, 1);
+    /* ear */
+    inkFill(ctx, () => { ctx.ellipse(-0.6, -2.0, 1.05, 1.35, -0.4, 0, Math.PI * 2); }, skin, ink, 0.8);
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(0.7, -0.3, 0.38, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    /* legs: tucked on the hop, otherwise a short waddle stride */
+    const st = (c.waddle || 0);
+    if (hop && (c.hopT || 0) >= 0.08 && (c.hopT || 0) <= 0.5) {
+      /* feet hang on the hop, not tucked into a frying-pan disc */
+      inkFill(ctx, () => { ctx.ellipse(-2.8, 4.6, 1.05, 1.35, 0.15, 0, Math.PI * 2); }, skin, ink, 0.8);
+      inkFill(ctx, () => { ctx.ellipse(2.6, 4.7, 1.05, 1.35, -0.15, 0, Math.PI * 2); }, skin, ink, 0.8);
+    } else {
+      inkFill(ctx, () => { ctx.ellipse(-2.6, 4.0 + st * 0.5, 1.3, 1.15, 0, 0, Math.PI * 2); }, skin, ink, 0.8);
+      inkFill(ctx, () => { ctx.ellipse(2.8, 4.0 - st * 0.5, 1.3, 1.15, 0, 0, Math.PI * 2); }, skin, ink, 0.8);
+    }
+    ctx.restore();
+  }
+
+  function drawPossum(ctx, c, part, ink) {
+    ctx.save();
+    ctx.scale(c.facing || 1, 1);
+    const fur = tint('#C8BCA8', part), ear = tint('#C45C26', part), tail = tint('#B9A68C', part);
+    const freeze = c.pose === 'freeze';
+    inkFill(ctx, () => {
+      ctx.moveTo(-5, 1); ctx.quadraticCurveTo(-13, 3, -16, 4.5); ctx.quadraticCurveTo(-12, 5, -5, 2.4); ctx.closePath();
+    }, tail, ink, 1);
+    inkFill(ctx, () => { ctx.ellipse(0, 0, 6.4, 3.3, -0.1, 0, Math.PI * 2); }, fur, ink, 1.15);
+    inkFill(ctx, () => { ctx.ellipse(5.6, -0.6, 2.7, 2.3, 0.1, 0, Math.PI * 2); }, tint('#E8E0D4', part), ink, 1);
+    inkFill(ctx, () => { ctx.ellipse(5.0, -2.6, 1.2, 1.5, -0.2, 0, Math.PI * 2); }, ear, ink, 0.8);
+    inkFill(ctx, () => { ctx.ellipse(6.6, -2.3, 1.0, 1.3, 0.2, 0, Math.PI * 2); }, ear, ink, 0.8);
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(6.4, -0.7, 0.35, 0, Math.PI * 2); ctx.fill();
+    inkFill(ctx, () => { ctx.moveTo(7.8, 0); ctx.lineTo(10.4, 0.6); ctx.lineTo(7.8, 0.9); ctx.closePath(); }, tint('#F4E8D0', part), ink, 0.7);
+    if (!freeze) {
+      inkFill(ctx, () => { ctx.ellipse(-2.4, 3.3, 1.3, 1.1, 0, 0, Math.PI * 2); }, fur, ink, 0.8);
+      inkFill(ctx, () => { ctx.ellipse(2.6, 3.3, 1.3, 1.1, 0, 0, Math.PI * 2); }, fur, ink, 0.8);
+    }
+    ctx.restore();
+  }
+
+
+  function drawDeer(ctx, c, part, ink) {
+    /* White-tailed doe — slender barrel, long neck, tapered muzzle, jointed legs.
+       Brown coat only, never antlered, so she cannot be the Snawfus. */
+    ctx.save();
+    ctx.scale(c.facing || 1, 1);
+    const coat = tint('#6B4A2E', part);
+    const dark = tint('#3A2C20', part);
+    const cream = tint('#EDE3D0', part);
+    const inner = tint('#C8B898', part);
+    const look = c.pose === 'look' || c.state === 'notice';
+    const graze = c.pose === 'graze';
+    const bound = c.pose === 'bound';
+    const u = bound ? (((c.st || 0.21) % 0.42) / 0.42) : 0;
+    const kick = bound ? Math.sin(u * Math.PI) : 0;
+
+    function ribbon(pts, w, col, lw) {
+      if (pts.length < 2) return;
+      inkFill(ctx, () => {
+        const L = [], R = [];
+        for (let i = 0; i < pts.length; i++) {
+          const pt = pts[i];
+          const p0 = pts[Math.max(0, i - 1)];
+          const p1 = pts[Math.min(pts.length - 1, i + 1)];
+          const ang = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]);
+          const wi = w * (i === pts.length - 1 ? 0.5 : (i === 0 ? 1.05 : 0.85));
+          L.push([pt[0] + Math.cos(ang - Math.PI / 2) * wi, pt[1] + Math.sin(ang - Math.PI / 2) * wi]);
+          R.push([pt[0] + Math.cos(ang + Math.PI / 2) * wi, pt[1] + Math.sin(ang + Math.PI / 2) * wi]);
+        }
+        ctx.moveTo(L[0][0], L[0][1]);
+        for (let i = 1; i < L.length; i++) ctx.lineTo(L[i][0], L[i][1]);
+        for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i][0], R[i][1]);
+        ctx.closePath();
+      }, col, ink, lw == null ? 0.85 : lw);
+    }
+    function hoof(x, y) {
+      inkFill(ctx, () => {
+        ctx.moveTo(x - 1.05, y - 1.15);
+        ctx.lineTo(x + 1.05, y - 1.15);
+        ctx.lineTo(x + 0.65, y + 0.55);
+        ctx.lineTo(x - 0.65, y + 0.55);
+        ctx.closePath();
+      }, dark, ink, 0.75);
+    }
+
+    /* legs first, so the barrel sits over the hip and shoulder */
+    if (bound) {
+      const h = kick;
+      ribbon([[-7, 2.5], [-12 - h * 3, 6], [-17 - h * 4, 8.5], [-20 - h * 4, 11]], 1.05, dark, 0.8);
+      ribbon([[5, 2], [10 + h * 2.5, 3.5], [14 + h * 3.5, 5], [17 + h * 3, 7.5]], 1.0, dark, 0.8);
+      ribbon([[-5.5, 3], [-10 - h * 2.5, 8], [-14 - h * 3.5, 11.5], [-16 - h * 3, 15]], 1.2, dark, 0.85);
+      ribbon([[6.5, 3], [11 + h * 2.5, 6], [15 + h * 3, 9], [17 + h * 2.5, 12.5]], 1.15, dark, 0.85);
+      hoof(-20 - h * 4, 11.4);
+      hoof(17 + h * 3, 8.0);
+      hoof(-16 - h * 3, 15.4);
+      hoof(17 + h * 2.5, 12.9);
+    } else {
+      /* far legs, then near — hock and knee read as a jointed silhouette */
+      ribbon([[-8.2, 3.2], [-8.6, 8.2], [-10.6, 11.4], [-9.4, 16.0]], 1.05, dark, 0.8);
+      ribbon([[5.0, 3.0], [5.4, 8.6], [5.8, 12.4], [6.0, 16.0]], 0.95, dark, 0.8);
+      hoof(-9.4, 16.4); hoof(6.0, 16.4);
+      ribbon([[-6.0, 3.6], [-5.2, 8.6], [-7.2, 12.0], [-6.2, 16.0]], 1.2, dark, 0.85);
+      ribbon([[7.0, 3.4], [7.6, 8.8], [8.0, 12.6], [8.2, 16.0]], 1.1, dark, 0.85);
+      hoof(-6.2, 16.4); hoof(8.2, 16.4);
+    }
+
+    /* slender barrel — long back, shallow belly, not a round blob */
+    const pitch = bound ? -0.22 : 0;
+    ctx.save();
+    ctx.rotate(pitch);
+    inkFill(ctx, () => {
+      ctx.moveTo(-11.2, 2.0);
+      ctx.bezierCurveTo(-12.2, -1.6, -6.2, -3.6, 0.2, -3.3);
+      ctx.bezierCurveTo(5.4, -3.0, 8.4, -1.4, 9.6, 1.4);
+      ctx.bezierCurveTo(9.8, 4.6, 6.2, 6.8, 1.0, 7.0);
+      ctx.bezierCurveTo(-5.2, 7.2, -11.0, 5.6, -11.6, 3.0);
+      ctx.closePath();
+    }, coat, ink, 1.2);
+    /* white belly — fill only, so it does not fatten the outline */
+    ctx.fillStyle = cream;
+    ctx.beginPath();
+    ctx.ellipse(0.4, 5.4, 6.4, 1.55, -0.06, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* neck + head as one piece, so they never read as two heads */
+    ctx.save();
+    ctx.translate(8.0, 0.6);
+    if (bound) ctx.rotate(-0.42);
+    else if (graze) ctx.rotate(1.12);
+    else if (look) ctx.rotate(-0.30);
+    else ctx.rotate(-0.14);
+
+    inkFill(ctx, () => {
+      ctx.moveTo(-1.4, 2.0);
+      ctx.bezierCurveTo(1.6, 1.4, 4.4, -2.0, 6.6, -5.5);
+      ctx.lineTo(5.2, -7.0);
+      ctx.bezierCurveTo(2.8, -3.6, 0.0, -0.2, -2.2, -0.4);
+      ctx.closePath();
+    }, coat, ink, 1.05);
+    /* white throat patch */
+    ctx.fillStyle = cream;
+    ctx.beginPath();
+    ctx.ellipse(3.2, -1.4, 1.45, 3.0, 0.95, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* narrow tapered head with a muzzle, not a second circle */
+    inkFill(ctx, () => {
+      ctx.moveTo(5.0, -8.3);
+      ctx.bezierCurveTo(6.4, -9.3, 8.6, -8.6, 11.8, -6.7);
+      ctx.lineTo(13.4, -6.05);
+      ctx.lineTo(12.7, -4.85);
+      ctx.bezierCurveTo(10.2, -4.7, 7.4, -5.2, 5.2, -6.2);
+      ctx.closePath();
+    }, coat, ink, 1.0);
+    ctx.fillStyle = ink;
+    ctx.beginPath(); ctx.ellipse(13.0, -5.7, 0.7, 0.48, 0.2, 0, Math.PI * 2); ctx.fill();
+    /* big dark eye */
+    ctx.fillStyle = ink;
+    ctx.beginPath(); ctx.ellipse(8.15, -7.15, 1.08, 0.86, 0.18, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = inner;
+    ctx.beginPath(); ctx.ellipse(7.65, -7.4, 0.26, 0.2, 0, 0, Math.PI * 2); ctx.fill();
+
+    /* large cupped ears — broad, not rabbit-long */
+    const earTilt = graze ? 0.28 : (look ? -0.22 : -0.08);
+    ctx.save();
+    ctx.translate(5.8, -8.5);
+    ctx.rotate(earTilt);
+    inkFill(ctx, () => {
+      ctx.moveTo(-0.5, 0.5);
+      ctx.bezierCurveTo(-1.7, -1.1, -1.5, -4.2, 0.15, -5.3);
+      ctx.bezierCurveTo(1.35, -4.4, 1.15, -1.2, 0.5, 0.5);
+      ctx.closePath();
+    }, coat, ink, 0.9);
+    inkFill(ctx, () => {
+      ctx.moveTo(0.7, 0.3);
+      ctx.bezierCurveTo(0.15, -1.5, 0.95, -4.6, 2.15, -5.45);
+      ctx.bezierCurveTo(3.3, -4.4, 2.55, -1.1, 1.7, 0.45);
+      ctx.closePath();
+    }, coat, ink, 0.95);
+    ctx.fillStyle = inner;
+    ctx.beginPath();
+    ctx.moveTo(1.05, -0.15);
+    ctx.bezierCurveTo(0.65, -2.0, 1.35, -4.1, 2.0, -4.7);
+    ctx.bezierCurveTo(2.55, -3.8, 2.15, -1.3, 1.55, -0.1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    ctx.restore(); /* neck */
+
+    /* tail — hangs at rest; flags straight up, white, when she bounds */
+    ctx.save();
+    ctx.translate(-11.0, 0.6);
+    if (bound) {
+      ctx.rotate(-1.25);
+      inkFill(ctx, () => {
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(-1.3, -4.2, 0.1, -8.8, 1.7, -8.5);
+        ctx.bezierCurveTo(3.4, -6.2, 2.5, -2.0, 0.8, 0.4);
+        ctx.closePath();
+      }, cream, ink, 1.0);
+      ctx.fillStyle = dark;
+      ctx.beginPath();
+      ctx.moveTo(0.05, 0);
+      ctx.bezierCurveTo(-0.5, -3.4, 0.25, -7.6, 1.05, -8.3);
+      ctx.lineTo(0.35, -3.6);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.rotate(0.55);
+      inkFill(ctx, () => {
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(-1.0, 1.4, -1.15, 3.7, 0.2, 4.5);
+        ctx.bezierCurveTo(1.35, 3.5, 1.15, 1.1, 0.35, 0);
+        ctx.closePath();
+      }, dark, ink, 0.85);
+      ctx.fillStyle = cream;
+      ctx.beginPath();
+      ctx.ellipse(0.15, 2.7, 0.65, 1.4, 0.15, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.restore(); /* pitch */
+    ctx.restore();
+  }
+
+
+
+  function drawHound(ctx, c, part, ink) {
+    /* Black-and-tan coonhound in side view: long legs, hanging ears, a real muzzle. */
+    ctx.save();
+    ctx.scale(c.facing || 1, 1);
+    const tan = tint('#8A5A28', part), black = tint('#1A1410', part), ear = tint('#4A3728', part);
+    const sleep = c.pose === 'sleep';
+    const watch = c.pose === 'watch' || c.pose === 'liftHead' || c.state === 'notice';
+    if (sleep) {
+      inkFill(ctx, () => { ctx.ellipse(0.2, 3.0, 8.4, 3.2, 0.06, 0, Math.PI * 2); }, tan, ink, 1.15);
+      inkFill(ctx, () => { ctx.ellipse(-1.6, 2.0, 5.2, 2.4, 0.08, 0, Math.PI * 2); }, black, ink, 1);
+      inkFill(ctx, () => { ctx.ellipse(6.4, 2.6, 3.4, 2.1, 0.12, 0, Math.PI * 2); }, tan, ink, 1);
+      inkFill(ctx, () => { ctx.ellipse(9.0, 2.8, 2.5, 1.1, 0.08, 0, Math.PI * 2); }, tan, ink, 0.9);
+      inkFill(ctx, () => { ctx.ellipse(5.4, 4.2, 1.5, 2.6, 0.3, 0, Math.PI * 2); }, ear, ink, 0.85);
+      inkFill(ctx, () => { ctx.ellipse(7.2, 4.4, 1.3, 2.4, 0.45, 0, Math.PI * 2); }, ear, ink, 0.85);
+      ctx.fillStyle = ink; ctx.beginPath(); ctx.ellipse(8.2, 2.2, 0.38, 0.32, 0, 0, Math.PI * 2); ctx.fill();
+      inkFill(ctx, () => { ctx.ellipse(8.2, 4.6, 1.7, 0.75, 0, 0, Math.PI * 2); }, tan, ink, 0.75);
+    } else {
+      /* four long legs — far pair first */
+      inkFill(ctx, () => { ctx.ellipse(-5.2, 8.2, 1.05, 3.4, 0.06, 0, Math.PI * 2); }, tan, ink, 0.8);
+      inkFill(ctx, () => { ctx.ellipse(3.4, 8.2, 1.0, 3.4, 0.05, 0, Math.PI * 2); }, tan, ink, 0.8);
+      inkFill(ctx, () => { ctx.ellipse(-3.0, 8.4, 1.15, 3.5, -0.04, 0, Math.PI * 2); }, tan, ink, 0.85);
+      inkFill(ctx, () => { ctx.ellipse(5.6, 8.4, 1.1, 3.5, -0.03, 0, Math.PI * 2); }, tan, ink, 0.85);
+      /* paws */
+      inkFill(ctx, () => { ctx.ellipse(-5.0, 11.4, 1.25, 0.7, 0, 0, Math.PI * 2); }, tan, ink, 0.7);
+      inkFill(ctx, () => { ctx.ellipse(-2.8, 11.5, 1.25, 0.7, 0, 0, Math.PI * 2); }, tan, ink, 0.7);
+      inkFill(ctx, () => { ctx.ellipse(3.6, 11.4, 1.2, 0.7, 0, 0, Math.PI * 2); }, tan, ink, 0.7);
+      inkFill(ctx, () => { ctx.ellipse(5.8, 11.5, 1.2, 0.7, 0, 0, Math.PI * 2); }, tan, ink, 0.7);
+      /* long body, deeper chest, black saddle on the back only */
+      inkFill(ctx, () => { ctx.ellipse(0.2, 1.6, 8.8, 3.7, -0.1, 0, Math.PI * 2); }, tan, ink, 1.2);
+      inkFill(ctx, () => { ctx.ellipse(-0.8, 0.2, 5.6, 2.5, -0.12, 0, Math.PI * 2); }, black, ink, 1);
+      /* head sits above the chest, long muzzle, hanging ears */
+      ctx.save();
+      ctx.translate(8.0, -0.8);
+      if (c.pose === 'liftHead' || watch) ctx.rotate(-0.38);
+      else ctx.rotate(-0.12);
+      inkFill(ctx, () => { ctx.ellipse(0.0, 0.3, 2.5, 2.2, 0.1, 0, Math.PI * 2); }, tan, ink, 1);
+      inkFill(ctx, () => { ctx.ellipse(3.6, 0.55, 3.2, 1.2, 0.1, 0, Math.PI * 2); }, tan, ink, 0.95);
+      /* big floppy ears hanging down beside the jaw */
+      inkFill(ctx, () => { ctx.ellipse(-0.5, 3.2, 1.5, 3.4, 0.15, 0, Math.PI * 2); }, ear, ink, 0.9);
+      inkFill(ctx, () => { ctx.ellipse(1.3, 3.4, 1.35, 3.2, 0.28, 0, Math.PI * 2); }, ear, ink, 0.9);
+      ctx.fillStyle = ink; ctx.beginPath(); ctx.ellipse(1.5, -0.2, 0.42, 0.36, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      ctx.save();
+      ctx.translate(-8.6, 0.4);
+      const thump = watch ? Math.sin((c.phase || 0) * 10) * 0.55 : 0.2;
+      ctx.rotate(thump);
+      inkFill(ctx, () => { ctx.ellipse(-3.4, -0.2, 3.8, 1.0, 0.18, 0, Math.PI * 2); }, tan, ink, 0.9);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  function drawChicken(ctx, c, part, ink) {
+    ctx.save();
+    ctx.scale(c.facing || 1, 1);
+    const rust = tint('#C45C26', part), cream = tint('#F4E8D0', part), comb = tint('#8A2A1E', part), feet = tint('#E8C547', part);
+    const peck = c.pose === 'peck';
+    const bolt = c.pose === 'bolt';
+    inkFill(ctx, () => { ctx.ellipse(0, 0, 5.4, 3.6, -0.1, 0, Math.PI * 2); }, rust, ink, 1.15);
+    inkFill(ctx, () => { ctx.ellipse(0.6, 0.5, 3.4, 2.2, -0.1, 0, Math.PI * 2); }, cream, ink, 0.7);
+    /* tail feathers as two solid teardrops */
+    inkFill(ctx, () => { ctx.moveTo(-4, -1); ctx.quadraticCurveTo(-8, -5, -9.5, -1.5); ctx.quadraticCurveTo(-7, 1, -4, 1); ctx.closePath(); }, rust, ink, 1);
+    inkFill(ctx, () => { ctx.moveTo(-3.6, -0.2); ctx.quadraticCurveTo(-7.4, -3.4, -8.4, 0.2); ctx.quadraticCurveTo(-6, 1.4, -3.6, 1); ctx.closePath(); }, tint('#9A3A18', part), ink, 0.9);
+    ctx.save();
+    ctx.translate(4.4, peck ? 2.2 : -1.8);
+    if (peck) ctx.rotate(0.9);
+    inkFill(ctx, () => { ctx.arc(0, 0, 2.3, 0, Math.PI * 2); }, cream, ink, 1);
+    inkFill(ctx, () => { ctx.moveTo(-0.6, -2.1); ctx.lineTo(0, -4.0); ctx.lineTo(1.1, -2.0); ctx.closePath(); }, comb, ink, 0.8);
+    inkFill(ctx, () => { ctx.moveTo(1.8, 0); ctx.lineTo(4.0, 0.35); ctx.lineTo(1.8, 0.8); ctx.closePath(); }, feet, ink, 0.7);
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(0.5, -0.3, 0.35, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    if (bolt) {
+      const flap = Math.sin((c.phase || 0) * 20) * 3;
+      inkFill(ctx, () => { ctx.ellipse(-0.4, -2.4 - flap * 0.2, 4.2, 1.5, -0.4, 0, Math.PI * 2); }, cream, ink, 0.9);
+    }
+    ctx.strokeStyle = ink; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(-1, 3.2); ctx.lineTo(-1.4, 5.2); ctx.moveTo(1.4, 3.2); ctx.lineTo(1.8, 5.2); ctx.stroke();
+    ctx.restore();
+  }
+
+
+  function drawCat(ctx, c, part, ink) {
+    ctx.save();
+    ctx.scale(c.facing || 1, 1);
+    const fur = tint('#4A3728', part), chest = tint('#F4E8D0', part);
+    const watch = c.pose === 'watch' || c.state === 'notice';
+    /* tucked fore and hind legs under a loafing body */
+    inkFill(ctx, () => { ctx.ellipse(-3.2, 3.4, 2.0, 1.05, 0, 0, Math.PI * 2); }, fur, ink, 0.75);
+    inkFill(ctx, () => { ctx.ellipse(2.6, 3.4, 1.8, 1.0, 0, 0, Math.PI * 2); }, fur, ink, 0.75);
+    inkFill(ctx, () => { ctx.ellipse(0.2, 1.15, 6.6, 2.7, 0, 0, Math.PI * 2); }, fur, ink, 1.15);
+    inkFill(ctx, () => { ctx.ellipse(1.4, 1.7, 3.1, 1.6, 0, 0, Math.PI * 2); }, chest, ink, 0.7);
+    ctx.save(); ctx.translate(5.8, -0.2);
+    if (watch) ctx.rotate(-0.22);
+    inkFill(ctx, () => { ctx.ellipse(0.2, 0.15, 2.4, 2.15, 0.1, 0, Math.PI * 2); }, fur, ink, 1);
+    inkFill(ctx, () => { ctx.ellipse(2.0, 0.45, 1.15, 0.8, 0.15, 0, Math.PI * 2); }, fur, ink, 0.8);
+    inkFill(ctx, () => { ctx.moveTo(-1.8, -1.2); ctx.lineTo(-1.15, -4.15); ctx.lineTo(0.25, -1.4); ctx.closePath(); }, fur, ink, 0.9);
+    inkFill(ctx, () => { ctx.moveTo(0.4, -1.45); ctx.lineTo(1.55, -4.15); ctx.lineTo(2.25, -1.1); ctx.closePath(); }, fur, ink, 0.9);
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(0.85, -0.15, 0.36, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    /* tail connected at the rump, a slow curl */
+    ctx.save();
+    ctx.translate(-6.2, 0.8);
+    ctx.rotate((c.tail || 0) * 0.5 - 0.35);
+    inkFill(ctx, () => {
+      ctx.moveTo(1.2, 0);
+      ctx.bezierCurveTo(-1.6, -0.8, -4.6, -0.2, -7.2, 1.4);
+      ctx.bezierCurveTo(-4.8, 1.6, -1.8, 1.2, 1.2, 1.1);
+      ctx.closePath();
+    }, fur, ink, 0.9);
+    ctx.restore();
+    ctx.restore();
+  }
+
+
+  function drawRabbit(ctx, c, part, ink) {
+    /* Cottontail sitting on its haunches — hind legs, upright ears, cotton puff. */
+    ctx.save();
+    ctx.scale(c.facing || 1, 1);
+    const fur = tint('#C8B898', part), inner = tint('#8A6A50', part), dark = tint('#4A3728', part);
+    const bolt = c.pose === 'bolt' || c.pose === 'hop';
+    /* hind haunch */
+    inkFill(ctx, () => { ctx.ellipse(-1.2, 2.2, 4.2, 3.4, -0.15, 0, Math.PI * 2); }, fur, ink, 1.1);
+    /* chest */
+    inkFill(ctx, () => { ctx.ellipse(2.4, 1.6, 3.0, 2.5, 0.15, 0, Math.PI * 2); }, fur, ink, 1.05);
+    /* front paws */
+    inkFill(ctx, () => { ctx.ellipse(3.6, 4.0, 1.3, 0.7, 0.1, 0, Math.PI * 2); }, fur, ink, 0.75);
+    inkFill(ctx, () => { ctx.ellipse(2.2, 4.15, 1.15, 0.65, -0.1, 0, Math.PI * 2); }, fur, ink, 0.75);
+    /* hind foot */
+    inkFill(ctx, () => { ctx.ellipse(-3.4, 4.3, 2.0, 0.75, 0.05, 0, Math.PI * 2); }, fur, ink, 0.75);
+    /* head */
+    inkFill(ctx, () => { ctx.ellipse(4.2, -0.6, 2.35, 2.05, 0.12, 0, Math.PI * 2); }, fur, ink, 1);
+    /* ears — one up, one slightly back */
+    const earBack = bolt ? -0.05 : -0.2;
+    inkFill(ctx, () => { ctx.ellipse(3.3, -4.6, 1.0, 3.2, earBack, 0, Math.PI * 2); }, fur, ink, 0.9);
+    inkFill(ctx, () => { ctx.ellipse(5.0, -4.0, 0.85, 2.7, 0.28, 0, Math.PI * 2); }, fur, ink, 0.9);
+    ctx.fillStyle = inner;
+    ctx.beginPath(); ctx.ellipse(3.3, -4.4, 0.35, 1.9, earBack, 0, Math.PI * 2); ctx.fill();
+    /* cottontail */
+    inkFill(ctx, () => { ctx.arc(-5.2, 1.6, 1.55, 0, Math.PI * 2); }, tint('#F8F1E3', part), ink, 0.8);
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(4.9, -0.7, 0.34, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+
+  function drawSquirrel(ctx, c, part, ink) {
+    /* Fox squirrel sat up on its haunches, plume tail behind. */
+    ctx.save();
+    ctx.scale(c.facing || 1, 1);
+    const fur = tint('#6A4A30', part), belly = tint('#C8B898', part);
+    const climb = c.pose === 'climb';
+    if (climb) ctx.rotate(-0.85);
+    /* S-curve tail, one solid plume */
+    inkFill(ctx, () => {
+      ctx.moveTo(-2.2, 1.2);
+      ctx.bezierCurveTo(-8.4, 1.0, -9.0, -6.2, -4.2, -9.4);
+      ctx.bezierCurveTo(-0.2, -11.0, 2.4, -7.2, -0.6, -3.6);
+      ctx.bezierCurveTo(-3.4, -1.4, -3.0, 1.6, -1.4, 2.2);
+      ctx.closePath();
+    }, fur, ink, 1.15);
+    /* haunch + body upright */
+    inkFill(ctx, () => { ctx.ellipse(-0.2, 2.2, 3.4, 2.8, -0.2, 0, Math.PI * 2); }, fur, ink, 1.1);
+    inkFill(ctx, () => { ctx.ellipse(1.4, 0.2, 2.5, 2.5, 0.2, 0, Math.PI * 2); }, fur, ink, 1.05);
+    ctx.fillStyle = belly;
+    ctx.beginPath(); ctx.ellipse(2.0, 0.7, 1.3, 1.6, 0.25, 0, Math.PI * 2); ctx.fill();
+    /* head */
+    inkFill(ctx, () => { ctx.ellipse(3.4, -1.8, 2.05, 1.7, 0.15, 0, Math.PI * 2); }, fur, ink, 1);
+    inkFill(ctx, () => { ctx.ellipse(2.8, -3.15, 0.85, 1.15, -0.25, 0, Math.PI * 2); }, fur, ink, 0.8);
+    inkFill(ctx, () => { ctx.ellipse(3.8, -3.05, 0.7, 1.0, 0.2, 0, Math.PI * 2); }, fur, ink, 0.8);
+    /* tiny forepaws */
+    inkFill(ctx, () => { ctx.ellipse(2.8, 1.5, 0.8, 0.55, 0.3, 0, Math.PI * 2); }, fur, ink, 0.7);
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(4.0, -1.95, 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawFirefly(ctx, c, part, ink, game) {
+    const on = c.on || fireflyOn(c, game);
+    ctx.save();
+    /* tiny body always, glow only when the pulse is on */
+    ctx.fillStyle = tint('#2A2420', part);
+    ctx.beginPath(); ctx.ellipse(0, 0, 1.15, 0.7, 0, 0, Math.PI * 2); ctx.fill();
+    if (on) {
+      const r = low() ? 4.5 : 11;
+      if (!low() && ctx.createRadialGradient) {
+        ctx.globalCompositeOperation = 'lighter';
+        const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+        g.addColorStop(0, 'rgba(232,197,71,0.85)');
+        g.addColorStop(0.35, 'rgba(232,197,71,0.28)');
+        g.addColorStop(1, 'rgba(190,220,110,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+      }
+      ctx.fillStyle = '#E8C547';
+      ctx.beginPath(); ctx.arc(0.4, 0, 1.15, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawMoth(ctx, c, part, ink) {
+    ctx.save();
+    const flap = Math.sin((c.phase || 0) * 16) * 0.4;
+    const cream = tint('#E8DCC0', part);
+    ctx.rotate((c.orbit || 0) * 0.2);
+    inkFill(ctx, () => { ctx.ellipse(-2.4, flap, 2.6, 1.5, -0.3, 0, Math.PI * 2); }, cream, ink, 0.7);
+    inkFill(ctx, () => { ctx.ellipse(2.4, -flap, 2.6, 1.5, 0.3, 0, Math.PI * 2); }, cream, ink, 0.7);
+    ctx.fillStyle = tint('#4A3728', part);
+    ctx.beginPath(); ctx.ellipse(0, 0, 0.7, 1.3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawBat(ctx, c, part, ink) {
+    /* high silhouette only — no teeth, no red eyes, no dive */
+    ctx.save();
+    const flap = Math.sin((c.phase || 0) * 22) * 3.2;
+    ctx.fillStyle = tint('#1A1410', part);
+    ctx.beginPath();
+    ctx.moveTo(-7.5, flap);
+    ctx.quadraticCurveTo(-3, -2.4, 0, 0);
+    ctx.quadraticCurveTo(3, -2.4, 7.5, -flap);
+    ctx.quadraticCurveTo(3, 1.6, 0, 1.2);
+    ctx.quadraticCurveTo(-3, 1.6, -7.5, flap);
+    ctx.fill();
+    ctx.strokeStyle = ink; ctx.lineWidth = 0.8; ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawButterfly(ctx, c, part, ink) {
+    const palettes = [
+      { w: '#C45C26', i: '#F4E8D0' },
+      { w: '#E8C547', i: '#4A3728' },
+      { w: '#2F4F3E', i: '#B9A68C' },
+    ];
+    const col = palettes[(c.seed * palettes.length) | 0] || palettes[0];
+    const flap = 0.55 + 0.45 * Math.sin((c.phase || 0) * 14);
+    ctx.save();
+    inkFill(ctx, () => { ctx.ellipse(-3.1 * flap, 0, 3.2 * flap, 2.5, -0.25, 0, Math.PI * 2); }, tint(col.w, part), ink, 0.8);
+    inkFill(ctx, () => { ctx.ellipse(3.1 * flap, 0, 3.2 * flap, 2.5, 0.25, 0, Math.PI * 2); }, tint(col.w, part), ink, 0.8);
+    ctx.fillStyle = tint(col.i, part);
+    ctx.beginPath(); ctx.ellipse(-2.6 * flap, 0, 1.2 * flap, 1.1, -0.25, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(2.6 * flap, 0, 1.2 * flap, 1.1, 0.25, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.ellipse(0, 0, 0.5, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawDragonfly(ctx, c, part, ink) {
+    ctx.save();
+    const body = tint('#2F4F3E', part);
+    inkFill(ctx, () => { ctx.ellipse(0, 0, 5.4, 1.05, 0, 0, Math.PI * 2); }, body, ink, 0.9);
+    ctx.globalAlpha = (c.alpha || 1) * 0.55;
+    const shimmer = 1 + Math.sin((c.phase || 0) * 40) * 0.15;
+    inkFill(ctx, () => { ctx.ellipse(-1.2, -2.2 * shimmer, 3.4, 1.15, -0.2, 0, Math.PI * 2); }, tint('#F8F1E3', part), ink, 0.6);
+    inkFill(ctx, () => { ctx.ellipse(-1.2, 2.2 * shimmer, 3.4, 1.15, 0.2, 0, Math.PI * 2); }, tint('#F8F1E3', part), ink, 0.6);
+    ctx.restore();
+  }
+
+  function drawLeaves(ctx, game, camX, camY, t) {
+    const area = game && game.area;
+    if (!area || area.biome === 'cave') return;
+    if (!(area.biome === 'woods' || area.biome === 'bluff' || area.biome === 'bottoms' || GLADES[area.id])) return;
+    const pal = PAL();
+    const cols = [pal.bark || '#4A3728', pal.forest || '#2F4F3E', pal.rust || '#C45C26'];
+    const n = low() ? 5 : 9;
+    ctx.save();
+    for (let i = 0; i < n; i++) {
+      const drift = t * (8 + (i % 4) * 3);
+      const x = ((i * 97 + 13) * 13 - camX * 0.2 + drift) % (Life._view.w + 80) - 20;
+      const y = ((i * 53 + 7) * 7 + t * (10 + (i % 3) * 4) - camY * 0.04) % (Life._view.h + 50) - 10;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(t * (0.6 + (i % 3) * 0.3) + i);
+      ctx.fillStyle = cols[i % cols.length];
+      ctx.strokeStyle = pal.ink || '#1A1410';
+      ctx.lineWidth = 0.6;
+      ctx.beginPath(); ctx.ellipse(0, 0, 3.2, 1.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  function drawSnow(ctx, game, camX, camY, t) {
+    if (!game || !isOldChristmas(game.state)) return;
+    const area = game.area;
+    if (!area || area.biome === 'cave') return;
+    const n = low() ? 10 : 18;
+    ctx.save();
+    for (let i = 0; i < n; i++) {
+      const drift = Math.sin(t * (0.22 + (i % 5) * 0.04) + i * 1.7) * 10;
+      const speed = 7 + (i % 6) * 3.2;
+      const x = ((i * 97.3) - camX * 0.08 + drift) % (Life._view.w + 20);
+      const y = ((i * 53.1 + t * speed) - camY * 0.02) % (Life._view.h + 24) - 8;
+      const r = i % 7 === 0 ? 1.3 : 0.7;
+      ctx.globalAlpha = 0.22 + (i % 4) * 0.1;
+      ctx.fillStyle = '#F8F1E3';
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function isAir(c) {
+    return c.kind === 'vulture' || c.kind === 'bat' || c.kind === 'moth' || c.kind === 'firefly'
+      || c.pose === 'flush' || c.pose === 'fly' || c.pose === 'lift'
+      || (c.kind === 'whip' && c.z > 4);
+  }
+
+  Life.pushSprites = function (game, sprites, camX, camY, now) {
+    if (!game || !sprites) return;
+    Life._game = game;
+    if (game.cam) { Life._view.x = game.cam.x; Life._view.y = game.cam.y; }
+    const ctx = game.ctx;
+    Life.list.forEach((c) => {
+      if (c.alpha < 0.04 || c.hidden) return;
+      if (isAir(c)) return;
+      sprites.push({ y: c.y, z: 1.5, draw: () => { if (game.ctx) drawGround(c, game.ctx, game, camX, camY); } });
+    });
+    Life._camX = camX; Life._camY = camY;
+  };
+
+  Life.drawGround = function (ctx, game, camX, camY) {
+    if (!ctx || !game) return;
+    Life.list.forEach((c) => {
+      if (c.alpha < 0.04 || c.hidden || isAir(c)) return;
+      drawGround(c, ctx, game, camX, camY);
+    });
+  };
+
+  Life.drawAir = function (ctx, game, camX, camY, t) {
+    if (!ctx) return;
+    game = game || Life._game || HV.Game;
+    if (!game || !game.area) return;
+    const now = t != null ? t : ((game.state && game.state.playTime) || 0);
+    drawLeaves(ctx, game, camX, camY, now);
+    Life.list.forEach((c) => {
+      if (c.alpha < 0.04 || c.hidden) return;
+      if (!isAir(c) && c.kind !== 'butterfly' && c.kind !== 'dragonfly' && c.z < 6) return;
+      /* butterflies/dragonflies are y-sorted in pushSprites; only redraw here if they are high */
+      if ((c.kind === 'butterfly' || c.kind === 'dragonfly') && c.z < 16) return;
+      if (!isAir(c) && c.z < 6) return;
+      drawAir(c, ctx, game, camX, camY);
+    });
+    drawSnow(ctx, game, camX, camY, now);
+  };
+
+  /* ——— curated poses for the preview shots (one idea each) ——— */
+  const SHOTS = {
+    cardinal: { area: 'yarrow_crossing', time: 0.42, kinds: ['cardinal', 'jay', 'sparrow'], pose: 'idle' },
+    jay: { area: 'yarrow_crossing', time: 0.42, kinds: ['jay', 'cardinal'], pose: 'idle' },
+    chickens: { area: 'yarrow_crossing', time: 0.4, kinds: ['chicken', 'chicken', 'chicken'], pose: 'peck' },
+    cat: { area: 'yarrow_crossing', time: 0.42, kinds: ['cat'], pose: 'sit' },
+    hound: { area: 'ila_cabin', time: 0.4, kinds: ['hound'], pose: 'watch' },
+    houndSleep: { area: 'ila_cabin', time: 0.4, kinds: ['hound'], pose: 'sleep' },
+    armadillo: { area: 'devil_promenade', time: 0.74, kinds: ['armadillo'], pose: 'walk' },
+    armadilloHop: { area: 'devil_promenade', time: 0.74, kinds: ['armadillo'], pose: 'hop' },
+    possum: { area: 'the_crossroads', time: 0.76, kinds: ['possum'], pose: 'walk' },
+    deer: { area: 'cedar_glade', time: 0.72, kinds: ['deer', 'deer'], pose: 'look' },
+    deerBound: { area: 'cedar_glade', time: 0.72, kinds: ['deer', 'deer'], pose: 'bound' },
+    deerDawn: { area: 'white_stag_woods', time: 0.26, kinds: ['deer'], pose: 'look' },
+    heron: { area: 'wisp_bottoms', time: 0.4, kinds: ['heron'], pose: 'stand' },
+    heronLift: { area: 'wisp_bottoms', time: 0.4, kinds: ['heron'], pose: 'lift' },
+    turtle: { area: 'wisp_bottoms', time: 0.4, kinds: ['turtle'], pose: 'log' },
+    turtleSlide: { area: 'wisp_bottoms', time: 0.4, kinds: ['turtle'], pose: 'slide' },
+    striders: { area: 'wisp_bottoms', time: 0.38, kinds: ['strider', 'strider', 'strider', 'ripple'], pose: 'idle' },
+    boxTurtle: { area: 'snawfus_glade', time: 0.42, kinds: ['box_turtle', 'butterfly', 'butterfly'], pose: 'idle' },
+    boxTuck: { area: 'snawfus_glade', time: 0.42, kinds: ['box_turtle'], pose: 'tuck' },
+    butterflies: { area: 'snawfus_glade', time: 0.4, kinds: ['butterfly', 'butterfly', 'butterfly', 'butterfly'], pose: 'idle' },
+    fireflies: { area: 'cedar_glade', time: 0.78, kinds: ['firefly', 'firefly', 'firefly', 'firefly', 'firefly', 'firefly'], pose: 'idle' },
+    moths: { area: 'ila_cabin', time: 0.86, kinds: ['moth', 'moth', 'moth', 'moth', 'hound'], pose: 'sit' },
+    vultures: { area: 'widows_bluff', time: 0.45, kinds: ['vulture', 'vulture'], pose: 'idle' },
+    crowsHaunt: { area: 'the_gallows', time: 0.5, kinds: ['crow', 'crow', 'crow', 'crow'], pose: 'idle' },
+    whip: { area: 'cedar_glade', time: 0.8, kinds: ['whip'], pose: 'flush' },
+    bats: { area: 'fog_caves', time: 0.88, kinds: ['bat', 'bat', 'bat', 'bat', 'moth'], pose: 'idle' },
+    notice: { area: 'yarrow_crossing', time: 0.42, kinds: ['cardinal', 'jay', 'sparrow'], pose: 'notice' },
+    land: { area: 'yarrow_crossing', time: 0.42, kinds: ['cardinal', 'jay'], pose: 'fly' },
+    leaves: { area: 'cedar_glade', time: 0.4, kinds: ['sparrow', 'squirrel'], pose: 'idle' },
+    snow: { area: 'high_ledge', time: 0.45, kinds: ['sparrow'], pose: 'idle', christmas: true },
+    bottomsHealed: { area: 'wisp_bottoms', time: 0.4, kinds: ['heron', 'butterfly', 'butterfly', 'dragonfly', 'strider', 'turtle'], pose: 'stand', healed: true },
+    squirrel: { area: 'cedar_glade', time: 0.4, kinds: ['squirrel', 'rabbit'], pose: 'idle' },
+    dragonfly: { area: 'ferry_crossing', time: 0.4, kinds: ['dragonfly', 'dragonfly', 'ripple', 'strider'], pose: 'hover' },
+  };
+  Life.SHOTS = SHOTS;
+
+  Life.poseForShot = function (game, id, opt) {
+    opt = opt || {};
+    const shot = SHOTS[id];
+    if (!game || !shot) return false;
+    Life._shot = id;
+    if (shot.christmas) {
+      game.state = game.state || HV.newState({ name: 'Lara', calling: 'yarb' });
+      game.state.quests = game.state.quests || {};
+      game.state.quests.old_christmas = { stage: 1, done: true };
+      if (HV.giveItem) try { HV.giveItem(game.state, 'old_christmas_band'); } catch (e) { /* ignore */ }
+    }
+    if (shot.healed) {
+      game.state = game.state || HV.newState({ name: 'Lara', calling: 'yarb' });
+      game.state.quests = game.state.quests || {};
+      game.state.quests.bottoms_walker = { stage: 1, done: true };
+    }
+    if (game.state && game.state.world) game.state.world.time = shot.time;
+    if (typeof game.enterArea === 'function') {
+      const area = HV.AREAS[shot.area];
+      const sx = (area && area.start && area.start.x) || 16;
+      const sy = (area && area.start && area.start.y) || 16;
+      game.enterArea(shot.area, sx * TILE + 16, sy * TILE + 16);
+    }
+    /* chapter cards pause the world; a showcase needs the critters moving */
+    if (game.mode === 'card' || game.mode === 'letter' || game.mode === 'dialogue') game.mode = 'play';
+    game.entities = [];
+    if (HV.UI) { if (HV.UI.hideOverlay) HV.UI.hideOverlay(); if (HV.UI.dismissToast) HV.UI.dismissToast(); }
+    /* clear and place a tight showcase in front of the camera */
+    clearList();
+    const hx = game.state.world.x, hy = game.state.world.y;
+    Life._areaId = shot.area;
+    Life._part = daypart(shot.time);
+    Life._sites = gatherSites(game.area);
+    const r = rng('shot:' + id);
+    shot.kinds.forEach((kind, i) => {
+      const c = alloc();
+      c.kind = kind;
+      c.seed = (i + 1) * 0.17;
+      c.phase = i * 0.9;
+      c.sync = kind === 'firefly' ? (i % 2) : -1;
+      c.facing = i % 2 === 0 ? 1 : -1;
+      c.noticeR = 80;
+      c.delay = 0.2;
+      c.alpha = 1;
+      c.pose = shot.pose || 'idle';
+      /* a clear stage just south of Lara, in the open portrait view above the joystick */
+      const mid = (shot.kinds.length - 1) / 2;
+      const ox = (i - mid) * 36;
+      const oy = 42 + (i % 2) * 8;
+      c.x = hx + ox + 8;
+      c.y = hy + oy;
+      c.homeX = c.x; c.homeY = c.y;
+      c.z = 0;
+      if (kind === 'vulture') { c.z = 110; c.orbit = i * 1.4; c.orbitR = 70; c.homeX = hx; c.homeY = hy + 20; c.x = hx + Math.cos(c.orbit) * 70; c.y = hy + 10 + Math.sin(c.orbit) * 30; }
+      if (kind === 'bat') { c.z = 56; c.orbit = i * 1.2; c.x = hx + (i - 1.5) * 24; c.y = hy - 10; }
+      if (kind === 'moth') { c.z = 18; c.orbit = i * 1.1; c.x = hx + Math.cos(c.orbit) * 16; c.y = hy - 14 + Math.sin(c.orbit) * 6; }
+      if (kind === 'firefly') { c.z = 12 + i * 3; c.x = hx + (i - 2.5) * 28; c.y = hy + 16 + (i % 3) * 22; c.on = i % 2 === 0; }
+      if (kind === 'heron') { c.x = hx + 52; c.y = hy + 28; if (shot.pose === 'lift') { c.z = 36; c.pose = 'lift'; c.state = 'react'; c.st = 0.5; } }
+      if (kind === 'turtle') { c.x = hx + 44; c.y = hy + 32; c.pose = shot.pose; if (shot.pose === 'slide') { c.state = 'react'; c.st = 0.25; } }
+      if (kind === 'strider') { c.x = hx + (i - 1) * 16; c.y = hy + 14 + i * 4; }
+      if (kind === 'ripple') { c.x = hx + 10; c.y = hy + 20; c.poseT = 0.4; }
+      if (kind === 'box_turtle') { c.x = hx + 36; c.y = hy + 38; if (shot.pose === 'tuck') { c.pose = 'tuck'; c.state = 'react'; } }
+      if (kind === 'armadillo') {
+        c.x = hx + 46; c.y = hy + 36; c.vx = 18; c.waddle = 0.6;
+        if (shot.pose === 'hop') { c.pose = 'hop'; c.state = 'react'; c.hopT = 0.22; c.z = 42; c.squash = 1.05; }
+        else c.pose = 'walk';
+      }
+      if (kind === 'possum') { c.x = hx + 26; c.y = hy + 16; c.pose = 'walk'; }
+      if (kind === 'deer') {
+        /* keep a wide berth so two does never read as one animal */
+        c.facing = 1;
+        if (i === 0) { c.x = hx - 6; c.y = hy + 36; c.pose = shot.pose === 'bound' ? 'bound' : 'look'; }
+        else { c.x = hx + 86; c.y = hy + 58; c.pose = shot.pose === 'bound' ? 'bound' : 'graze'; }
+        c.state = c.pose === 'bound' ? 'react' : (c.pose === 'look' ? 'notice' : 'idle');
+        c.look = toward(c, hx, hy);
+        if (c.pose === 'bound') { c.st = i === 0 ? 0.21 : 0.12; c.z = i === 0 ? 24 : 14; c.vx = 40; c.vy = -8; c.boundN = 1; }
+      }
+      if (kind === 'hound') { c.x = hx + 44; c.y = hy + 34; c.pose = shot.pose === 'sleep' ? 'sleep' : 'watch'; c.state = shot.pose === 'sleep' ? 'idle' : 'notice'; c.phase = 0.8; }
+      if (kind === 'cat') { c.x = hx + 40; c.y = hy + 24; c.pose = 'sit'; c.perched = true; }
+      if (kind === 'chicken') { c.x = hx + (i - 1) * 34; c.y = hy + 40 + (i % 2) * 14; c.pose = i === 1 ? 'peck' : 'idle'; }
+      if (kind === 'cardinal' || kind === 'jay' || kind === 'sparrow' || kind === 'crow') {
+        c.x = hx + (i - 0.5) * 32; c.y = hy + 38;
+        if (shot.pose === 'notice') { c.state = 'notice'; c.look = toward(c, hx, hy); c.pose = 'idle'; }
+        if (shot.pose === 'fly') { c.pose = 'fly'; c.state = 'return'; c.z = 22; c.tx = c.x + 10; c.ty = c.y; }
+        if (kind === 'crow') { c.y = hy + 22; }
+      }
+      if (kind === 'whip') { c.x = hx + 16; c.y = hy + 4; c.pose = 'flush'; c.state = 'react'; c.z = 24; c.vx = 40; c.vz = 30; c.hidden = false; c.alpha = 1; }
+      if (kind === 'butterfly') { c.x = hx + (i - 1.5) * 16; c.y = hy + 6 + i * 6; c.z = 10; }
+      if (kind === 'dragonfly') { c.x = hx + (i - 0.5) * 20; c.y = hy + 12; c.z = 12; c.pose = 'hover'; }
+      if (kind === 'squirrel') { c.x = hx + 8; c.y = hy + 20; c.facing = 1; }
+      if (kind === 'rabbit') { c.x = hx + 56; c.y = hy + 36; c.facing = 1; }
+      Life.list.push(c);
+    });
+    /* run a short settle so wings and tails are mid-motion */
+    /* freeze notice during settle so a showcase does not flush itself */
+    Life.list.forEach((c) => { c._shotLock = true; c.noticeR = 0; });
+    const steps = opt.settle == null ? (shot.pose === 'hop' || shot.pose === 'lift' || shot.pose === 'flush' ? 2 : 6) : opt.settle;
+    for (let i = 0; i < steps; i++) Life.tick(game, 1 / 20);
+    Life.list.forEach((c) => {
+      if (shot.pose === 'hop' && c.kind === 'armadillo') { c.pose = 'hop'; c.state = 'react'; c.hopT = 0.22; c.z = 42; c.squash = 1.05; }
+      if (shot.pose === 'lift' && c.kind === 'heron') { c.pose = 'lift'; c.state = 'react'; c.z = 36; c.st = 0.5; }
+      if (shot.pose === 'tuck' && c.kind === 'box_turtle') { c.pose = 'tuck'; c.state = 'react'; }
+      if (shot.pose === 'look' && c.kind === 'deer') { c.pose = (c.x < (game.state.world.x + 40) ? 'look' : 'graze'); c.state = c.pose === 'look' ? 'notice' : 'idle'; c.look = toward(c, game.state.world.x, game.state.world.y); }
+      if (shot.pose === 'bound' && c.kind === 'deer') { c.pose = 'bound'; c.state = 'react'; c.st = c.st || 0.2; c.z = Math.max(c.z, 16); c.hidden = false; c.alpha = 1; }
+      if (shot.pose === 'flush' && c.kind === 'whip') { c.pose = 'flush'; c.state = 'react'; c.z = 24; c.hidden = false; c.alpha = 1; }
+      if (shot.pose === 'fly') { c.pose = 'fly'; c.state = 'return'; c.z = 22; }
+      if (shot.pose === 'watch' && c.kind === 'hound') { c.pose = 'watch'; c.state = 'notice'; }
+      if (shot.pose === 'sleep' && c.kind === 'hound') { c.pose = 'sleep'; }
+      if (shot.pose === 'notice') { c.state = 'notice'; c.look = toward(c, game.state.world.x, game.state.world.y); }
+    });
+    return true;
+  };
+
+  function wrapFn(obj, key, flag, fn) {
+    if (!obj || typeof obj[key] !== 'function' || obj[key][flag]) return false;
+    const prev = obj[key];
+    const wrapped = function () { return fn.call(this, prev, arguments); };
+    for (const k in prev) if (Object.prototype.hasOwnProperty.call(prev, k)) wrapped[k] = prev[k];
+    wrapped[flag] = true;
+    obj[key] = wrapped;
+    return true;
+  }
+
+  function hookGame() {
+    const G = HV.Game;
+    if (!G) return;
+    wrapFn(G, 'enterArea', '_ambient', function (prev, args) {
+      const r = prev.apply(this, args);
+      Life.enter(this);
+      return r;
+    });
+    wrapFn(G, 'tick', '_ambient', function (prev, args) {
+      const r = prev.apply(this, args);
+      Life.tick(this, (args && args[0]) || 1 / 60);
+      return r;
+    });
+    if (HV.Followers && HV.Followers.pushSprites) {
+      wrapFn(HV.Followers, 'pushSprites', '_ambient', function (prev, args) {
+        const r = prev.apply(this, args);
+        Life.pushSprites(args[0], args[1], args[2], args[3], args[4]);
+        return r;
+      });
+    }
+    if (HV.Render && HV.Render.drawAtmosphere) {
+      wrapFn(HV.Render, 'drawAtmosphere', '_ambient', function (prev, args) {
+        const r = prev.apply(this, args);
+        const ctx = args[0], camX = args[3], camY = args[4], t = args[5];
+        Life.drawAir(ctx, HV.Game, camX, camY, t);
+        return r;
+      });
+    }
+  }
+
+  function hookSettings() {
+    if (!HV.UI || !HV.UI.showSettings) return;
+    wrapFn(HV.UI, 'showSettings', '_lifeVol', function (prev, args) {
+      const handlers = args[0] || {};
+      const audio = args[1] || HV.Audio;
+      handlers.wildlife = handlers.wildlife || function (v) { if (HV.Audio.setLifeVolume) HV.Audio.setLifeVolume(v); };
+      const r = prev.apply(this, args);
+      try {
+        const panel = (typeof document !== 'undefined') && document.querySelector && document.querySelector('.settings-panel');
+        if (panel && !panel.querySelector('#vol-life')) {
+          const amb = panel.querySelector('#vol-amb');
+          const label = (typeof document !== 'undefined') && document.createElement('label');
+          if (label && amb && amb.parentNode) {
+            label.style.display = 'block';
+            label.style.marginTop = '12px';
+            label.innerHTML = 'Wildlife <input id="vol-life" class="wood-slider" type="range" min="0" max="1" step="0.05">';
+            const hint = document.createElement('p');
+            hint.style.cssText = 'margin:4px 0 0;font-size:13px;opacity:0.8';
+            hint.textContent = 'Birds, peepers, and the other hill life. Separate from talk and hits.';
+            const parent = amb.parentNode;
+            /* amb is itself a label; insert after it */
+            if (parent && parent.parentNode) {
+              const wrap = parent.tagName === 'LABEL' ? parent : amb;
+              wrap.parentNode.insertBefore(label, wrap.nextSibling);
+              wrap.parentNode.insertBefore(hint, label.nextSibling);
+            }
+            const elv = label.querySelector('#vol-life');
+            if (elv) {
+              elv.value = (audio && audio.lifeVol != null) ? audio.lifeVol : 0.7;
+              elv.addEventListener('input', () => handlers.wildlife(+elv.value));
+            }
+          }
+        }
+      } catch (e) { /* tests without a full DOM */ }
+      return r;
+    });
+  }
+
+  hookLifePersist();
+  ensureLifeBus();
+  hookGame();
+  /* Wildlife slider is in 11-ui.js directly; do not wrap showSettings (tests read its source). */
+  /* also wire openSettings handler if Game already defined the method */
+  if (HV.Game && HV.Game.openSettings && !HV.Game.openSettings._lifeVol) {
+    wrapFn(HV.Game, 'openSettings', '_lifeVol', function (prev, args) {
+      const r = prev.apply(this, args);
+      return r;
+    });
+  }
+
+  Life.kinds = ['cardinal', 'jay', 'sparrow', 'crow', 'vulture', 'heron', 'turtle', 'box_turtle', 'strider', 'ripple', 'armadillo', 'possum', 'deer', 'hound', 'chicken', 'cat', 'rabbit', 'squirrel', 'firefly', 'moth', 'bat', 'butterfly', 'dragonfly', 'whip'];
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
