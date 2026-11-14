@@ -29820,5 +29820,362 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
+<script>
+/* THE HOLLOW VEIL — hv-final4-48b hotfix
+   1. Bolin's Oilcloth Map is visible on the ground, moved off blocked tiles,
+      easier to pick up, and hinted on first arrival at the camp.
+   2. The area the player sees is named "Bolin's Camp" (id stays bolin_camp). */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const TILE = 32;
+  const ID = 'bolin_oilcloth';
+  const AREA = 'bolin_camp';
+  const NAME = "Bolin's Camp";
+  const HINT = "Somethin' oiled and folded catches the light near the old fire-ring.";
+  const FIRE = { x: 26, y: 23 };
+  const CHEST = { x: 24, y: 12 };
+
+  function spot() {
+    const list = HV.RELIC_SPOTS || [];
+    for (let i = 0; i < list.length; i++) if (list[i].id === ID) return list[i];
+    return null;
+  }
+
+  function getGame() {
+    return HV.Game || null;
+  }
+
+  function wrapFn(obj, key, flag, fn) {
+    if (!obj || typeof obj[key] !== 'function' || obj[key][flag]) return false;
+    const prev = obj[key];
+    const wrapped = function () {
+      return fn.call(this, prev, arguments);
+    };
+    for (const k in prev) if (Object.prototype.hasOwnProperty.call(prev, k)) wrapped[k] = prev[k];
+    wrapped[flag] = true;
+    obj[key] = wrapped;
+    return true;
+  }
+
+  function rewrite(s) {
+    if (typeof s !== 'string') return s;
+    return s.replace(/Bushwhack Camp/g, NAME).replace(/bushwhack camp/g, NAME);
+  }
+
+  function walkStrings(node, seen) {
+    if (!node || typeof node !== 'object') return;
+    if (seen.has(node)) return;
+    seen.add(node);
+    if (Array.isArray(node)) {
+      for (let i = 0; i < node.length; i++) {
+        if (typeof node[i] === 'string') node[i] = rewrite(node[i]);
+        else walkStrings(node[i], seen);
+      }
+      return;
+    }
+    const keys = Object.keys(node);
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i], v = node[k];
+      if (typeof v === 'string') node[k] = rewrite(v);
+      else if (v && typeof v === 'object') walkStrings(v, seen);
+    }
+  }
+
+  function renameCamp() {
+    const area = HV.AREAS && HV.AREAS[AREA];
+    if (area) area.name = NAME;
+    const seen = (typeof WeakSet === 'function') ? new WeakSet() : { has: function () { return false; }, add: function () {} };
+    const bags = [HV.AREAS, HV.QUEST_GUIDE, HV.QUESTS, HV.DIALOG, HV.RELIC_SPOTS, HV.JOURNAL, HV.LORE, HV.FOLKLORE];
+    if (HV.Journal) bags.push(HV.Journal);
+    for (let i = 0; i < bags.length; i++) walkStrings(bags[i], seen);
+    /* exit signs and any leftover baked labels */
+    Object.keys(HV.AREAS || {}).forEach((id) => {
+      const a = HV.AREAS[id];
+      (a && a.exits || []).forEach((ex) => {
+        if (ex.to === AREA || (ex.label && /bushwhack camp/i.test(ex.label))) ex.label = NAME;
+      });
+    });
+  }
+
+  function rewriteState(state) {
+    if (!state) return;
+    (state.journal || []).forEach((j) => { if (j && typeof j.text === 'string') j.text = rewrite(j.text); });
+  }
+
+  function blocked(area, x, y) {
+    if (!HV.getTile) return true;
+    const ch = HV.getTile(area, x, y);
+    if (!ch || ch === 'T' || ch === 'C' || ch === '#' || ch === 'H' || ch === '~' || ch === 'w') return true;
+    if (HV.tileSolid && HV.tileSolid(ch)) return true;
+    if (HV.tileWalkable && !HV.tileWalkable(ch)) return true;
+    return false;
+  }
+
+  function underCrown(area, x, y) {
+    const trees = area && area.trees;
+    if (!trees || !trees.length) return false;
+    const cx = x * TILE + 16, cy = y * TILE + 16;
+    for (let i = 0; i < trees.length; i++) {
+      const tr = trees[i];
+      const baseX = tr.x * TILE + 16, baseY = tr.y * TILE + 24;
+      if (cx >= baseX - 95 && cx <= baseX + 95 && cy >= baseY - 220 && cy <= baseY - 16) return true;
+    }
+    return false;
+  }
+
+  function inBounds(area, x, y) {
+    return area && x >= 1 && y >= 1 && x < area.w - 1 && y < area.h - 1;
+  }
+
+  function reachSet(area) {
+    const set = Object.create(null);
+    if (!area || !HV.tileWalkable) return set;
+    const q = [];
+    const push = (x, y) => {
+      if (!inBounds(area, x, y)) return;
+      const k = x + ',' + y;
+      if (set[k]) return;
+      const ch = HV.getTile(area, x, y);
+      if (!HV.tileWalkable(ch) || ch === '~' || ch === 'w') return;
+      set[k] = 1;
+      q.push(x, y);
+    };
+    (area.exits || []).forEach((e) => push(e.x, e.y));
+    if (area.start) push(area.start.x, area.start.y);
+    if (!q.length) push(area.w >> 1, area.h >> 1);
+    for (let i = 0; i < q.length; i += 2) {
+      const x = q[i], y = q[i + 1];
+      push(x + 1, y); push(x - 1, y); push(x, y + 1); push(x, y - 1);
+    }
+    return set;
+  }
+
+  function reserved(area, x, y) {
+    if (x === FIRE.x && y === FIRE.y) return true;
+    if ((area.chests || []).some((c) => c.x === x && c.y === y)) return true;
+    if ((area.caches || []).some((c) => c.x === x && c.y === y)) return true;
+    if ((area.exits || []).some((e) => e.x === x && e.y === y)) return true;
+    if ((area.spawns || []).some((s) => s.x === x && s.y === y)) return true;
+    if (x === 24 && y === 22) return true; /* Cal's hat in the fire-ring */
+    return false;
+  }
+
+  function isOpen(area, x, y) {
+    return inBounds(area, x, y) && !blocked(area, x, y) && !underCrown(area, x, y);
+  }
+
+  function placeSpot() {
+    const p = spot();
+    const area = HV.AREAS && HV.AREAS[AREA];
+    const info = { moved: false, from: null, to: null, reason: '' };
+    if (!p || !area) return info;
+    info.from = { x: p.x, y: p.y };
+    const reach = reachSet(area);
+    const hereOk = isOpen(area, p.x, p.y) && !!reach[p.x + ',' + p.y];
+    if (hereOk) { info.to = { x: p.x, y: p.y }; info.reason = 'already open'; return info; }
+    if (blocked(area, p.x, p.y)) info.reason = 'blocked';
+    else if (underCrown(area, p.x, p.y)) info.reason = 'under a tree crown';
+    else info.reason = 'unreachable';
+
+    const chest = (area.chests || [])[0] || CHEST;
+    let best = null, bestScore = Infinity, bestTie = [99, 99, 99];
+    for (let y = 1; y < area.h - 1; y++) {
+      for (let x = 1; x < area.w - 1; x++) {
+        if (!isOpen(area, x, y) || !reach[x + ',' + y] || reserved(area, x, y)) continue;
+        const dFire = Math.abs(x - FIRE.x) + Math.abs(y - FIRE.y);
+        const dChest = Math.abs(x - chest.x) + Math.abs(y - chest.y);
+        const score = Math.min(dFire, dChest + 2);
+        const tie = [-y, x, Math.abs(x - info.from.x) + Math.abs(y - info.from.y)];
+        const better = score < bestScore || (score === bestScore && (tie[0] < bestTie[0] || (tie[0] === bestTie[0] && (tie[1] < bestTie[1] || (tie[1] === bestTie[1] && tie[2] < bestTie[2])))));
+        if (better) { bestScore = score; bestTie = tie; best = { x: x, y: y }; }
+      }
+    }
+    if (best) {
+      p.x = best.x; p.y = best.y;
+      info.moved = true;
+      info.to = best;
+    } else {
+      info.to = { x: p.x, y: p.y };
+    }
+    return info;
+  }
+
+  function unfound(state) {
+    if (!state) return false;
+    if (state.relicsFound && state.relicsFound[ID]) return false;
+    if (HV.Loot && HV.Loot.canFind && !HV.Loot.canFind(state, ID)) return false;
+    return true;
+  }
+
+  function heroTile(game) {
+    const s = game && game.state && game.state.world;
+    if (!s) return null;
+    return { x: Math.floor(s.x / TILE), y: Math.floor(s.y / TILE) };
+  }
+
+  function manh(a, b) { return Math.abs(a.x - b.x) + Math.abs(a.y - b.y); }
+  function cheb(a, b) { return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)); }
+
+  function giveMap(game) {
+    if (!game || !game.state || !unfound(game.state)) return false;
+    const p = spot();
+    if (!p) return false;
+    const ok = HV.Loot && HV.Loot.give ? HV.Loot.give(game.state, ID, true) : false;
+    if (ok && HV.UI && HV.UI.toast) HV.UI.toast(p.toast || ('Found: ' + NAME));
+    if (ok && HV.Audio && HV.Audio.sfxPickup) HV.Audio.sfxPickup();
+    if (ok && HV.addJournal) HV.addJournal(game.state, p.toast || ('I found Bolin\'s Oilcloth Map.'));
+    return !!ok;
+  }
+
+  function wrapPickup() {
+    wrapFn(HV.Loot, 'tryPick', '_oilmap', function (prev, args) {
+      const game = args[0];
+      const p = spot();
+      const t = heroTile(game);
+      if (p && t && game && game.area && game.area.id === AREA && unfound(game.state) && manh(t, p) <= 3) {
+        if (giveMap(game)) return true;
+      }
+      return prev.apply(this, args);
+    });
+  }
+
+  function wrapTick() {
+    wrapFn(getGame(), 'tick', '_oilmap', function (prev, args) {
+      const r = prev.apply(this, args);
+      try {
+        rewriteState(this.state);
+        const p = spot();
+        const t = heroTile(this);
+        if (p && t && this.area && this.area.id === AREA && unfound(this.state) && cheb(t, p) <= 1) giveMap(this);
+      } catch (e) { /* keep the tick going */ }
+      return r;
+    });
+  }
+
+  function wrapEnter() {
+    wrapFn(getGame(), 'enterArea', '_oilmap', function (prev, args) {
+      const r = prev.apply(this, args);
+      try {
+        renameCamp();
+        rewriteState(this.state);
+        if (args[0] === AREA && this.state && unfound(this.state) && !(this.state.flags && this.state.flags.bolin_oilcloth_hint) && !this.preview) {
+          this.state.flags = this.state.flags || {};
+          this.state.flags.bolin_oilcloth_hint = true;
+          if (HV.UI && HV.UI.toast) HV.UI.toast(HINT);
+        }
+      } catch (e) { /* keep travel going */ }
+      return r;
+    });
+  }
+
+  function drawMap(ctx, x, y, t, night) {
+    if (!ctx) return;
+    t = t || 0;
+    const pulse = 0.5 + 0.5 * Math.sin(t * 2.2);
+    ctx.save();
+    ctx.translate(x, y);
+    /* warm pool, brighter after dark so the cloth still reads */
+    const g = ctx.createRadialGradient ? ctx.createRadialGradient(0, 4, 2, 0, 4, night ? 44 : 36) : null;
+    if (g) {
+      const a0 = (night ? 0.58 : 0.38) + 0.16 * pulse;
+      g.addColorStop(0, 'rgba(255,200,96,' + a0.toFixed(3) + ')');
+      g.addColorStop(0.5, 'rgba(232,168,64,' + (night ? 0.22 : 0.12).toFixed(3) + ')');
+      g.addColorStop(1, 'rgba(232,168,64,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      if (ctx.ellipse) ctx.ellipse(0, 5, night ? 42 : 34, 22, 0, 0, Math.PI * 2);
+      else ctx.arc(0, 5, 28, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(10,8,4,0.42)';
+    ctx.beginPath();
+    if (ctx.ellipse) ctx.ellipse(1, 10, 14, 5, 0.15, 0, Math.PI * 2);
+    else ctx.arc(1, 10, 8, 0, Math.PI * 2);
+    ctx.fill();
+    /* folded oilcloth, two solid panels with a crease — no hatching */
+    ctx.rotate(-0.22);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.fillStyle = '#C4A15A';
+    ctx.strokeStyle = '#1C1610';
+    ctx.lineWidth = 1.7;
+    ctx.beginPath();
+    ctx.moveTo(-13, -3); ctx.lineTo(12, -7); ctx.lineTo(14, 8); ctx.lineTo(-11, 11);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#A78442';
+    ctx.beginPath();
+    ctx.moveTo(-1, -5); ctx.lineTo(12, -7); ctx.lineTo(14, 8); ctx.lineTo(1, 10);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    /* a few solid map marks */
+    ctx.strokeStyle = '#3A2A16';
+    ctx.lineWidth = 1.15;
+    ctx.beginPath();
+    ctx.moveTo(-8, 2); ctx.quadraticCurveTo(-1, -1, 8, 1);
+    ctx.moveTo(-6, 6); ctx.lineTo(3, 0); ctx.lineTo(9, 5);
+    ctx.stroke();
+    ctx.strokeStyle = '#7A2A18';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(3, 1); ctx.lineTo(7, 5);
+    ctx.moveTo(7, 1); ctx.lineTo(3, 5);
+    ctx.stroke();
+    ctx.rotate(0.22);
+    /* pulsing gold glint */
+    const r = 4.5 + 3.5 * pulse;
+    ctx.globalAlpha = 0.6 + 0.4 * pulse;
+    ctx.fillStyle = '#FFF4D0';
+    ctx.beginPath();
+    ctx.moveTo(-8, -8 - r);
+    ctx.lineTo(-8 + 1.2, -8 - 1.2);
+    ctx.lineTo(-8 + r, -8);
+    ctx.lineTo(-8 + 1.2, -8 + 1.2);
+    ctx.lineTo(-8, -8 + r);
+    ctx.lineTo(-8 - 1.2, -8 + 1.2);
+    ctx.lineTo(-8 - r, -8);
+    ctx.lineTo(-8 - 1.2, -8 - 1.2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function wrapDecals() {
+    wrapFn(HV.Render, 'drawGroundDecals', '_oilmap', function (prev, args) {
+      const r = prev.apply(this, args);
+      try {
+        const ctx = args[0], area = args[1], camX = args[2], camY = args[3], x0 = args[4], x1 = args[5], t0 = args[6], t1 = args[7], now = args[8];
+        const G = getGame();
+        const state = G && G.state;
+        const p = spot();
+        if (!ctx || !p || !area || area.id !== AREA || !unfound(state)) return r;
+        if (p.x < x0 - 1 || p.x > x1 + 1 || p.y < t0 - 1 || p.y > t1 + 1) return r;
+        const x = p.x * TILE + 16 - camX, y = p.y * TILE + 16 - camY;
+        const night = !!(G && G.isNight && G.isNight());
+        drawMap(ctx, x, y, now, night);
+      } catch (e) { /* never break the frame */ }
+      return r;
+    });
+  }
+
+  const placed = placeSpot();
+  renameCamp();
+  wrapPickup();
+  wrapTick();
+  wrapEnter();
+  wrapDecals();
+
+  HV.Oilmap = {
+    ID: ID, AREA: AREA, NAME: NAME, HINT: HINT,
+    placed: placed,
+    spot: spot,
+    renameCamp: renameCamp,
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
 </body>
 </html>
