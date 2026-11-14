@@ -1231,15 +1231,8 @@ html[data-text] #art-card {
   align-items: center;
   padding: 0 20px;
 }
-.title-menu-rule {
-  width: min(200px, 54vw);
-  height: 0;
-  margin-bottom: 10px;
-  border-top: 2px solid rgba(239,227,200,0.38);
-  border-bottom: 1px solid rgba(26,20,16,0.5);
-  opacity: 0.9;
-  transform: rotate(-0.4deg);
-}
+/* hv59: the old menu rule sat across Lara's feet; selection is the candle + glow only */
+.title-menu-rule { display: none; }
 .title-btns {
   display: flex;
   flex-direction: column;
@@ -1267,13 +1260,18 @@ html[data-text] #art-card {
   position: relative;
   text-shadow: 0 1px 0 #0B0C0A, 0 2px 8px rgba(0,0,0,0.65);
 }
-.title-item-primary { color: #efe3c8; }
+.title-item-primary { color: #f6e7c4; }
 .title-item-copy { display: flex; flex-direction: column; align-items: center; }
 .title-item-main { display: flex; align-items: center; gap: 10px; }
 .title-item-primary .title-item-label {
-  border-bottom: 1px solid #efe3c8;
-  padding-bottom: 3px;
-  box-shadow: 0 1px 0 rgba(26,20,16,0.85);
+  border: 0;
+  box-shadow: none;
+  padding-bottom: 0;
+  text-shadow:
+    0 0 10px rgba(232, 197, 71, 0.5),
+    0 0 22px rgba(224, 123, 57, 0.32),
+    0 1px 0 #0B0C0A,
+    0 2px 10px rgba(0,0,0,0.75);
 }
 .title-item-sub {
   display: block;
@@ -1305,7 +1303,13 @@ html[data-text] #art-card {
   color: #E8C547;
   transition: color 0.08s ease;
 }
-.title-item.is-flicker .title-item-label { border-bottom-color: #E8C547; }
+.title-item.is-flicker .title-item-label {
+  color: #E8C547;
+  text-shadow:
+    0 0 12px rgba(232, 197, 71, 0.7),
+    0 0 22px rgba(224, 123, 57, 0.4),
+    0 1px 0 #0B0C0A;
+}
 
 .title-settings, .title-jam {
   position: absolute;
@@ -1520,7 +1524,6 @@ html[data-text] #art-card {
     align-items: flex-start;
     padding-left: 16px;
   }
-  .title-menu-rule { margin-left: 8px; }
   .title-btns { align-items: flex-start; }
   .title-item { justify-content: flex-start; text-indent: 0; letter-spacing: 0.16em; min-height: 48px; padding-left: 12px; }
   .title-item-copy { align-items: flex-start; }
@@ -1533,6 +1536,9 @@ html[data-text] #art-card {
   .title-wordmark { margin-top: -22vh; }
   .title-item { min-height: 44px; font-size: 16px; }
   .title-menu { bottom: max(12px, var(--sab)); }
+  /* New Game+ makes the left column taller; keep the wordmark above Continue */
+  .title-screen.has-long-menu .title-wordmark { margin-top: -34vh; }
+  .title-screen.has-long-menu .title-item { min-height: 40px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1598,6 +1604,8 @@ html[data-text] #art-card {
 @media (orientation: portrait) and (max-width: 430px) {
   .title-screen.is-portrait-art .title-wordmark { top: calc(var(--sat) + 50px); }  /* dropped 40px: crisp below the top fade */
   .title-screen.is-portrait-art .title-veil { font-size: 66px; }
+  .title-item { min-height: 46px; font-size: 19px; }
+  .title-item-sub { font-size: 12px; margin-top: 1px; }
 }
 /* iPad portrait: same 36px drop, there is plenty of sky above the moon */
 @media (orientation: portrait) and (min-width: 431px) {
@@ -1645,6 +1653,11 @@ html[data-text] #art-card {
 .title-screen.is-portrait-art .title-art,
 .title-screen.is-portrait-art .title-fx {
   transform: translateY(calc(100vw * 0.2));
+}
+/* When New Game+ is on the list the menu is taller; lift the figure so her feet stay clear of it. */
+.title-screen.is-portrait-art.has-long-menu .title-art,
+.title-screen.is-portrait-art.has-long-menu .title-fx {
+  transform: translateY(calc(100vw * 0.08));
 }
 .title-screen.is-portrait-art .title-art-box { background: #000; }
 .title-screen.is-portrait-art .title-art,
@@ -2318,8 +2331,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
 .hv-cmap .cmap-close { position: absolute; z-index: 3; }
 .hv-cmap .cmap-zoom { position: absolute; z-index: 3; display: flex; flex-direction: column; gap: 6px; }
 .hv-cmap .cmap-zoom button {
-  width: 36px; height: 36px; border-radius: 50%; border: 2px solid #120c07; background: radial-gradient(circle at 40% 35%, #5a4128, #2a1c10);
-  color: #ead6a6; font: bold 20px/1 Palatino, Georgia, serif; box-shadow: 0 2px 4px rgba(0,0,0,0.6); padding: 0;
+  width: 40px; height: 40px; border-radius: 50%; border: 2px solid #120c07; background: radial-gradient(circle at 40% 35%, #5a4128, #2a1c10);
+  color: #ead6a6; font: bold 22px/1 Palatino, Georgia, serif; box-shadow: 0 2px 4px rgba(0,0,0,0.6); padding: 0;
 }
 .hv-cmap .cmap-zoom .cmap-me { background: radial-gradient(circle at 50% 45%, #ffd27a 0 4px, #8a5a20 5px, #2a1c10 9px); }
 .hv-cmap .cmap-key {
@@ -2361,8 +2374,11 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   .hv-cmap .cmap-key { font-size: 11px; gap: 2px 10px; }
   .hv-cmap .cmap-zoom button { width: 32px; height: 32px; font-size: 18px; }
 }
-.pack-topline .pack-coin { display: flex; align-items: center; gap: 12px; }
-.pack-topline .hv-pack-map { margin: 0; padding: 4px 12px !important; min-height: 32px; font-size: 13px; flex-shrink: 0; }
+.pack-topline .pack-coin { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; flex: 1 1 auto; }
+.pack-topline .hv-pack-map { margin: 0; padding: 4px 10px !important; min-height: 36px; font-size: 13px; flex: 0 1 auto; }
+@media (orientation: portrait) and (max-width: 430px) {
+  .pack-topline .hv-pack-map { padding: 4px 8px !important; font-size: 12px; }
+}
 
 /* hv50: kettle notes + Ila's Kettle Book */
 .hv-herb-wrap { position: relative; min-width: 0; width: 100%; }
@@ -2511,6 +2527,207 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   .hv-craft-foot .ink-btn { width: auto; flex: 1 1 30%; min-height: 36px; }
   .hv-kettle-note { padding: 4px 8px; font-size: 12.5px; margin: 3px 0; }
   .hv-craft .hv-more { display: none; }
+}
+
+
+/* ===== hv59: epilogue plates and a credits roll that feels earned ===== */
+.hv-epi, .hv-epi-plate, .hv-credits, .hv-tally {
+  width: min(520px, 94vw);
+  padding: 20px 22px 16px;
+  text-align: center;
+  box-sizing: border-box;
+}
+.hv-epi-enter {
+  animation: hv-epi-in 0.48s ease both;
+}
+@keyframes hv-epi-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hv-epi-enter { animation: none; }
+}
+.hv-epi-progress {
+  margin: 2px 0 0;
+  font: italic 12px/1.3 var(--title-font, Palatino, Georgia, serif);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #5A3A1E;
+  opacity: 0.8;
+}
+.hv-epi-title {
+  font-family: var(--title-font, Palatino, Georgia, serif);
+  font-size: 26px;
+  letter-spacing: 0.08em;
+  line-height: 1.15;
+  margin: 6px 0 10px;
+  color: #2E1607;
+}
+.hv-epi-plate .hv-frame,
+.hv-epi-plate .hv-frame.has-art,
+.hv-credits-plate .hv-frame,
+.hv-credits-plate .hv-frame.has-art {
+  width: min(100%, 420px);
+  margin: 0 auto 8px;
+  min-height: 168px;
+}
+.hv-epi-plate .hv-frame-art,
+.hv-epi-plate .hv-frame img,
+.hv-credits-plate .hv-frame-art,
+.hv-credits-plate .hv-frame img {
+  height: 200px;
+  object-fit: cover;
+}
+.hv-credits-mark { margin: 4px 0 10px; }
+.hv-credits-kicker {
+  font-family: var(--title-font, Palatino, Georgia, serif);
+  font-size: 15px;
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  text-transform: uppercase;
+  color: #2E1607;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.hv-credits-veil {
+  font-family: var(--title-font, Palatino, Georgia, serif);
+  font-size: 40px;
+  letter-spacing: 0.14em;
+  text-indent: 0.14em;
+  text-transform: uppercase;
+  color: #2E1607;
+  font-weight: 700;
+  line-height: 0.95;
+  margin: 2px 0 6px;
+}
+.hv-credits-ornament {
+  width: 7px; height: 7px; margin: 0 auto 8px;
+  background: #2E1607;
+  transform: rotate(45deg);
+}
+.hv-credits-sub {
+  font-family: var(--title-font, Palatino, Georgia, serif);
+  font-style: italic;
+  font-size: 15px;
+  margin: 0;
+  color: #5A3A1E;
+}
+.hv-credits-voice {
+  font: italic 16px/1.5 Palatino, Georgia, serif;
+  color: #3A2210;
+  text-align: left;
+  margin: 8px 4px 14px;
+}
+.hv-credits-roll {
+  text-align: left;
+  margin: 0 4px 12px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(46, 22, 7, 0.22);
+}
+.hv-credits-sec { margin: 0 0 12px; }
+.hv-credits-sec h3,
+.hv-credits-found h3 {
+  font-family: var(--title-font, Palatino, Georgia, serif);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #2E1607;
+  margin: 0 0 4px;
+}
+.hv-credits-sec p { margin: 0; font: 15px/1.45 Palatino, Georgia, serif; color: #3A2210; }
+.hv-credits-found {
+  flex-shrink: 0;
+  margin: 4px 0 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(46, 22, 7, 0.22);
+}
+.hv-found-seals {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 6px 0 0;
+  position: static;
+  left: auto; right: auto; bottom: auto;
+  min-height: 0;
+  pointer-events: none;
+  opacity: 1;
+}
+.hv-found-seals .te-plank {
+  background: linear-gradient(180deg, #6a4a2c, #4b321c);
+  border: 1px solid #2a1a0c;
+  box-shadow: inset 0 1px 0 rgba(255,236,200,0.18);
+  padding: 5px 9px;
+  border-radius: 3px;
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+.hv-found-seals .te-seal { width: 12px; height: 12px; flex: 0 0 12px; border-radius: 50%; display: inline-block; position: relative; }
+.hv-found-seals .te-seal.is-found { background: #9a3a22; box-shadow: inset 0 1px 0 rgba(255,214,170,0.35), 0 1px 1px rgba(0,0,0,0.35); }
+.hv-found-seals .te-seal.is-unknown { background: #24180e; box-shadow: inset 0 1px 2px rgba(0,0,0,0.7); }
+.hv-found-seals .te-seal.is-unknown::after {
+  content: '?'; position: absolute; inset: 0;
+  font: italic 8px/12px var(--title-font, Georgia, serif);
+  color: rgba(232,212,168,0.35); text-align: center;
+}
+.hv-found-seals .te-count {
+  font-family: var(--title-font, Palatino, Georgia, serif);
+  font-style: italic;
+  font-size: 13px;
+  color: #3A2210;
+  text-shadow: none;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .hv-epi, .hv-epi-plate, .hv-credits, .hv-tally { width: min(640px, 86vw); padding: 10px 16px 8px; }
+  .hv-epi-title { font-size: 20px; margin: 4px 0 6px; }
+  .hv-credits-veil { font-size: 28px; }
+  .hv-credits-voice { font-size: 14px; margin: 4px 0 8px; }
+  .hv-epi-plate .hv-frame-art, .hv-epi-plate .hv-frame img,
+  .hv-credits-plate .hv-frame-art, .hv-credits-plate .hv-frame img { height: 88px; }
+  .hv-epi-plate .hv-frame, .hv-credits-plate .hv-frame { min-height: 88px; margin-bottom: 4px; }
+  .hv-credits-sec { margin-bottom: 6px; }
+  .hv-credits-sec h3, .hv-credits-found h3 { font-size: 11px; }
+}
+
+/* credits: the roll scrolls in the body, buttons stay put so nothing is clipped under them */
+.hv-credits {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.hv-credits-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+.hv-credits .hv-epi-nav {
+  position: static;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+@media (orientation: portrait) and (max-width: 430px) {
+  .hv-credits-veil { font-size: 34px; }
+  .hv-credits-voice { font-size: 15px; margin: 4px 2px 10px; }
+  .hv-credits-plate .hv-frame-art,
+  .hv-credits-plate .hv-frame img { height: 140px; }
+  .hv-credits-plate .hv-frame { min-height: 140px; margin-bottom: 4px; }
+  .hv-credits-sec { margin-bottom: 8px; }
+  .hv-credits-found { margin: 2px 0 8px; }
+}
+
+/* hv59: short landscape pause — header already has Resume, so drop the duplicate and tighten so Settings and Title stay in reach */
+@media (orientation: landscape) and (max-height: 500px) {
+  #pmain { display: none; }
+  #pgrid { margin-top: 4px !important; gap: 5px !important; }
+  #psave { gap: 4px !important; }
+  #pend { margin-top: 6px !important; }
+  .hv-scroll-panel .hv-next-slate { margin-bottom: 6px !important; }
 }
 
 </style>
@@ -19832,7 +20049,6 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         +   '<div class="title-sub">A Tale of the Ozark Hills</div>'
         + '</div>'
         + '<nav class="title-menu">'
-        +   '<div class="title-menu-rule" aria-hidden="true"></div>'
         +   '<div class="title-btns" id="title-btns">' + menu + '</div>'
         + '</nav>'
         + '<button type="button" class="title-settings" data-act="settings" aria-label="Settings">'
@@ -19850,6 +20066,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         +     '</div>'
         +   '</div>'
         + '</div>';
+      if (handlers.hasNgPlus) p.classList.add('has-long-menu');
       const flicker = (btn) => {
         if (!btn) return;
         btn.classList.add('is-flicker');
@@ -26347,15 +26564,43 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     show(game, ending, handlers) {
       handlers = handlers || {};
       const slides = HV.Chapters.slides(game.state, ending);
+      try { if (HV.EndingsFound && HV.EndingsFound.record) HV.EndingsFound.record(ending); } catch (e) { /* tally still works without it */ }
       let i = 0, tallied = false;
+      const artId = (ids) => {
+        for (let n = 0; n < ids.length; n++) {
+          if (ids[n] && HV.Art && HV.Art.has && HV.Art.has(ids[n])) return ids[n];
+        }
+        return ids[0] || null;
+      };
       const paintCredits = () => {
         const p = document.createElement('div');
-        p.className = 'wood-panel hv-epi hv-scroll-panel hv-credits';
-        p.style.cssText = 'width:min(520px,94vw);padding:20px 22px 16px;text-align:center';
-        p.innerHTML = '<h1 style="margin:10px 0 8px;font-size:26px">THE HOLLOW VEIL</h1>'
-          + '<p class="hv-epi-line">A telling of the Ozark hills.</p>'
-          + '<p class="hv-epi-line">The marks, the people who keep them, and the road you walked.</p>'
-          + '<p class="hv-epi-line">Thank you for seeing it through to the end.</p>'
+        p.className = 'wood-panel hv-epi hv-scroll-panel hv-credits hv-epi-enter';
+        const plate = artId(['epilogue_' + (ending || 'seal') + '_5', 'epilogue_' + (ending || 'seal') + '_1', 'title_keyart']);
+        const hasArt = !!(plate && HV.artUrl && HV.artUrl(plate));
+        const fates = (HV.Companions && HV.Companions.fates && HV.Companions.fates(game.state, ending)) || [];
+        const names = fates.filter((f) => (f.approval || 0) >= 20 || f.rank === 'Kindred' || f.rank === 'Warm').slice(0, 8).map((f) => f.name);
+        const walked = names.length ? names.join(' · ') : 'A lantern, and the road.';
+        const found = (HV.EndingsFound && HV.EndingsFound.sealsHtml)
+          ? HV.EndingsFound.sealsHtml({ className: 'hv-found-seals', always: true, current: ending })
+          : '';
+        if (HV.UI && HV.UI.hideTouch) HV.UI.hideTouch();
+        p.innerHTML = '<div class="hv-credits-body"><div class="hv-credits-plate">'
+          + HV.woodcutFrame({ art: hasArt ? plate : null, label: '', mono: '✦', sub: 'The last plate' })
+          + '</div>'
+          + '<div class="hv-credits-mark">'
+          +   '<div class="hv-credits-kicker">The Hollow</div>'
+          +   '<div class="hv-credits-veil">Veil</div>'
+          +   '<div class="hv-credits-ornament" aria-hidden="true"></div>'
+          +   '<p class="hv-credits-sub">A telling of the Ozark hills</p>'
+          + '</div>'
+          + '<p class="hv-credits-voice">You walked the marks by lantern-light and sat the telling out to its last word. The porch will keep the rest. Thank you for staying till the hills went quiet.</p>'
+          + '<div class="hv-credits-roll">'
+          +   '<div class="hv-credits-sec"><h3>The County</h3><p>Yarrow Crossing, Ila\'s spring, the Devil\'s Promenade, the drowned bells, and the limestone under the hills.</p></div>'
+          +   '<div class="hv-credits-sec"><h3>Walked with you</h3><p>' + walked + '</p></div>'
+          +   '<div class="hv-credits-sec"><h3>The Telling</h3><p>Written in porch-light, for whoever keeps the marks next.</p></div>'
+          + '</div>'
+          + '</div>'
+          + (found ? '<div class="hv-credits-found"><h3>Endings found</h3>' + found + '</div>' : '')
           + '<div class="hv-epi-nav">'
           + '<button class="ink-btn gold" id="ng" style="width:100%">New Game+</button>'
           + '<button class="ink-btn ghost" id="done" style="width:100%">Title</button>'
@@ -26372,10 +26617,13 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         const s = slides[i];
         const hasArt = !!(s.art && HV.artUrl && HV.artUrl(s.art));
         const p = document.createElement('div');
-        p.className = 'wood-panel hv-epi hv-scroll-panel';
-        p.style.cssText = 'width:min(520px,94vw);padding:20px 22px 16px;text-align:center';
-        p.innerHTML = HV.woodcutFrame({ art: hasArt ? s.art : null, label: '', mono: '✦', sub: 'A plate of the telling' })
-          + '<h1 style="margin:10px 0 8px;font-size:26px">' + s.title + '</h1>'
+        p.className = 'wood-panel hv-epi hv-scroll-panel hv-epi-plate hv-epi-enter';
+        if (HV.UI && HV.UI.hideTouch) HV.UI.hideTouch();
+        p.innerHTML = '<div class="hv-epi-plate-art">'
+          + HV.woodcutFrame({ art: hasArt ? s.art : null, label: '', mono: '✦', sub: 'A plate of the telling' })
+          + '</div>'
+          + '<p class="hv-epi-progress">' + (i + 1) + ' of ' + slides.length + '</p>'
+          + '<h1 class="hv-epi-title">' + s.title + '</h1>'
           + '<p class="hv-epi-line">' + s.line + '</p>'
           + '<div class="hv-epi-nav">'
           + '<button class="ink-btn gold" id="next" style="width:100%">Continue</button>'
@@ -28772,7 +29020,19 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       beastsSeen, beastsAll, pages: (s.journal || []).length,
       coins: Math.round(st.coins || 0), deaths: st.deaths || 0,
       walked: walked.map(compName),
-      difficulty: (HV.diffName ? HV.diffName(s.difficulty) : (s.difficulty || 'Normal')), diffId: s.difficulty || 'hollow'
+      difficulty: (HV.diffName ? HV.diffName(s.difficulty) : (s.difficulty || 'Normal')), diffId: s.difficulty || 'hollow',
+      endingsFound: (function () {
+        const E = HV.EndingsFound;
+        if (!E || !E.ORDER) return '';
+        const total = E.ORDER.length;
+        let n = 0;
+        try { n = E.count() || 0; } catch (e) { n = 0; }
+        if (ending && E.ORDER.indexOf(ending) >= 0 && n < total) {
+          const have = (E.read && E.read()) || {};
+          if (!have[ending]) n += 1;
+        }
+        return n ? (n + ' of ' + total) : '';
+      })()
     };
   };
   T.closing = function (t) {
@@ -28797,6 +29057,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       + row('Coins earned', t.coins + '¢')
       + row('Times you fell', t.deaths)
       + row('Walked with you', t.walked.length ? t.walked.length : 'nobody', t.walked.join(' · '))
+      + (t.endingsFound ? row('Endings found', t.endingsFound) : '')
       + '</div>'
       + '<p class="tl-close">' + esc(T.closing(t)) + '</p>';
   };
@@ -28805,6 +29066,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     const p = document.createElement('div');
     p.className = 'wood-panel hv-tally hv-scroll-panel';
     p.innerHTML = T.html(t) + '<div class="hv-epi-nav"><button class="ink-btn gold" id="tally-next" style="width:100%">Continue</button></div>';
+    if (HV.UI && HV.UI.hideTouch) HV.UI.hideTouch();
     if (HV.UI && HV.UI.showOverlay) HV.UI.showOverlay(p, false);
     p.querySelector('#tally-next').addEventListener('click', () => { if (next) next(); });
     return t;
@@ -30878,17 +31140,22 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       return E.ORDER.map((id) => ({ id, found: !!f[id], title: f[id] ? HV.ENDINGS[id].title : null }));
     },
     count() { return E.list().filter((x) => x.found).length; },
-    html() {
-      const l = E.list(), n = l.filter((x) => x.found).length;
-      if (!n) return '';
-      const cap = (t) => t.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-      return '<div class="title-endings" role="img" aria-label="Endings found: ' + n + ' of ' + l.length + '">'
+    sealsHtml(opts) {
+      opts = opts || {};
+      const l = E.list();
+      if (opts.current) l.forEach((x) => { if (x.id === opts.current) x.found = true; });
+      const n = l.filter((x) => x.found).length;
+      if (!n && !opts.always) return '';
+      const cap = (t) => (t || '').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+      const cls = opts.className || 'title-endings';
+      return '<div class="' + cls + '" role="img" aria-label="Endings found: ' + n + ' of ' + l.length + '">'
         + '<span class="te-plank">'
         + l.map((x) => x.found
           ? '<span class="te-seal is-found te-' + x.id + '" title="' + cap(x.title) + '"></span>'
           : '<span class="te-seal is-unknown" title="Not yet found"></span>').join('')
         + '</span><span class="te-count">' + n + ' of ' + l.length + ' endings</span></div>';
     },
+    html() { return E.sealsHtml(); },
   };
 
   const G = HV.Game;
