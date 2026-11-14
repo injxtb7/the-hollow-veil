@@ -2145,6 +2145,35 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-saved-tick { display: none; 
 .title-item-primary .title-flame { position: absolute; right: 100%; top: 50%; margin: 0 12px 0 0; transform: translateY(-58%); }
 .title-item-copy { align-items: center; text-align: center; }
 
+/* ---------- feel: typing line, carved area plank ---------- */
+#dialog.is-typing .choices { opacity: 0.32; pointer-events: none; transition: none; }
+#dialog .choices { transition: opacity 0.25s ease; }
+#hv-plank {
+  position: fixed; left: 50%; top: calc(var(--sat, env(safe-area-inset-top, 0px)) + 24vh);
+  z-index: 19; pointer-events: none; opacity: 0;
+  transform: translate(-50%, -26px) rotate(-1.2deg);
+  padding: 9px 40px 10px; max-width: calc(100vw - 40px);
+  border-radius: 3px 5px 4px 3px;
+  background:
+    radial-gradient(circle at 15px 50%, #2A1A10 0 3px, #8B7660 3.5px, transparent 4.5px),
+    radial-gradient(circle at calc(100% - 15px) 50%, #2A1A10 0 3px, #8B7660 3.5px, transparent 4.5px),
+    repeating-linear-gradient(178deg, rgba(40,20,8,0) 0 5px, rgba(40,20,8,0.13) 5px 6px, rgba(40,20,8,0) 6px 11px),
+    var(--paper-noise),
+    var(--rw-plank);
+  box-shadow: inset 0 1px 0 rgba(255,220,170,0.35), inset 0 -2px 0 rgba(30,14,4,0.5), inset 0 0 0 1px rgba(30,14,4,0.6), 0 8px 18px rgba(0,0,0,0.55);
+  transition: opacity 0.35s ease, transform 0.45s cubic-bezier(.2,.9,.3,1.2);
+}
+#hv-plank.on { opacity: 1; transform: translate(-50%, 0) rotate(-1.2deg); }
+#hv-plank.still { transition: opacity 0.35s ease; transform: translate(-50%, 0) rotate(-1.2deg); }
+#hv-plank .pk-name {
+  display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: var(--title-font); font-size: 20px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: #24120A;
+  text-shadow: 0 1px 0 rgba(255,214,160,0.45), 0 -1px 0 rgba(20,8,2,0.7);
+}
+body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
+@media (orientation: landscape) and (max-height: 520px) { #hv-plank { top: calc(var(--sat, env(safe-area-inset-top, 0px)) + 12px); } #hv-plank .pk-name { font-size: 17px; } }
+
 </style>
 </head>
 <body>
@@ -22027,7 +22056,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-saved-tick { display: none; 
           const x = en.x - camX, y = en.y - camY;
           HV.Render.creature(ctx, x, y, en.id, {
             facing: en.facing, tint: en.tint, glow: en.glow, t: now, scale: en.boss ? 1 : 1,
-            tags: en.tags, boss: en.boss,
+            tags: en.tags, boss: en.boss, en: en,
           });
           const near = Math.hypot(en.x - s.world.x, en.y - s.world.y) < 150;
           if (en.alive && (near || en.hp < en.hpMax || en.boss)) {
@@ -27392,6 +27421,258 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-saved-tick { display: none; 
     const start = () => TitleInk._obs.observe(document.body, { childList: true, subtree: true });
     if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
     let tm = 0; root.addEventListener('resize', () => { clearTimeout(tm); tm = setTimeout(() => TitleInk.schedule(), 150); });
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ==== 28-feel.js ==== */
+/* THE HOLLOW VEIL — feel: hit pause, struck-white flash, knockback, collapse, damage chips,
+   typewriter talk with voice blips, and carved area-name planks */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const hasDoc = typeof document !== 'undefined';
+  const light = () => !!(HV.LowFx && HV.LowFx.on && HV.LowFx.on());
+  const reduced = () => { try { return !!(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } };
+  const Feel = HV.Feel = { HITSTOP: 0.035, HITSTOP_HEAVY: 0.055, FLASH: 0.12, KNOCK: 150, DIE: 0.65 };
+
+  /* ================= 1. hit feel ================= */
+  const G = HV.Game;
+  Feel.onStrike = function (game, attacker, target, res) {
+    if (!game || !game.state || !target || !res || attacker !== game.state.hero) return;
+    if (!(game.entities || []).includes(target)) return;
+    const heavy = !!(res.crit || res.killed || (target.hpMax && res.dmg >= target.hpMax * 0.25) || target.boss && res.dmg >= 20);
+    target._flashT = Feel.FLASH;
+    /* small knockback away from Lara; bosses barely budge */
+    const dx = target.x - game.state.world.x, dy = target.y - game.state.world.y, d = Math.hypot(dx, dy) || 1;
+    const k = Feel.KNOCK * (target.boss ? 0.25 : 1) * (heavy ? 1.35 : 1);
+    target._kbx = dx / d * k; target._kby = dy / d * k * 0.6; target._kbT = 0.12;
+    /* 2–3 frame pause */
+    game._hitstop = Math.max(game._hitstop || 0, heavy ? Feel.HITSTOP_HEAVY : Feel.HITSTOP);
+    if (heavy && !light() && game.shakeNow) game.shakeNow(3, 0.1);
+    Feel.lastHeavy = heavy;
+  };
+  if (HV.resolveStrike && !HV.resolveStrike._feel) {
+    const _rs = HV.resolveStrike;
+    HV.resolveStrike = function (attacker, target) {
+      const res = _rs.apply(this, arguments);
+      try { Feel.onStrike(HV.Game, attacker, target, res); } catch (e) { /* never break a fight */ }
+      return res;
+    };
+    HV.resolveStrike._feel = true;
+  }
+  const groundOk = (area, x, y) => (HV.Followers && HV.Followers.groundOk) ? HV.Followers.groundOk(area, x, y) : true;
+  Feel.stepKnock = function (game, dt) {
+    (game.entities || []).forEach((en) => {
+      if (en._flashT > 0) en._flashT = Math.max(0, en._flashT - dt);
+      if (!(en._kbT > 0)) return;
+      en._kbT -= dt;
+      const nx = en.x + en._kbx * dt, ny = en.y + en._kby * dt;
+      if (groundOk(game.area, nx, en.y)) en.x = nx;
+      if (groundOk(game.area, en.x, ny)) en.y = ny;
+      en._kbx *= 0.8; en._kby *= 0.8;
+    });
+  };
+  if (G && G.tick && !G.tick._feel) {
+    const _tick = G.tick;
+    G.tick = function (dt) {
+      if (this._hitstop > 0 && this.mode === 'play') {   /* the world holds its breath for a few frames */
+        this._hitstop = Math.max(0, this._hitstop - dt);
+        (this.entities || []).forEach((en) => { if (en._flashT > 0) en._flashT = Math.max(0, en._flashT - dt * 0.5); });
+        return;
+      }
+      _tick.call(this, dt);
+      if (this.state && this.mode === 'play') Feel.stepKnock(this, dt);
+      if (this.state) Plank.tick(this, dt);
+    };
+    G.tick._feel = true;
+  }
+  /* foes collapse instead of vanishing */
+  if (G && G.onKill && !G.onKill._feel) {
+    const _ok = G.onKill;
+    G.onKill = function (en) {
+      if (en) { en._deadT = Feel.DIE; en._dieMax = Feel.DIE; en._kbT = 0; }
+      const r = _ok.apply(this, arguments);
+      if (en && this.burst && !light()) this.burst(en.x, en.y + 10, 'rgba(120,100,80,0.7)', 6, 'glow');
+      return r;
+    };
+    G.onKill._feel = true;
+  }
+  /* the creature drawer: struck-white silhouette and the collapse */
+  let off = null;
+  Feel.drawWhite = function (ctx, draw, x, y, alpha) {
+    if (!hasDoc) return;
+    const tr = ctx.getTransform(), sc = Math.hypot(tr.a, tr.b) || 1, S = Math.ceil(300 * sc);
+    if (!off) off = document.createElement('canvas');
+    if (off.width < S || off.height < S) { off.width = S; off.height = S; }
+    const o = off.getContext('2d');
+    o.setTransform(1, 0, 0, 1, 0, 0); o.globalCompositeOperation = 'source-over'; o.clearRect(0, 0, S, S);
+    o.setTransform(tr.a, tr.b, tr.c, tr.d, S / 2 - (tr.a * x + tr.c * y), S * 0.62 - (tr.b * x + tr.d * y));
+    draw(o);
+    o.setTransform(1, 0, 0, 1, 0, 0); o.globalCompositeOperation = 'source-in';
+    o.fillStyle = '#FBF4E4'; o.fillRect(0, 0, S, S);
+    const dx = tr.a * x + tr.c * y + tr.e - S / 2, dy = tr.b * x + tr.d * y + tr.f - S * 0.62;
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = alpha; ctx.drawImage(off, 0, 0, S, S, dx, dy, S, S); ctx.restore();
+  };
+  if (HV.Render && HV.Render.creature && !HV.Render.creature._feel) {
+    const _cr = HV.Render.creature;
+    HV.Render.creature = function (ctx, x, y, id, opts) {
+      const en = opts && opts.en;
+      if (!en) return _cr.apply(this, arguments);
+      const self = this, args = arguments;
+      if (!en.alive && en._dieMax) {
+        const p = Math.max(0, Math.min(1, 1 - (en._deadT || 0) / en._dieMax));
+        ctx.save();
+        ctx.globalAlpha *= Math.max(0, 1 - p * p);
+        ctx.translate(x, y + 18);
+        ctx.rotate((en.facing >= 0 ? -1 : 1) * p * 0.35);
+        ctx.scale(1 + p * 0.22, Math.max(0.15, 1 - p * 0.78));
+        ctx.translate(-x, -(y + 18));
+        _cr.apply(self, args);
+        ctx.restore();
+        return;
+      }
+      const r = _cr.apply(this, arguments);
+      if (en._flashT > 0 && !light()) {
+        const a = Math.min(1, en._flashT / Feel.FLASH) * 0.85;
+        try { Feel.drawWhite(ctx, (c) => _cr.call(self, c, x, y, id, opts), x, y, a); } catch (e) { /* ignore */ }
+      }
+      return r;
+    };
+    HV.Render.creature._feel = true;
+  }
+  /* damage numbers: a carved, inked figure that pops then settles */
+  if (G && G._drawFloater && !G._drawFloater._feel) {
+    const _df = G._drawFloater;
+    G._drawFloater = function (ctx, f, sx, sy, pal) {
+      const raw = String(f.text || '');
+      if (f.kind !== 'num' || !/^[+-]?\d+$/.test(raw)) return _df.apply(this, arguments);
+      const life = 0.9, age = life - f.t, pop = age < 0.12 ? 1.45 - age * 3.75 : 1;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, f.t > 0.6 ? 1 : f.t / 0.6));
+      ctx.translate(sx, sy); ctx.scale(pop, pop); ctx.rotate(-0.06);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+      ctx.font = 'bold 17px Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif';
+      /* a hand-printed offset under-ink, then the ink outline, then the colour */
+      ctx.fillStyle = 'rgba(20,15,12,0.85)'; ctx.fillText(raw, 1.4, 1.6);
+      ctx.lineWidth = 4; ctx.strokeStyle = pal.ink; ctx.strokeText(raw, 0, 0);
+      ctx.fillStyle = f.color || pal.parchment; ctx.fillText(raw, 0, 0);
+      ctx.lineWidth = 0.8; ctx.strokeStyle = 'rgba(20,15,12,0.55)';
+      ctx.beginPath(); const w = ctx.measureText(raw).width; ctx.moveTo(-w / 2, 9); ctx.lineTo(w / 2 + 2, 8); ctx.stroke();
+      ctx.restore();
+    };
+    G._drawFloater._feel = true;
+  }
+
+  /* ================= 2. typewriter talk with voice blips ================= */
+  const VOICES = [
+    [/under-stone|under stone/i, { f: 70, v: 0.18, type: 'sine' }],
+    [/dark hat/i, { f: 95, v: 0.22, type: 'triangle' }],
+    [/peck|raider|captain/i, { f: 92, v: 0.15, type: 'triangle' }],
+    [/granny|\bila\b|calva|widow/i, { f: 205, v: 0.12, type: 'triangle' }],
+    [/josie|mara|tamsen|hitch|girl|lara/i, { f: 250, v: 0.14, type: 'triangle' }],
+    [/otto|cole|ferryman|old christmas|linwood|beek/i, { f: 112, v: 0.1, type: 'triangle' }],
+    [/preacher|cald|sexton|\brue\b|sheriff|wren|\blen\b/i, { f: 138, v: 0.12, type: 'triangle' }],
+    [/haint|wight|shade|ghost/i, { f: 300, v: 0.25, type: 'sine' }]
+  ];
+  const Talk = HV.Talk = { CPS: 60, BLIP_EVERY: 3, active: null };
+  Talk.voiceFor = function (who) {
+    const s = String(who || '');
+    for (const [re, v] of VOICES) if (re.test(s)) return v;
+    return { f: 160, v: 0.12, type: 'triangle' };
+  };
+  Talk.blip = function (voice, i) {
+    const A = HV.Audio;
+    if (!A || !A.tone || A.muted || (A.isMuted && A.isMuted())) return;
+    const wob = Math.sin(i * 2.1) * voice.v + Math.sin(i * 0.7) * voice.v * 0.5;
+    try { A.tone(voice.f * (1 + wob), null, 0.045, voice.type, 0.025); } catch (e) { /* audio locked */ }
+  };
+  Talk.finish = function () {
+    const t = Talk.active; if (!t) return false;
+    clearInterval(t.timer); t.line.textContent = t.text; t.dlg.classList.remove('is-typing');
+    Talk.active = null; return true;
+  };
+  Talk.start = function (dlg, node) {
+    Talk.finish();
+    const line = dlg && dlg.querySelector('.line');
+    if (!line || !node || !node.text) return;
+    const text = String(node.text);
+    if (reduced() || text.length < 2) return;
+    /* the full line reserves the box size, so nothing jumps while it types */
+    line.style.minHeight = line.offsetHeight + 'px';
+    dlg.classList.add('is-typing');
+    const voice = Talk.voiceFor(node.who);
+    const t = Talk.active = { dlg, line, text, i: 0, voice, timer: 0 };
+    line.textContent = '';
+    const step = 1 / Talk.CPS * 1000;
+    let last = Date.now(), acc = 0;
+    t.timer = setInterval(() => {
+      const now = Date.now(); acc += now - last; last = now;
+      let n = Math.floor(acc / step); if (!n) return; acc -= n * step;
+      while (n-- > 0 && t.i < text.length) {
+        const ch = text[t.i++];
+        if (/[A-Za-z]/.test(ch) && t.i % Talk.BLIP_EVERY === 0) Talk.blip(voice, t.i);
+        if (/[.,!?;:—]/.test(ch)) { acc -= step * (ch === ',' ? 2 : 5); break; }   /* a porch pause on punctuation */
+      }
+      line.textContent = text.slice(0, t.i);
+      if (t.i >= text.length) Talk.finish();
+    }, 16);
+  };
+  if (HV.UI && HV.UI.showDialog && !HV.UI.showDialog._talk && hasDoc) {
+    const _sd = HV.UI.showDialog;
+    HV.UI.showDialog = function (node) {
+      const r = _sd.apply(this, arguments);
+      try { Talk.start(this.dialog, node); } catch (e) { /* show the plain line */ }
+      return r;
+    };
+    HV.UI.showDialog._talk = true;
+    const _hd = HV.UI.hideDialog;
+    HV.UI.hideDialog = function () { Talk.finish(); return _hd.apply(this, arguments); };
+    /* tap once finishes the line (and swallows the tap); tap again on the words takes the only way on */
+    document.addEventListener('pointerdown', (e) => {
+      const dlg = HV.UI.dialog; if (!dlg || dlg.classList.contains('hidden') || !dlg.contains(e.target)) return;
+      if (Talk.active) { Talk.finish(); e.preventDefault(); e.stopPropagation(); Talk._swallow = Date.now(); return; }
+    }, true);
+    document.addEventListener('click', (e) => {
+      const dlg = HV.UI.dialog; if (!dlg || dlg.classList.contains('hidden') || !dlg.contains(e.target)) return;
+      if (Talk._swallow && Date.now() - Talk._swallow < 600) { e.preventDefault(); e.stopPropagation(); Talk._swallow = 0; return; }
+      if (e.target.closest('button')) return;
+      const btns = dlg.querySelectorAll('.choices button');
+      if (btns.length === 1) btns[0].click();
+    }, true);
+  }
+
+  /* ================= 3. carved area-name planks ================= */
+  const Plank = HV.Plank = { pending: null, shownFor: null, el: null, T: 2.4 };
+  Plank.nameFor = (area) => (area && (area.name || area.label)) || '';
+  Plank.queue = function (area) { if (area && area.id !== Plank.shownFor) Plank.pending = area; };
+  Plank.show = function (area) {
+    Plank.pending = null; Plank.shownFor = area.id;
+    if (!hasDoc || !document.body) return true;
+    let el = Plank.el || document.getElementById('hv-plank');
+    if (!el) { el = document.createElement('div'); el.id = 'hv-plank'; el.setAttribute('aria-live', 'polite'); el.innerHTML = '<span class="pk-name"></span>'; document.body.appendChild(el); }
+    Plank.el = el;
+    el.querySelector('.pk-name').textContent = Plank.nameFor(area);
+    el.classList.toggle('still', reduced() || light());
+    el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+    clearTimeout(Plank._t); Plank._t = setTimeout(() => el.classList.remove('on'), Plank.T * 1000);
+    return true;
+  };
+  /* show once play resumes (after a chapter card or talk), never over the title */
+  Plank.tick = function (game) {
+    if (Plank.pending && game.mode === 'play' && !game.preview && game.area && game.area.id === Plank.pending.id) Plank.show(Plank.pending);
+    if (Plank.pending && game.area && game.area.id !== Plank.pending.id) Plank.pending = null;
+    if (Plank.el && game.mode !== 'play' && Plank.el.classList.contains('on')) Plank.el.classList.remove('on');
+  };
+  if (G && G.enterArea && !G.enterArea._plank) {
+    const _ea = G.enterArea;
+    G.enterArea = function (id) {
+      const prev = this.area && this.area.id;
+      const r = _ea.apply(this, arguments);
+      if (this.area && this.area.id !== prev && Plank.nameFor(this.area)) Plank.queue(this.area);
+      return r;
+    };
+    G.enterArea._plank = true;
   }
 })(typeof window !== 'undefined' ? window : globalThis);
 
