@@ -2140,6 +2140,11 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 /* the tick never sits over the title wordmark (a save just before Title) */
 body:has(#overlay-root.title-mode:not(.hidden)) #hv-saved-tick { display: none; }
 
+/* ---- title: CONTINUE and its save line sit dead centre; the candle hangs to the left without pushing them ---- */
+.title-item-main { position: relative; }
+.title-item-primary .title-flame { position: absolute; right: 100%; top: 50%; margin: 0 12px 0 0; transform: translateY(-58%); }
+.title-item-copy { align-items: center; text-align: center; }
+
 </style>
 </head>
 <body>
@@ -27324,6 +27329,69 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-saved-tick { display: none; 
       ctx.strokeStyle = HV.PAL.ink; ctx.lineWidth = 1; ctx.strokeRect(px - 2, py - 2, 5, 5);
     };
     HV.Game.drawMinimap._cache = true;
+  }
+
+  /* ---------- 6. title: ink corners, a tight lantern warmth and one paper grain (portrait key art only) ---------- */
+  const TitleInk = HV.TitleInk = {
+    INK: [4, 4, 9], AMBER: [221, 163, 109],                 /* sampled from the key art itself */
+    apply(screen) {
+      if (!hasDoc || !screen) return false;
+      const box = screen.querySelector('.title-art-box'), im = screen.querySelector('.title-art');
+      box && box.querySelectorAll('.title-ink').forEach((e) => e.remove());
+      if (!box || !im || !screen.classList.contains('is-portrait-art') || !im.naturalWidth) return false;
+      const br = box.getBoundingClientRect(), W = br.width, H = br.height;
+      if (W < 50 || H < 50) return false;
+      const dpr = Math.min(2, root.devicePixelRatio || 1);
+      const layer = (blend, op) => {
+        const c = document.createElement('canvas'); c.className = 'title-ink'; c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+        Object.assign(c.style, { position: 'absolute', left: '0', top: '0', width: W + 'px', height: H + 'px', pointerEvents: 'none', mixBlendMode: blend, opacity: String(op) });
+        box.appendChild(c); const x = c.getContext('2d'); x.scale(dpr, dpr); return x;
+      };
+      const r = im.getBoundingClientRect(), nw = im.naturalWidth, nh = im.naturalHeight;
+      const s = Math.max(r.width / nw, r.height / nh), ox = r.left - br.left - (nw * s - r.width) / 2, oy = r.top - br.top;
+      const P = (u, v) => [ox + u * s, oy + v * s];
+      const rgba = (c, a) => 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')';
+      const ell = (x, cx, cy, rx, ry, stops) => {
+        x.save(); x.translate(cx, cy); x.scale(1, ry / rx);
+        const g = x.createRadialGradient(0, 0, 0, 0, 0, rx); stops.forEach(([o, col]) => g.addColorStop(o, col));
+        x.fillStyle = g; x.fillRect(-rx, -rx, rx * 2, rx * 2); x.restore();
+      };
+      const INK = TitleInk.INK, AMBER = TitleInk.AMBER, R = Math.max(W, H * 0.46);
+      /* bottom corners in the print's own blue-black, so its rocks and grass frame Lara */
+      const v = layer('normal', 1);
+      [0, W].forEach((cx) => ell(v, cx, H, R * 0.95, R * 0.8, [[0, rgba(INK, 0.95)], [0.45, rgba(INK, 0.72)], [1, rgba(INK, 0)]]));
+      ell(v, W / 2, H + R * 0.15, R * 0.9, R * 0.35, [[0, rgba(INK, 0.58)], [1, rgba(INK, 0)]]);
+      /* lantern warmth at her boots and the lamp, blended so the engraved lines show through */
+      const [lx, ly] = P(708, 1032), [fx, fy] = P(570, 1290);
+      const gl = layer('soft-light', 1);
+      ell(gl, lx, ly, 90 * s, 90 * s, [[0, rgba(AMBER, 1)], [0.5, rgba(AMBER, 0.6)], [1, rgba(AMBER, 0)]]);
+      ell(gl, fx, fy, 220 * s, 66 * s, [[0, rgba(AMBER, 1)], [0.55, rgba(AMBER, 0.52)], [1, rgba(AMBER, 0)]]);
+      const go = layer('overlay', 0.72);
+      ell(go, fx, fy, 175 * s, 50 * s, [[0, rgba(AMBER, 1)], [1, rgba(AMBER, 0)]]);
+      ell(go, lx, ly, 64 * s, 64 * s, [[0, rgba(AMBER, 1)], [1, rgba(AMBER, 0)]]);
+      /* one neutral paper grain over the whole print */
+      const N = 192, g = document.createElement('canvas'); g.width = N; g.height = N;
+      const gx = g.getContext('2d'), id = gx.createImageData(N, N); let q = 12345;
+      for (let i = 0; i < N * N; i++) { q = (q * 1103515245 + 12345) & 0x7fffffff; const t = 108 + ((q >> 8) % 41); id.data[i * 4] = t + 3; id.data[i * 4 + 1] = t + 1; id.data[i * 4 + 2] = t - 3; id.data[i * 4 + 3] = 255; }
+      gx.putImageData(id, 0, 0);
+      const gr = layer('soft-light', 0.45); gr.fillStyle = gr.createPattern(g, 'repeat'); gr.fillRect(0, 0, W, H);
+      return true;
+    },
+    schedule() {
+      if (!hasDoc) return;
+      const run = () => { const sc = document.getElementById('title-screen'); if (!sc) return; const im = sc.querySelector('.title-art');
+        if (im && !im.complete) { im.addEventListener('load', () => TitleInk.apply(sc), { once: true }); return; }
+        TitleInk.apply(sc); };
+      setTimeout(run, 0); setTimeout(run, 120);
+    }
+  };
+  /* watch for the title screen instead of wrapping showTitle (its source is checked by tests) */
+  if (hasDoc && typeof MutationObserver !== 'undefined' && !TitleInk._obs) {
+    let seen = null;
+    TitleInk._obs = new MutationObserver(() => { const sc = document.getElementById('title-screen'); if (sc && sc !== seen) { seen = sc; TitleInk.schedule(); } else if (!sc) seen = null; });
+    const start = () => TitleInk._obs.observe(document.body, { childList: true, subtree: true });
+    if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+    let tm = 0; root.addEventListener('resize', () => { clearTimeout(tm); tm = setTimeout(() => TitleInk.schedule(), 150); });
   }
 })(typeof window !== 'undefined' ? window : globalThis);
 
