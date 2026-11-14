@@ -1742,6 +1742,367 @@ html[data-text] #art-card {
   height: auto;
 }
 
+/* ================================================================
+   THE HOLLOW VEIL: rustic menus
+   Barnwood frames with iron nails, burned-in headers, plank buttons,
+   brass plates lit like a lantern, leather and tin tabs, tacked notes.
+   Layered after game.css; no images, only CSS and small inline SVGs.
+   ================================================================ */
+:root {
+  --rw-frame: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'><defs><linearGradient id='a' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23775235'/><stop offset='.55' stop-color='%235C3E26'/><stop offset='1' stop-color='%23452D1B'/></linearGradient><linearGradient id='b' x1='0' y1='0' x2='1' y2='0'><stop offset='0' stop-color='%236E4A2F'/><stop offset='.55' stop-color='%23573A23'/><stop offset='1' stop-color='%23402A19'/></linearGradient><radialGradient id='n' cx='.38' cy='.32' r='.7'><stop offset='0' stop-color='%23E4DCCB'/><stop offset='.35' stop-color='%23928A7C'/><stop offset='.8' stop-color='%23302A24'/><stop offset='1' stop-color='%23161210'/></radialGradient></defs><rect width='96' height='96' fill='url(%23a)'/><path d='M0 0H96L64 32H32Z' fill='url(%23a)'/><path d='M0 96H96L64 64H32Z' fill='%233E2818'/><path d='M0 0V96L32 64V32Z' fill='url(%23b)'/><path d='M96 0V96L64 64V32Z' fill='%23422B1A'/><path d='M0 0L32 32M96 0L64 32M0 96L32 64M96 96L64 64' stroke='%23140C06' stroke-width='1.6' stroke-opacity='.8'/><path d='M8 10Q48 7 88 11M14 21Q48 24 82 20M8 86Q48 89 88 85M10 8Q7 48 11 88M85 8Q88 48 84 88' stroke='%23B08858' stroke-opacity='.22' fill='none' stroke-width='1.2'/><rect x='1' y='1' width='94' height='94' fill='none' stroke='%23100A05' stroke-width='2'/><rect x='31' y='31' width='34' height='34' fill='none' stroke='%23E8C890' stroke-opacity='.35'/><g stroke='%23120C08' stroke-width='.8'><circle cx='15' cy='15' r='4.4' fill='url(%23n)'/><circle cx='81' cy='15' r='4.4' fill='url(%23n)'/><circle cx='15' cy='81' r='4.4' fill='url(%23n)'/><circle cx='81' cy='81' r='4.4' fill='url(%23n)'/></g></svg>");
+  --rw-divider: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='16' preserveAspectRatio='none'><path d='M10 8H310' stroke='%23321E10' stroke-width='3.4' stroke-linecap='round'/><path d='M10 7H310' stroke='%23D8B070' stroke-opacity='.35' stroke-width='1'/><g fill='%23423026' stroke='%23140C08' stroke-width='.8'><circle cx='14' cy='8' r='3.6'/><circle cx='306' cy='8' r='3.6'/></g><path d='M160 1L167 8L160 15L153 8Z' fill='%23B8862E' stroke='%23201208' stroke-width='1.2'/></svg>");
+  --rw-plank: linear-gradient(180deg, #8C6442 0%, #73502F 46%, #5B3D24 100%);
+  --rw-nail: radial-gradient(circle, #DCD3C2 0, #8E867A 1.3px, #2A2420 2.6px, rgba(0,0,0,0) 3.2px);
+}
+
+/* the room behind a menu goes dark at the edges, like a lamp-lit cabin */
+#overlay-root:not(.title-mode):not(.worldmap-mode):not(.hidden) {
+  background: radial-gradient(ellipse at 50% 42%, rgba(20,12,6,0.35) 0%, rgba(8,5,3,0.78) 78%);
+}
+
+/* ---------- the frame ---------- */
+.wood-panel {
+  border: 17px solid transparent;
+  border-image: var(--rw-frame) 31 / 17px round;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,226,160,0.32) 0%, rgba(255,226,160,0) 55%),
+    radial-gradient(ellipse at 0% 100%, rgba(92,48,14,0.32) 0%, rgba(92,48,14,0) 45%),
+    radial-gradient(ellipse at 100% 100%, rgba(92,48,14,0.28) 0%, rgba(92,48,14,0) 45%),
+    var(--paper-noise),
+    linear-gradient(180deg, #F2DDB0 0%, #E9CC92 55%, #DCB574 100%);
+  background-clip: padding-box;
+  box-shadow:
+    inset 0 0 0 1px rgba(60,32,12,0.55),
+    inset 0 0 28px rgba(110,62,18,0.42),
+    inset 0 18px 22px -16px rgba(60,30,8,0.55),
+    0 14px 30px rgba(0,0,0,0.6),
+    0 2px 0 rgba(0,0,0,0.5);
+}
+
+/* burned-in headers with an iron rule under them */
+.wood-panel h2,
+.hv-panel-head h2 {
+  font-family: var(--title-font);
+  color: #2E1607;
+  letter-spacing: 0.16em;
+  text-shadow: 0 1px 0 rgba(255,238,196,0.65), 0 -1px 0 rgba(70,30,6,0.45), 0 0 10px rgba(120,52,12,0.18);
+}
+.hv-panel-head {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  background: var(--rw-divider) center bottom / 100% 16px no-repeat;
+  border-bottom: 0 !important;
+}
+
+/* section labels carved into the board, with a rule trailing off */
+.wood-panel div.caps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #5A2C0E;
+  font-weight: bold;
+  letter-spacing: 0.16em;
+  text-shadow: 0 1px 0 rgba(255,236,190,0.55);
+}
+.wood-panel div.caps::before {
+  content: '';
+  width: 8px; height: 8px;
+  flex: 0 0 8px;
+  transform: rotate(45deg);
+  background: linear-gradient(135deg, #E2B04A, #8E6418);
+  border: 1px solid #2A1608;
+}
+.wood-panel div.caps::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(70,40,18,0.75), rgba(70,40,18,0));
+}
+
+/* ---------- plank buttons, nailed at both ends ---------- */
+.ink-btn {
+  position: relative;
+  border: 2px solid #22140A;
+  border-radius: 5px;
+  background:
+    var(--rw-nail) 6px 50% / 8px 8px no-repeat,
+    var(--rw-nail) calc(100% - 6px) 50% / 8px 8px no-repeat,
+    linear-gradient(180deg, rgba(255,255,255,0) 0 30%, rgba(255,220,160,0.06) 30% 34%, rgba(255,255,255,0) 34% 64%, rgba(0,0,0,0.07) 64% 68%, rgba(255,255,255,0) 68%),
+    var(--rw-plank);
+  color: #F4E6C6;
+  font-weight: bold;
+  letter-spacing: 0.13em;
+  padding-left: 15px !important;
+  padding-right: 15px !important;
+  text-shadow: 0 1px 0 #170C05, 0 0 6px rgba(0,0,0,0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255,222,170,0.35),
+    inset 0 -2px 0 rgba(0,0,0,0.32),
+    0 3px 0 #170C05,
+    0 6px 10px rgba(0,0,0,0.32);
+  transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.ink-btn:hover, .ink-btn:focus {
+  background:
+    var(--rw-nail) 6px 50% / 8px 8px no-repeat,
+    var(--rw-nail) calc(100% - 6px) 50% / 8px 8px no-repeat,
+    var(--rw-plank);
+  color: #FFF2D6;
+  filter: brightness(1.08);
+  outline: none;
+}
+.ink-btn:active {
+  transform: translateY(3px);
+  box-shadow: inset 0 1px 0 rgba(255,222,170,0.25), inset 0 2px 6px rgba(0,0,0,0.35), 0 0 0 #170C05;
+}
+.ink-btn:disabled, .ink-btn[disabled] { filter: grayscale(0.6) brightness(0.8); opacity: 0.6; }
+
+/* brass plate, lit like a lantern is close by */
+.ink-btn.gold {
+  background:
+    radial-gradient(circle, #4A3418 0, #2A1A08 1.4px, rgba(0,0,0,0) 2.4px) 6px 50% / 8px 8px no-repeat,
+    radial-gradient(circle, #4A3418 0, #2A1A08 1.4px, rgba(0,0,0,0) 2.4px) calc(100% - 6px) 50% / 8px 8px no-repeat,
+    linear-gradient(180deg, #F6D980 0%, #D9A640 42%, #A7742A 100%);
+  color: #2A1406;
+  text-shadow: 0 1px 0 rgba(255,244,210,0.7);
+  border-color: #3A2208;
+  box-shadow:
+    inset 0 1px 0 rgba(255,250,220,0.8),
+    inset 0 -2px 0 rgba(90,50,10,0.45),
+    0 3px 0 #2A1606,
+    0 0 16px rgba(255,186,80,0.45),
+    0 6px 10px rgba(0,0,0,0.32);
+}
+.ink-btn.gold:hover, .ink-btn.gold:focus {
+  background: linear-gradient(180deg, #FBE296 0%, #E0B04C 42%, #AE7C2E 100%);
+  color: #2A1406;
+}
+
+/* oiled leather strap */
+.ink-btn.ghost {
+  background: linear-gradient(180deg, #6A4030 0%, #4C2C1C 100%);
+  color: #EED8B0;
+  border-color: #1E1008;
+  outline: 1px dashed rgba(238,210,160,0.45);
+  outline-offset: -6px;
+  box-shadow: inset 0 1px 0 rgba(255,210,170,0.2), 0 3px 0 #140A04, 0 6px 10px rgba(0,0,0,0.3);
+}
+.ink-btn.ghost:hover, .ink-btn.ghost:focus { background: linear-gradient(180deg, #774A38 0%, #55321F 100%); color: #FFF0D0; outline: 1px dashed rgba(238,210,160,0.6); outline-offset: -6px; }
+
+/* barn-red painted board */
+.ink-btn.ember {
+  background:
+    var(--rw-nail) 6px 50% / 8px 8px no-repeat,
+    var(--rw-nail) calc(100% - 6px) 50% / 8px 8px no-repeat,
+    linear-gradient(180deg, #A84A24 0%, #8A3418 60%, #6A2610 100%);
+  color: #FBE8CC;
+}
+
+/* ---------- tabs: leather, the open one is tin under lamplight ---------- */
+.hv-tabs { gap: 5px !important; border-bottom: 3px solid #3A2414; padding-bottom: 0 !important; }
+.hv-tab {
+  background: linear-gradient(180deg, #6E4228 0%, #4C2A18 100%) !important;
+  color: #EBD3A8 !important;
+  border: 2px solid #20120A !important;
+  border-bottom: 0 !important;
+  border-radius: 7px 7px 0 0 !important;
+  outline: 1px dashed rgba(236,206,150,0.38);
+  outline-offset: -5px;
+  text-shadow: 0 1px 0 #140A04;
+  box-shadow: inset 0 1px 0 rgba(255,214,170,0.22);
+  letter-spacing: 0.1em;
+}
+.hv-tab.on {
+  background: linear-gradient(180deg, #F2D486 0%, #C8963A 60%, #9C6C24 100%) !important;
+  color: #2A1406 !important;
+  text-shadow: 0 1px 0 rgba(255,244,210,0.7);
+  outline-color: rgba(70,40,10,0.35);
+  box-shadow: 0 0 14px rgba(255,186,80,0.5), inset 0 1px 0 rgba(255,250,220,0.8);
+  transform: translateY(1px);
+}
+
+/* ---------- notes tacked to the board ---------- */
+.hv-card {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 100% 100%, rgba(120,70,20,0.18) 0%, rgba(120,70,20,0) 50%),
+    linear-gradient(180deg, #FBF0D6 0%, #F1E0B8 100%) !important;
+  border: 1px solid rgba(70,40,14,0.45) !important;
+  border-radius: 2px;
+  box-shadow: 0 2px 0 rgba(60,34,12,0.25), 0 4px 10px rgba(40,20,6,0.25);
+}
+.hv-card::before {
+  content: '';
+  position: absolute;
+  top: -5px; left: 50%;
+  width: 10px; height: 10px; margin-left: -5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #F6E2A0 0, #C08A2E 45%, #5A3A10 100%);
+  border: 1px solid #2A1608;
+  box-shadow: 0 2px 2px rgba(0,0,0,0.35);
+}
+.hv-card.main {
+  background: linear-gradient(180deg, #FCE9B4 0%, #F2D58C 100%) !important;
+  box-shadow: 0 0 0 2px #B8862E, 0 0 18px rgba(255,186,80,0.5), 0 4px 10px rgba(40,20,6,0.25);
+}
+
+/* ---------- the "next" slate, framed in wood ---------- */
+.hv-hint, .hv-next-slate {
+  border: 5px solid #5A3A22 !important;
+  border-radius: 4px;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 60%),
+    linear-gradient(180deg, #34322E 0%, #26241F 100%) !important;
+  color: #EEE6D4 !important;
+  box-shadow: inset 0 0 0 1px #1A1008, inset 0 2px 8px rgba(0,0,0,0.6), 0 2px 0 #1A1008;
+  text-shadow: 0 0 1px rgba(238,230,212,0.35);
+}
+.hv-hint .caps, .hv-next-slate .caps { color: #E2B04A !important; }
+
+/* ---------- sliders: a rope and a brass knob ---------- */
+.wood-panel input[type="range"]::-webkit-slider-runnable-track {
+  height: 9px; border-radius: 5px; border: 1px solid #3A2414;
+  background: repeating-linear-gradient(60deg, #C8A066 0 4px, #94703C 4px 7px);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.35);
+}
+.wood-panel input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 26px; height: 26px; margin-top: -10px; border-radius: 50%;
+  border: 2px solid #2A1608;
+  background: radial-gradient(circle at 35% 30%, #FCE6A6 0, #D4A040 45%, #7A5216 100%);
+  box-shadow: 0 2px 3px rgba(0,0,0,0.45), 0 0 10px rgba(255,186,80,0.35);
+}
+
+/* ---------- dialogue: a porch sign with a burned nameplate ---------- */
+#dialog {
+  border: 15px solid transparent !important;
+  border-image: var(--rw-frame) 31 / 15px round !important;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,226,160,0.3) 0%, rgba(255,226,160,0) 55%),
+    var(--paper-noise),
+    linear-gradient(180deg, #F2DDB0 0%, #E6C68A 100%) !important;
+  background-clip: padding-box !important;
+  box-shadow: inset 0 0 26px rgba(110,62,18,0.4), 0 14px 30px rgba(0,0,0,0.6) !important;
+}
+#dialog .who {
+  display: inline-block;
+  padding: 3px 14px 3px;
+  border: 2px solid #22140A;
+  border-radius: 3px;
+  background: var(--rw-plank);
+  color: #F4E6C6 !important;
+  text-shadow: 0 1px 0 #170C05;
+  box-shadow: inset 0 1px 0 rgba(255,222,170,0.3), 0 2px 0 #170C05;
+  font-variant: small-caps;
+}
+#dialog .line { color: #24160C; }
+#dialog .choices button {
+  position: relative;
+  background: linear-gradient(180deg, #FBF0D6 0%, #EFDDB4 100%) !important;
+  border: 1px solid #6E4C30 !important;
+  border-left: 7px solid #6E4C30 !important;
+  border-radius: 2px 6px 6px 2px;
+  box-shadow: 0 2px 0 rgba(60,34,12,0.35), 0 3px 8px rgba(40,20,6,0.22);
+  color: #24160C;
+  transition: transform 0.06s ease, box-shadow 0.12s ease;
+}
+#dialog .choices button:hover, #dialog .choices button:focus {
+  background: linear-gradient(180deg, #FDEFC6 0%, #F3D892 100%) !important;
+  box-shadow: 0 0 0 1px #B8862E, 0 0 14px rgba(255,186,80,0.45);
+  outline: none;
+}
+#dialog .choices button:active { transform: translateX(3px); }
+#dialog .portrait-wrap canvas, #dialog .portrait-wrap img {
+  border: 3px solid #3A2414 !important;
+  box-shadow: 0 0 0 2px #B8862E, 0 4px 10px rgba(0,0,0,0.45) !important;
+}
+
+/* ---------- title menu: a weathered sign hung on two ropes ---------- */
+.title-btns {
+  position: relative;
+  padding: 10px 18px 12px;
+  border: 2px solid #1A0F08;
+  border-radius: 6px;
+  background:
+    var(--rw-nail) 12px 12px / 8px 8px no-repeat,
+    var(--rw-nail) calc(100% - 12px) 12px / 8px 8px no-repeat,
+    var(--rw-nail) 12px calc(100% - 12px) / 8px 8px no-repeat,
+    var(--rw-nail) calc(100% - 12px) calc(100% - 12px) / 8px 8px no-repeat,
+    linear-gradient(180deg, rgba(0,0,0,0) 0 49%, rgba(10,6,3,0.55) 49% 51%, rgba(0,0,0,0) 51%),
+    linear-gradient(180deg, #4E3420 0%, #3A2616 55%, #2A1B10 100%);
+  box-shadow: inset 0 1px 0 rgba(255,214,160,0.18), 0 10px 24px rgba(0,0,0,0.6), 0 0 40px rgba(255,170,70,0.10);
+  width: min(300px, 86vw) !important;
+}
+.title-btns::before, .title-btns::after {
+  content: '';
+  position: absolute;
+  top: -26px;
+  width: 4px; height: 28px;
+  background: repeating-linear-gradient(170deg, #B89060 0 3px, #7A5A34 3px 6px);
+  border-radius: 2px;
+}
+.title-btns::before { left: 26%; }
+.title-btns::after { right: 26%; }
+.title-menu-rule { display: none; }
+.title-item { color: rgba(244,228,196,0.82); text-shadow: 0 2px 0 #0B0704, 0 0 10px rgba(0,0,0,0.6); }
+.title-item-primary { color: #FBEBC6; }
+.title-item-primary .title-item-label { border-bottom: 0; box-shadow: none; }
+
+/* ---------- scroll unroll rods (see 26-polish.js) ---------- */
+.hv-scroll-rod {
+  position: fixed;
+  height: 14px;
+  border-radius: 7px;
+  pointer-events: none;
+  z-index: 60;
+  background:
+    radial-gradient(circle at 50% 50%, #E2C080 0, #8E6232 60%, #3A2412 100%) left center / 18px 18px no-repeat,
+    radial-gradient(circle at 50% 50%, #E2C080 0, #8E6232 60%, #3A2412 100%) right center / 18px 18px no-repeat,
+    linear-gradient(180deg, #A07444 0%, #6E4A28 55%, #3E2814 100%);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+}
+@media (prefers-reduced-motion: reduce) { .hv-scroll-rod { display: none; } }
+
+/* sticky panel heads keep the lamp-lit paper and gain the iron rule */
+.hv-scroll-panel .hv-panel-head {
+  background:
+    var(--rw-divider) center bottom 2px / calc(100% - 36px) 14px no-repeat,
+    linear-gradient(180deg, #F4E0B4 0%, #ECD39E 100%);
+  border-bottom: 0;
+  padding-bottom: 16px;
+  box-shadow: 0 6px 8px -6px rgba(60,30,8,0.35);
+}
+/* equipped slots read like brass-edged hooks on the wall */
+.eq-row {
+  border: 1px solid rgba(70,40,14,0.55) !important;
+  border-left: 5px solid #8E6232 !important;
+  border-radius: 2px 5px 5px 2px;
+  background: linear-gradient(180deg, rgba(255,246,222,0.75), rgba(240,220,176,0.75));
+  box-shadow: 0 2px 0 rgba(60,34,12,0.2);
+}
+.eq-row:active { background: linear-gradient(180deg, #FDEFC6, #F3D892); }
+
+.hv-scroll-panel .hv-panel-head h2 { letter-spacing: 0.1em; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+.hv-scroll-panel .hv-panel-x { padding-left: 14px !important; padding-right: 14px !important; }
+/* the pause grid: a lone last plank spans the row; small save planks drop their nails */
+#pgrid > .ink-btn:last-child:nth-child(odd) { grid-column: 1 / -1; }
+#psave .ink-btn { padding-left: 6px !important; padding-right: 6px !important; background: var(--rw-plank); white-space: nowrap; }
+#psave .ink-btn:hover { background: var(--rw-plank); }
+.settings-panel .ink-btn { white-space: nowrap; padding-left: 10px !important; padding-right: 10px !important; }
+
+/* phone portrait: the portrait tucks in at the top-left and the words wrap around it,
+   so a longer porch-story line never pushes the choices out of reach */
+@media (orientation: portrait) and (max-width: 430px) {
+  #dialog.with-portrait { display: block; }
+  #dialog .portrait-wrap { float: left; width: 84px; margin: 0 12px 6px 0; }
+  #dialog .portrait-wrap canvas, #dialog .portrait-wrap img { width: 84px !important; height: 84px !important; }
+  #dialog .dlg-body { display: block; }
+  #dialog .who { margin-bottom: 6px; }
+  #dialog .line { font-size: 16.5px; line-height: 1.42; }
+  #dialog .choices { clear: both; padding-top: 4px; }
+}
+
 </style>
 </head>
 <body>
@@ -13976,7 +14337,7 @@ html[data-text] #art-card {
       { id: 'joint_snake', x: 30, y: 14 }, { id: 'feral_hog', x: 12, y: 22 },
     ],
     chests: [{ id: 'glade_chest', x: 18, y: 10, table: 'chest' }],
-    caches: [{ id: 'glade_cache', x: 8, y: 8, table: 'cache', hidden: true }],
+    caches: [{ id: 'glade_cache', x: 36, y: 18, table: 'cache', oil: true }],
     herbs: [{ x: 22, y: 18, id: 'snakeroot' }, { x: 40, y: 12, id: 'cedar' }, { x: 14, y: 30, id: 'yarrow' }],
   });
 
@@ -15421,8 +15782,8 @@ html[data-text] #art-card {
     title: 'A LETTER',
     body: [
       'Lara,',
-      'The hills have gone thin. The marks on Widow\'s Bluff are scored through, and the river has been sending up eyeless fish. I am too old to walk all the county myself.',
-      'Come home to Yarrow Crossing. I will want a word.',
+      'The hills have gone thin, child. Somebody\'s scored through the marks on Widow\'s Bluff, and the river\'s sending up fish with no eyes. I\'m too old to walk the whole county myself, and I don\'t trust nobody else to.',
+      'Come on home to Yarrow Crossing. The kettle\'s on, and I\'ll want a word.',
     ],
     signed: 'Ila',
   };
@@ -15550,22 +15911,22 @@ html[data-text] #art-card {
 
   D.ila = {
     start: (s) => s.flags.ila_briefed ? 'later' : 'first',
-    first: node('Granny Ila', 'I know your walk, even if the years have changed the shoulders. The letter was mine. The marks on Widow\'s Bluff are scored through, and the river has been sending up eyeless fish. The Veil is thinning, and I am too old to walk all the hills.', [
+    first: node('Granny Ila', 'Well, look who the road give back. I\'d know that walk anywhere, child, even if the years have squared your shoulders some. Yes, the letter was mine. Somebody\'s scored clean through the marks on Widow\'s Bluff, and the river\'s been sending up fish with no eyes in their heads. The Veil\'s wearing thin as a feed sack, and these old knees can\'t walk all these hills no more.', [
       { t: 'Tell me what you need.', next: 'need', set: { met_ila: true } },
       { t: 'The preacher will have a different story.', next: 'need', set: { met_ila: true, asked_cald: true } },
     ]),
-    need: node('Granny Ila', 'Walk the bluff and read what is left of the mark. Walk the Promenade after dusk and see whether that light still has no hand under it. Look at the churchyard stone. Then we will talk of mending — not burning, whatever Cald says.', [
+    need: node('Granny Ila', 'Go up the bluff and read what\'s left of that mark. Walk the Promenade after dusk and see if that light\'s still floating along with no hand under it. Have a look at the churchyard stone while you\'re at it. Then we\'ll talk about mending. Mending, mind you, not burning, whatever Cald tells you.', [
       { t: 'I\'ll walk them.', next: null, set: { ila_briefed: true }, startQuest: 'the_thinning', advance: { id: 'the_thinning', to: 1 } },
     ]),
     later: {
       who: 'Granny Ila',
       textFn: (s) => {
         if (s.flags.bluff_seen && s.flags.promenade_seen && s.flags.church_seen && !s.flags.chose_ila && !s.flags.chose_cald && !s.flags.chose_peck) {
-          return 'You have seen the three wounds. I can teach you to mend the marks. Cald will want a fire. Peck will want a county with no sheriff in it. I am asking you to mend.';
+          return 'So you\'ve seen all three wounds. I can teach you to mend them marks. Now, Cald\'ll want a bonfire, and Peck\'ll want a county with no sheriff in it. Me, I\'m just an old woman asking you to mend.';
         }
-        if (s.flags.chose_ila) return 'Then we mend. There are signs yet to gather in the mine and under the karst. Come to my cabin if you want the old work, the shawl and the satchel and the talking of fire.';
-        if (!s.flags.bluff_seen) return 'The bluff first. The mark is on the lip, scratched like a mean child did it.';
-        return 'Keep walking. The hills will tell you when you are ready to choose.';
+        if (s.flags.chose_ila) return 'Then we mend, and I thank you. There\'s signs left to gather down in the mine and under the karst. Come by my cabin when you want the old work: the shawl, the satchel, and the talking of fire.';
+        if (!s.flags.bluff_seen) return 'Bluff first, honey. The mark\'s right up on the lip, scratched up like some mean young\'un went at it with a nail.';
+        return 'Keep on walking. These hills\'ll let you know when you\'re ready to choose. They always do.';
       },
       choicesFn: (s) => {
         const c = [];
@@ -15580,10 +15941,10 @@ html[data-text] #art-card {
         return c;
       },
     },
-    shawl: node('Granny Ila', 'Haint-blue, the porch-ceiling color. There is a folded shawl in my cabin, dyed the old way. Take it, if you will do the walking.', [
+    shawl: node('Granny Ila', 'Haint-blue, same as you paint a porch ceiling so the spirits think it\'s sky. There\'s a shawl folded up in my cabin, dyed the old way. It\'s yours if you\'ll do the walking.', [
       { t: 'I\'ll go to the cabin.', next: null, set: { porch_offered: true }, startQuest: 'porch_paint' },
     ]),
-    satchel: node('Granny Ila', 'Not for free. Bring me sang and snakeroot from these hills — three of each — and the satchel may change hands.', [
+    satchel: node('Granny Ila', 'Now, I don\'t give nothing away for free, and you oughtn\'t either. Bring me sang and snakeroot out of these hills, three of each, and we\'ll see about that satchel.', [
       { t: 'I\'ll forage them.', next: null, startQuest: 'ilas_debt' },
     ]),
   };
@@ -15592,7 +15953,7 @@ html[data-text] #art-card {
     start: (s) => 'home',
     home: {
       who: 'Granny Ila',
-      textFn: (s) => 'The spring is still clean, thank the marks that remain. Sit if you want. The kettle knows you.',
+      textFn: (s) => 'The spring\'s still running clean, thanks to the marks that held. Pull up a chair if you want. The kettle remembers you.',
       choicesFn: (s) => {
         const c = [];
         if (s.quests.porch_paint && !HV.questDone(s, 'porch_paint')) {
@@ -15608,33 +15969,33 @@ html[data-text] #art-card {
         return c;
       },
     },
-    pay: node('Granny Ila', 'You found the patches. Good. The satchel is stubborn, but it will open for you. There is always a sprig in it. Do not ask me how.', [
+    pay: node('Granny Ila', 'Found the patches, did you? Good. That satchel\'s stubborn as a mule, but it\'ll open for you. You\'ll always find a sprig in it. Don\'t ask me how, because I couldn\'t tell you.', [
       { t: 'Thank you, Ila.', next: null, takeHerbs: { sang: 3, snakeroot: 3 }, give: 'ila_yarb_satchel', advance: { id: 'ilas_debt', to: 1 } },
     ]),
-    fire: node('Granny Ila', 'The verse is older than the county book. Learn it, then go see Beek. He burned himself on a heat at the mill that was not an honest fire.', [
+    fire: node('Granny Ila', 'That verse is older than the county book. Learn it good, then go see Beek. He burnt himself at the mill on a heat that weren\'t no honest fire.', [
       { t: 'I\'ll go to Beek.', next: null, set: { fire_taught: true }, startQuest: 'talk_the_fire' },
     ]),
-    snakes: node('Granny Ila', 'Joint-snakes, and maybe a hoop if the old story is walking. Bring me a piece, and I will pay you in ring and staff-wood.', [
+    snakes: node('Granny Ila', 'Joint-snakes, and maybe a hoop snake too, if the old story\'s out walking. Bring me a piece and I\'ll pay you in a ring and some good staff-wood.', [
       { t: 'I\'ll see to the glade.', next: null, startQuest: 'joint_snake_creek' },
     ]),
-    deer: node('Granny Ila', 'The Snawfus. A white deer with flowering antlers, leaving blue smoke. I do not want it killed. I want to know if the smoke is still blue. Walk the white-stag woods, and be gentle if you can.', [
+    deer: node('Granny Ila', 'That\'d be the Snawfus. A white deer with flowers blooming in its antlers, leaving blue smoke wherever it goes. I don\'t want it killed, now. I just want to know if that smoke\'s still blue. Walk the white-stag woods, and go gentle if you can.', [
       { t: 'I\'ll look.', next: null, startQuest: 'white_deer' },
     ]),
   };
 
   D.cald = {
     start: (s) => s.flags.met_cald ? 'later' : 'first',
-    first: node('Preacher Cald', 'You came back on a thin week. I have been holding services with more light than scripture. Ila will tell you to mend old witch-marks. I tell you they have failed, and fire is cleaner than thread.', [
+    first: node('Preacher Cald', 'You picked a thin week to come home. I\'ve been preaching by more lamplight than scripture lately. Ila will tell you to mend them old witch-marks. I\'ll tell you straight: they\'ve failed, and fire\'s cleaner than thread.', [
       { t: 'I\'ll hear both of you.', next: null, set: { met_cald: true } },
       { t: 'Fire has a cost.', next: 'cost', set: { met_cald: true } },
     ]),
-    cost: node('Preacher Cald', 'Everything has a cost. I buried two of the drowned-shore names this year that the water should have kept. If you quiet the churchyard at night and bring me a hymn-book from that shore, I will trust you with the revival lamp.', [
+    cost: node('Preacher Cald', 'Everything costs something. I buried two names off that drowned shore this year that the water ought to have kept. You quiet the churchyard at night and bring me a hymn-book off that shore, and I\'ll trust you with the revival lamp.', [
       { t: 'I can do that.', next: null, startQuest: 'congregation_lamp' },
       { t: 'Not yet.', next: null },
     ]),
     later: {
       who: 'Preacher Cald',
-      textFn: (s) => s.flags.chose_cald ? 'Then we burn the thin places shut. Some gentle things may go. I will not pretend otherwise.' : 'The congregation still comes, though they sit near the aisle lamps now.',
+      textFn: (s) => s.flags.chose_cald ? 'Then we burn the thin places shut. Some gentle things may go with them. I won\'t pretend otherwise.' : 'Folks still come of a Sunday. They just sit closer to the aisle lamps than they used to.',
       choicesFn: (s) => {
         const c = [];
         if (s.flags.bluff_seen && s.flags.promenade_seen && s.flags.church_seen && !s.flags.chose_ila && !s.flags.chose_cald && !s.flags.chose_peck) {
@@ -15651,7 +16012,7 @@ html[data-text] #art-card {
     oc: node('Preacher Cald', 'The sixth of January, the older holy night. Bring a cedar bough from the High Ledge and sit the church quiet. I will pay you with a band that holds a lantern\'s heat.', [
       { t: 'I\'ll bring the bough.', next: null, startQuest: 'old_christmas' },
     ]),
-    lamppay: node('Preacher Cald', 'The pages are swollen, but the words are still the words. Take the revival lamp. It throws a narrow, sure beam. Haints hate it, and so they should.', [
+    lamppay: node('Preacher Cald', 'Pages are swole up, but the words are still the words. Take the revival lamp. It throws a narrow beam, but a sure one. Haints hate it, and well they should.', [
       { t: 'I will carry it carefully.', next: null, give: 'congregation_lamp', take: 'hymn_book', advance: { id: 'congregation_lamp', to: 1 } },
     ]),
     ocpay: node('Preacher Cald', 'Sharp-smelling, cut honest. Wear this band. It holds a lantern\'s heat on the older holy night.', [
@@ -15661,14 +16022,14 @@ html[data-text] #art-card {
 
   D.wren = {
     start: (s) => s.flags.met_wren ? 'later' : 'first',
-    first: node('Sheriff Wren', 'I remember you well enough. I would like this to be a quiet month, and it will not be. Peck\'s riders are back on Bald Knob, and I cannot spare a deputy. Also I will not write "Howler" in a report, but the ridge has been loud.', [
+    first: node('Sheriff Wren', 'I remember you well enough. I was hoping for a quiet month, and I ain\'t going to get one. Peck\'s riders are back up on Bald Knob, and I can\'t spare a deputy. And I won\'t write "Howler" in any report of mine, but I\'ll say that ridge has been awful loud.', [
       { t: 'I can walk the knob.', next: null, set: { met_wren: true }, startQuest: 'peck_problem' },
       { t: 'I can walk the ridge.', next: null, set: { met_wren: true }, startQuest: 'howler_hunt' },
       { t: 'I\'ll see what I can do.', next: null, set: { met_wren: true } },
     ]),
     later: {
       who: 'Sheriff Wren',
-      textFn: () => 'If you find Peck, I will not ask you to be gentle. If you find the Howler, I will not believe you at the office, but I will at the door.',
+      textFn: () => 'If you find Peck, I won\'t ask you to be gentle. If you find the Howler, I won\'t believe a word of it down at the office. I will at my front door, though.',
       choicesFn: (s) => {
         const c = [];
         if (!s.quests.peck_problem) c.push({ t: 'Tell me about Peck.', next: 'peck' });
@@ -15677,42 +16038,42 @@ html[data-text] #art-card {
         return c;
       },
     },
-    peck: node('Sheriff Wren', 'Jonas Peck talks like a lawman and rides like a knobber. Bald Knob, after dark. Come back with more than a rumor.', [
+    peck: node('Sheriff Wren', 'Jonas Peck talks like a lawman and rides like a Bald Knobber. Go up there after dark, and bring me back more than a rumor.', [
       { t: 'I\'ll go.', next: null, startQuest: 'peck_problem' },
     ]),
-    howl: node('Sheriff Wren', 'Howler Run, under the ridgetop. Walk it and come home if you can.', [
+    howl: node('Sheriff Wren', 'Howler Run, just under the ridgetop. Walk it, and come home if you can manage it.', [
       { t: 'I\'ll walk it.', next: null, startQuest: 'howler_hunt' },
     ]),
   };
 
   D.mara = {
     start: (s) => HV.questDone(s, 'widows_lantern') ? 'done' : (s.quests.widows_lantern ? 'wait' : 'ask'),
-    ask: node('Widow Mara', 'My porch light went out the night the river turned, and it will not take a match. There is lamp-oil hidden in a cedar-glade cache, if you have the eyes for hidden things, and there has been a dog at the stoop that is not a dog.', [
+    ask: node('Widow Mara', 'My porch light went out the night the river turned, and it won\'t take a match since. There\'s lamp-oil tucked in a cache out in the cedar glade, and you\'ll see it shining if you look. And there\'s been a dog at my stoop that ain\'t no dog.', [
       { t: 'I\'ll fetch the oil.', next: null, startQuest: 'widows_lantern' },
       { t: 'I\'m sorry for your trouble.', next: null },
     ]),
-    wait: node('Widow Mara', 'It is a poor welcome, a dark porch. I will sleep better when it is lit.', [
+    wait: node('Widow Mara', 'A dark porch makes a poor welcome. I\'ll sleep a sight better once it\'s lit.', [
       { t: 'I have the oil.', next: 'pay', needFlag: 'mara_oil' },
       { t: 'Still looking.', next: null },
     ]),
-    pay: node('Widow Mara', 'Bless you. Take my walking stick. It plants itself when the wind comes off the bluff, and I do not climb the bluff anymore.', [
+    pay: node('Widow Mara', 'Bless your heart. Here, take my walking stick. It plants itself when the wind comes off the bluff, and Lord knows I don\'t climb that bluff no more.', [
       { t: 'I\'ll keep it well.', next: null, give: 'widows_walking_stick', advance: { id: 'widows_lantern', to: 2 }, set: { mara_lit: true } },
     ]),
-    done: node('Widow Mara', 'The porch is honest again. Thank you.', [{ t: 'Take care, Mara.', next: null }]),
+    done: node('Widow Mara', 'My porch is honest again. Thank you, child.', [{ t: 'Take care, Mara.', next: null }]),
   };
 
   D.otto = {
     start: (s) => HV.questDone(s, 'yocum_dollar') ? 'shop' : (HV.hasItem(s, 'dowsing_rod_yocum') ? 'trade' : 'shop'),
-    shop: node('Otto the Storekeep', 'Powder, twine, oil, and gossip. I have a soft-struck dollar in the till I swear is Yocum silver. The rest of that mine was never found honest.', [
+    shop: node('Otto the Storekeep', 'Powder, twine, lamp-oil, and gossip, and the gossip comes free. Got a soft-struck dollar in my till I\'d swear on my mama is Yocum silver. Nobody ever did find the rest of that mine, not honest anyhow.', [
       { t: 'Let me see what you sell.', next: null, shop: true },
       { t: 'Tell me about the Yocum dollar.', next: 'yocum' },
       { t: 'Another time.', next: null },
     ]),
-    yocum: node('Otto the Storekeep', 'If you find the vault under the lead camp, or a rod that will point you there, I will make you a fair trade — the dollar itself, even. I have always wanted the story more than the coin.', [
+    yocum: node('Otto the Storekeep', 'You find that vault under the lead camp, or a rod that\'ll point you to it, and I\'ll trade you fair. The dollar itself, even. Truth is, I always wanted the story more than the coin.', [
       { t: 'I\'ll look into it.', next: null, startQuest: 'yocum_dollar' },
       { t: 'Let me shop first.', next: null, shop: true },
     ]),
-    trade: node('Otto the Storekeep', 'That rod is twitching toward my till. Fair is fair. The dollar is yours, and may it make every shelf a little kinder.', [
+    trade: node('Otto the Storekeep', 'Well, look at that rod twitching at my till. Fair\'s fair. The dollar\'s yours, and may it make every shelf you meet a little kinder.', [
       { t: 'A fair trade.', next: null, give: 'yocum_dollar', advance: { id: 'yocum_dollar', to: 2 } },
       { t: 'Let me see the shelf first.', next: null, shop: true },
     ]),
@@ -15720,7 +16081,7 @@ html[data-text] #art-card {
 
   D.len = {
     start: (s) => 'inn',
-    inn: node('Len the Innkeep', 'Rooms, stew, and a glass ball that rolled off my mantel the night the marks failed. A witch ball, Ila called it. I would like it blessed at the church, or worn by someone braver than I am.', [
+    inn: node('Len the Innkeep', 'Rooms, stew, and a glass ball that rolled clean off my mantel the night the marks failed. Ila called it a witch ball. I\'d like it blessed at the church, or carried by somebody braver than me.', [
       { t: 'I can take the witch ball.', next: null, startQuest: 'glass_blower' },
       { t: 'A room, later. Just passing.', next: null },
     ]),
@@ -15728,13 +16089,13 @@ html[data-text] #art-card {
 
   D.beek = {
     start: (s) => HV.questDone(s, 'talk_the_fire') ? 'ok' : (s.flags.fire_taught ? 'hurt' : 'hi'),
-    hi: node('Beek the Smith', 'I can mend a ferrule or put an edge back on a staff. Mind the mill, though. There is a heat in those stones that is not an honest fire.', [
+    hi: node('Beek the Smith', 'I can mend a ferrule or put an edge back on a staff. You mind that mill, though. There\'s a heat in them stones that ain\'t no honest fire.', [
       { t: 'I may need work later.', next: null },
     ]),
-    hurt: node('Beek the Smith', 'It took my hand at the mill. If Ila taught you the talking, I will not be proud.', [
+    hurt: node('Beek the Smith', 'Got my hand down at the mill. If Ila taught you the talking, I ain\'t too proud to hold still for it.', [
       { t: 'Hold still. I will talk the fire out.', next: null, set: { beek_mended: true }, advance: { id: 'talk_the_fire', to: 1 }, give: 'blood_stopping_charm' },
     ]),
-    ok: node('Beek the Smith', 'The hand is an honest hurt now, which is all I asked. Thank you.', [{ t: 'Glad it took.', next: null }]),
+    ok: node('Beek the Smith', 'Hand\'s just an honest hurt now, and that\'s all I asked. I\'m obliged.', [{ t: 'Glad it took.', next: null }]),
   };
 
   D.josie = {
@@ -15744,13 +16105,13 @@ html[data-text] #art-card {
       }
       return HV.questDone(s, 'crossroads_letter') ? 'after' : (s.flags.has_banjo ? 'go' : 'ask');
     },
-    ask: node('Josie Fiddler', 'I keep a frolic on Saturday if the town has the heart for it. Lately I have been more interested in the fork in the road. A man in a dark hat will have a banjo break off you before he lets you pass. I know where an old fretless is buried, if you want to answer him.', [
+    ask: node('Josie Fiddler', 'I throw a frolic of a Saturday, when the town\'s got the heart for it. Lately, though, my mind\'s been on that fork in the road. There\'s a man in a dark hat there who\'ll want a banjo break off you before he lets you by. I know where an old fretless is buried, if you aim to answer him.', [
       { t: 'Where is the banjo?', next: 'where' },
       { t: 'Could we try a tune on the porch first?', next: 'porch' },
       { t: 'I also heard about a hitch on the Promenade.', next: 'hitch' },
       { t: 'Maybe later.', next: null },
     ]),
-    where: node('Josie Fiddler', 'Under the stone at the west side of the crossroads, not deep. Take it, and go after dark. If you hold the break, come see me. We will have a jam whenever you like, no devil required.', [
+    where: node('Josie Fiddler', 'Under the stone on the west side of the crossroads, and not deep. Dig it up and go after dark. If you hold the break, come see me, and we\'ll pick together whenever you like. No devil required.', [
       { t: 'I\'ll dig it up.', next: null, startQuest: 'crossroads_letter' },
     ]),
     hitch: node('Josie Fiddler', 'I gave a ride to a girl on the Promenade who was gone at the next turn. A thin gold ring was left in the ditch. I would not wear it, but I would like to know it is not still lying there.', [
@@ -15790,7 +16151,7 @@ html[data-text] #art-card {
 
   D.tamsen = {
     start: (s) => (HV.Rhythm && HV.Rhythm.isUnlocked && HV.Rhythm.isUnlocked(s, 'annie')) ? 'after' : 'challenge',
-    challenge: node('Aunt Tamsen', 'They hanged a girl on this oak for a man she did not kill, and she wrote her last in a tune. I will play you Annie\'s part, if your hands are willing. The verse is slow. The truth in it is not.', [
+    challenge: node('Aunt Tamsen', 'They hung a girl from this very oak for a man she never killed, and she left her last words in a tune. I\'ll play you Annie\'s part if your hands are willing. The verse is slow. The truth in it ain\'t.', [
       { t: 'I\'ll keep Annie\'s part.', next: null, startShowdown: 'annie' },
       { t: 'Not tonight.', next: null },
     ]),
@@ -15802,7 +16163,7 @@ html[data-text] #art-card {
 
   D.linwood = {
     start: (s) => (HV.Rhythm && HV.Rhythm.isUnlocked && HV.Rhythm.isUnlocked(s, 'rail')) ? 'after' : 'challenge',
-    challenge: node('Linwood Bray', 'I learned this break behind a still, where a man has to play or talk, and talking gets you found. Keep up, or the split-rail will leave you in the weeds.', [
+    challenge: node('Linwood Bray', 'Learned this break behind a still, where a man either plays or talks, and talking gets you found. Keep up, or that split-rail will leave you laying in the weeds.', [
       { t: 'I\'ll keep up.', next: null, startShowdown: 'rail' },
       { t: 'I\'ll come back when I am faster.', next: null },
     ]),
@@ -15838,21 +16199,21 @@ html[data-text] #art-card {
 
   D.sexton = {
     start: (s) => HV.questDone(s, 'town_under_lake') ? 'done' : (s.flags.drowned_name ? 'pay' : 'yard'),
-    yard: node('Sexton Rue', 'I will not sleep in the shed. The yard walks at night. And when the reservoir is low, a church-step shows at the drowned shore. If you bring back anything that still has a name on it, I will put it in the book.', [
+    yard: node('Sexton Rue', 'I won\'t sleep in that shed, and I won\'t be shamed for it. The yard walks of a night. And when the reservoir gets low, a church step shows itself down on the drowned shore. You bring back anything that\'s still got a name on it, and I\'ll put it in the book.', [
       { t: 'I can walk the shore.', next: null, startQuest: 'town_under_lake', set: { church_seen: true } },
       { t: 'I will look at the churchyard mark.', next: null, set: { church_seen: true } },
     ]),
-    pay: node('Sexton Rue', 'A name on a hem is still a name. I will write it down. Keep the coat. It still drips when there is no rain, which is a kind of remembering.', [
+    pay: node('Sexton Rue', 'A name on a hem is still a name. I\'ll write it down proper. Keep the coat. It drips when there ain\'t no rain, and I reckon that\'s a kind of remembering.', [
       { t: 'Rest easy, sexton.', next: null, advance: { id: 'town_under_lake', to: 1 } },
     ]),
-    done: node('Sexton Rue', 'The book is heavier by one line. Thank you.', [{ t: 'Take care.', next: null }]),
+    done: node('Sexton Rue', 'The book\'s one line heavier tonight. I\'m obliged to you.', [{ t: 'Take care.', next: null }]),
   };
 
   D.cole = {
     start: (s) => 'ferry',
     ferry: {
       who: 'Ferryman Cole',
-      textFn: (s) => 'I will run you in daylight, and I will not run the Promenade after dusk. That light has walked longer than my father\'s stories.',
+      textFn: (s) => 'I\'ll run you across by daylight, but I won\'t run the Promenade after dusk, no sir. That light was walking before my daddy ever told a story about it.',
       choicesFn: (s) => {
         const c = [];
         if (!s.quests.spook_light) c.push({ t: 'I\'ll walk the Promenade.', next: null, startQuest: 'spook_light' });
@@ -15868,13 +16229,13 @@ html[data-text] #art-card {
         return c;
       },
     },
-    account: node('Ferryman Cole', 'Then you know it does not swing like a lantern. If you can catch a piece of it on the Promenade — not with a jar, with the old patience — you can keep it.', [
+    account: node('Ferryman Cole', 'Then you seen it don\'t swing like a lantern does. If you can catch a piece of it out on the Promenade, not with a jar but with the old patience, it\'s yours to keep.', [
       { t: 'I\'ll try.', next: null, advance: { id: 'spook_light', to: 1 } },
     ]),
-    caught: node('Ferryman Cole', 'There it is. It does not hang quite true. It is yours. I will sleep a little better knowing it is in a hand and not walking the gravel alone.', [
+    caught: node('Ferryman Cole', 'Well, there it is. Don\'t hang quite true, does it? It\'s yours. I\'ll sleep a little easier knowing it\'s in a hand and not out walking the gravel by its lonesome.', [
       { t: 'I\'ll keep it fed.', next: null, advance: { id: 'spook_light', to: 2 } },
     ]),
-    walker: node('Ferryman Cole', 'Pumpkin-headed and three-toed, then. The old Missouri story has come up the river. Keep the stone. I do not want it in the boat.', [
+    walker: node('Ferryman Cole', 'Pumpkin-headed and three-toed, was it? Then the old Missouri story\'s come up the river after all. You keep that stone. I don\'t want it in my boat.', [
       { t: 'I will.', next: null, advance: { id: 'bottoms_walker', to: 1 } },
     ]),
   };
@@ -15905,7 +16266,7 @@ html[data-text] #art-card {
 
   D.peck = {
     start: (s) => (HV.questDone(s, 'peck_problem') || s.flags.chose_peck) ? 'after' : (s.flags.met_peck ? 'terms' : 'meet'),
-    meet: node('Jonas Peck', 'You found the knob. Good. The Night-Ridge rides to keep a county that the law forgot. I talk like a lawman because someone has to. Will you hear terms, or did Wren send you to put a hole in me?', [
+    meet: node('Jonas Peck', 'Found the knob, did you? Good. The Night-Ridge rides to keep a county the law forgot about. I talk like a lawman because somebody\'s got to. Now, you here to hear terms, or did Wren send you up to put a hole in me?', [
       { t: 'I\'ll hear your terms.', next: 'terms', set: { met_peck: true } },
       { t: 'I came to end the riding.', next: null, set: { met_peck: true, peck_hostile: true } },
     ]),
@@ -15929,7 +16290,7 @@ html[data-text] #art-card {
 
   D.howler = {
     start: () => 'meet',
-    meet: node('The Howler', 'It does not speak in words. The scream is already in your teeth. A hulking, shaggy, bear-like shape, steer horns against the moon, and red eyes that do not blink. You may strike for a fang, or you may stand and listen, and leave the ridge its voice.', [
+    meet: node('The Howler', 'Now, it don\'t talk, not in words. That scream\'s already rattling in your teeth before you know you heard it. Big and shaggy as a bear, steer horns black against the moon, and red eyes that never once blink. You can strike for a fang, or you can stand still and listen, and leave the ridge its voice.', [
       { t: 'I will listen, and leave it.', next: null, set: { howler_choice: 'spared', howler_spared: true }, advance: { id: 'howler_hunt', to: 1 } },
       { t: 'I came for an account, and a fang.', next: null, set: { howler_choice: 'struck' } },
     ]),
@@ -15937,11 +16298,11 @@ html[data-text] #art-card {
 
   D.still_hand = {
     start: (s) => ((s.quests && s.quests.scale_of_the_gowrow) || HV.questDone(s, 'scale_of_the_gowrow')) ? 'later' : 'ask',
-    ask: node('A Still-Hand', 'You did not hear it from me, but a gowrow has come back to the ravine east of the fork. Scale-mail, if the tale is true, would turn a knife. I will not go down there.', [
+    ask: node('A Still-Hand', 'You never heard this from me, but a gowrow\'s come back to that ravine east of the fork. Its scales\'d turn a knife, if the tale\'s true. I ain\'t going down there for love nor money.', [
       { t: 'I\'ll walk the ravine.', next: null, startQuest: 'scale_of_the_gowrow' },
       { t: 'I did not hear it from you.', next: null },
     ]),
-    later: node('A Still-Hand', 'If you come back with a scale, do not tell the revenue men who pointed the way.', [
+    later: node('A Still-Hand', 'If you come back with a scale, don\'t you tell them revenue men who pointed the way.', [
       { t: 'Your secret is safe.', next: null },
     ]),
   };
@@ -17302,12 +17663,16 @@ html[data-text] #art-card {
     ctx.save();
 
     /* night sky — no striped moon */
-    const sky = ctx.createLinearGradient(0, 0, 0, h);
-    sky.addColorStop(0, '#12161C');
-    sky.addColorStop(0.42, '#1A2228');
-    sky.addColorStop(1, '#0B0C0A');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, w, h);
+    if (HV.Sky && HV.Sky.draw) {
+      HV.Sky.draw(ctx, w, h, { mode: 'night', t: (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000, noMoon: true, seed: 11 });
+    } else {
+      const sky = ctx.createLinearGradient(0, 0, 0, h);
+      sky.addColorStop(0, '#12161C');
+      sky.addColorStop(0.42, '#1A2228');
+      sky.addColorStop(1, '#0B0C0A');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, w, h);
+    }
 
     /* a single proper woodcut moon (skipped on wide layouts where the Fiddler painting supplies it) */
     const mx = tall ? w * 0.72 : w * 0.36;
@@ -18853,7 +19218,7 @@ html[data-text] #art-card {
       p.innerHTML = '<div class="hv-panel-head"><h2>PAUSED</h2><button class="ink-btn gold hv-panel-x" id="resume-x">Resume</button></div>'
         + '<div style="font:14px Palatino,Georgia,serif;margin-bottom:10px;opacity:.9">' + (hero.name || 'Lara') + ' · ' + (calling ? calling.name : '') + ' · Level ' + (hero.level || 1)
         + '<br>' + (area ? area.name : '') + ' · ' + tod + '</div>'
-        + (hint ? '<div style="border:2px solid #1A1410;background:#3A2C22;color:#F1E6CF;padding:8px 10px;margin-bottom:10px;font:13.5px/1.35 Palatino,Georgia,serif"><span style="color:#D4A840;font-weight:bold;letter-spacing:.08em;font-size:11px">NEXT</span><br>' + hint + '</div>' : '')
+        + (hint ? '<div class="hv-next-slate" style="padding:8px 10px;margin-bottom:10px;font:13.5px/1.35 Palatino,Georgia,serif"><span class="caps" style="font-weight:bold;letter-spacing:.12em;font-size:11px">Next</span><br>' + hint + '</div>' : '')
         + '<div id="pmain"></div><div id="pgrid" style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px"></div>'
         + '<div class="caps" style="margin:12px 0 6px;font-size:12px">Saves</div><div id="psave" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px"></div>'
         + '<div id="pend" style="margin-top:12px"></div>';
@@ -21486,7 +21851,9 @@ html[data-text] #art-card {
         HV.Render.chest(ctx, c.x * TILE + 16 - camX, c.y * TILE + 16 - camY, !!s.chestsOpened[c.id]);
       });
       (this.area.caches || []).forEach((c) => {
-        if (!s.cachesOpened[c.id] && (canSee || !c.hidden)) {
+        if (c.oil && !s.cachesOpened[c.id] && HV.Render.oilCache) {
+          HV.Render.oilCache(ctx, c.x * TILE + 16 - camX, c.y * TILE + 16 - camY, now);
+        } else if (!s.cachesOpened[c.id] && (canSee || !c.hidden)) {
           HV.Render.cacheMark(ctx, c.x * TILE + 16 - camX, c.y * TILE + 16 - camY, true);
         }
       });
@@ -26225,6 +26592,449 @@ html[data-text] #art-card {
   };
 
   B.install();
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+
+/* ==== 26-polish.js ==== */
+/* THE HOLLOW VEIL — production polish
+   1. Mara's oil cache: a lit tin can with a glint (HV.Render.oilCache)
+   2. Code-drawn skies: dusk, night with stars and moon, fog (HV.Sky)
+   3. Scroll-unroll for menu panels (~250 ms, tap to skip)
+   4. Optional side fights: Rawhead (White-Stag Woods) and the Headless Raider (The Gallows)
+   Main story gates do not look at any of this. */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const TILE = 32;
+  const P = HV.Polish = HV.Polish || {};
+
+  /* ---------------- 1. oil cache ---------------- */
+  function oilCache(ctx, x, y, t) {
+    if (!ctx) return;
+    t = t || 0;
+    const pulse = 0.5 + 0.5 * Math.sin(t * 2.4);
+    ctx.save();
+    ctx.translate(x, y); ctx.scale(1.25, 1.25); ctx.translate(-x, -y);
+    /* warm pool of light on the ground */
+    const g = ctx.createRadialGradient ? ctx.createRadialGradient(x, y + 6, 2, x, y + 6, 38) : null;
+    if (g) {
+      g.addColorStop(0, 'rgba(255,196,96,' + (0.42 + 0.12 * pulse).toFixed(3) + ')');
+      g.addColorStop(0.55, 'rgba(255,160,60,0.14)');
+      g.addColorStop(1, 'rgba(255,160,60,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      if (ctx.ellipse) ctx.ellipse(x, y + 6, 38, 22, 0, 0, Math.PI * 2); else ctx.arc(x, y + 6, 30, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    /* shadow */
+    ctx.fillStyle = 'rgba(10,8,4,0.45)';
+    ctx.beginPath();
+    if (ctx.ellipse) ctx.ellipse(x + 1, y + 12, 11, 4, 0, 0, Math.PI * 2); else ctx.arc(x, y + 12, 6, 0, Math.PI * 2);
+    ctx.fill();
+    /* flat stone it sits on */
+    ctx.fillStyle = '#8C8478';
+    ctx.strokeStyle = '#2A2620';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    if (ctx.ellipse) ctx.ellipse(x, y + 10, 13, 5, 0, 0, Math.PI * 2); else ctx.rect(x - 13, y + 7, 26, 6);
+    ctx.fill(); ctx.stroke();
+    /* the tin oil can */
+    ctx.fillStyle = '#B8B2A2';
+    ctx.fillRect(x - 7, y - 8, 14, 17);
+    ctx.fillStyle = '#7C776C';
+    ctx.fillRect(x + 2, y - 8, 5, 17);
+    ctx.fillStyle = '#A2442A';
+    ctx.fillRect(x - 7, y - 3, 14, 6);
+    ctx.fillStyle = '#E8D9A8';
+    ctx.fillRect(x - 4, y - 1.5, 6, 2.5);
+    ctx.strokeStyle = '#1C1A16';
+    ctx.lineWidth = 1.6;
+    ctx.strokeRect(x - 7, y - 8, 14, 17);
+    /* spout and handle */
+    ctx.beginPath();
+    ctx.moveTo(x - 3, y - 8); ctx.lineTo(x - 3, y - 13); ctx.lineTo(x + 1, y - 13); ctx.lineTo(x + 1, y - 8);
+    ctx.fillStyle = '#9C9688'; ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x + 7, y - 6);
+    if (ctx.quadraticCurveTo) ctx.quadraticCurveTo(x + 13, y - 1, x + 7, y + 4);
+    ctx.stroke();
+    /* the glint, a four-point star that breathes */
+    const gx = x - 4, gy = y - 6, r = 4 + 4 * pulse;
+    ctx.globalAlpha = 0.55 + 0.45 * pulse;
+    ctx.fillStyle = '#FFF4D0';
+    ctx.beginPath();
+    ctx.moveTo(gx, gy - r); ctx.lineTo(gx + 1.2, gy - 1.2); ctx.lineTo(gx + r, gy); ctx.lineTo(gx + 1.2, gy + 1.2);
+    ctx.lineTo(gx, gy + r); ctx.lineTo(gx - 1.2, gy + 1.2); ctx.lineTo(gx - r, gy); ctx.lineTo(gx - 1.2, gy - 1.2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /* ---------------- 2. skies ---------------- */
+  function hash(n) { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
+  const Sky = {
+    palettes: {
+      dusk: ['#1E1A2A', '#46304A', '#8A4A3A', '#C77A44'],
+      night: ['#06080E', '#0C1220', '#162030', '#1C2422'],
+      fog: ['#1A1E20', '#2A3032', '#3C4442', '#4A524C'],
+    },
+    draw(ctx, w, h, opt) {
+      if (!ctx || !w || !h) return;
+      opt = opt || {};
+      const mode = Sky.palettes[opt.mode] ? opt.mode : 'night';
+      const t = opt.t || 0;
+      const pal = Sky.palettes[mode];
+      ctx.save();
+      const g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, pal[0]); g.addColorStop(0.45, pal[1]); g.addColorStop(0.78, pal[2]); g.addColorStop(1, pal[3]);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+      if (mode !== 'fog') Sky.stars(ctx, w, h, t, mode === 'dusk' ? 0.35 : 1, opt.seed || 7);
+      if (!opt.noMoon && mode !== 'fog') Sky.moon(ctx, opt.moonX != null ? opt.moonX : w * 0.74, opt.moonY != null ? opt.moonY : h * 0.16, Math.min(w, h) * (opt.moonR || 0.075), mode, t);
+      if (mode === 'dusk') {
+        /* a thin ember band low on the ridge */
+        const b = ctx.createLinearGradient(0, h * 0.6, 0, h);
+        b.addColorStop(0, 'rgba(230,130,60,0)'); b.addColorStop(1, 'rgba(230,130,60,0.28)');
+        ctx.fillStyle = b; ctx.fillRect(0, h * 0.6, w, h * 0.4);
+      }
+      Sky.mist(ctx, w, h, t, mode === 'fog' ? 0.55 : (mode === 'dusk' ? 0.14 : 0.18));
+      ctx.restore();
+    },
+    stars(ctx, w, h, t, amt, seed) {
+      const n = Math.round((w * h) / 2600 * amt);
+      for (let i = 0; i < n; i++) {
+        const sx = hash(i * 3.1 + seed) * w;
+        const sy = Math.pow(hash(i * 7.7 + seed), 1.6) * h * 0.7;
+        const tw = 0.55 + 0.45 * Math.sin(t * (0.8 + hash(i) * 1.6) + i);
+        const big = hash(i * 13.3) > 0.94;
+        ctx.globalAlpha = Math.max(0, (big ? 1 : 0.8) * tw * (1 - sy / (h * 0.85)));
+        ctx.fillStyle = hash(i * 5.5) > 0.8 ? '#F2DDB0' : '#DCE4EC';
+        const r = big ? 2 : 1.1;
+        ctx.fillRect(sx - r / 2, sy - r / 2, r, r);
+        if (big) { ctx.globalAlpha *= 0.4; ctx.fillRect(sx - 3, sy - 0.3, 6, 0.6); ctx.fillRect(sx - 0.3, sy - 3, 0.6, 6); }
+      }
+      ctx.globalAlpha = 1;
+    },
+    moon(ctx, x, y, r, mode, t) {
+      const glow = ctx.createRadialGradient(x, y, r * 0.4, x, y, r * 3.2);
+      glow.addColorStop(0, mode === 'dusk' ? 'rgba(240,200,150,0.28)' : 'rgba(210,224,220,0.26)');
+      glow.addColorStop(1, 'rgba(210,224,220,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(x, y, r * 3.2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = mode === 'dusk' ? '#EED8B0' : '#E6E2D0';
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      ctx.save();
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.clip();
+      ctx.fillStyle = 'rgba(96,92,80,0.22)';
+      [[-0.3, -0.2, 0.28], [0.25, 0.15, 0.2], [-0.05, 0.4, 0.16], [0.35, -0.35, 0.12]].forEach((m) => {
+        ctx.beginPath(); ctx.arc(x + m[0] * r, y + m[1] * r, m[2] * r, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.fillStyle = 'rgba(20,24,30,0.30)';
+      ctx.beginPath(); ctx.arc(x + r * 0.45, y - r * 0.1, r * 0.95, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(30,26,20,0.55)'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+    },
+    mist(ctx, w, h, t, a) {
+      for (let k = 0; k < 3; k++) {
+        const yb = h * (0.62 + k * 0.12);
+        const off = ((t * (6 + k * 4)) % (w * 2));
+        const g = ctx.createLinearGradient(0, yb - h * 0.1, 0, yb + h * 0.1);
+        g.addColorStop(0, 'rgba(200,210,204,0)');
+        g.addColorStop(0.5, 'rgba(200,210,204,' + (a * (0.6 + k * 0.2)).toFixed(3) + ')');
+        g.addColorStop(1, 'rgba(200,210,204,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.moveTo(-w, yb + h * 0.1);
+        for (let x = -w; x <= w * 2; x += w / 8) {
+          ctx.lineTo(x - off + w, yb + Math.sin((x + off) / (w * 0.22) + k) * h * 0.025);
+        }
+        ctx.lineTo(w * 2, yb + h * 0.1);
+        ctx.closePath();
+        ctx.fill();
+      }
+    },
+  };
+  HV.Sky = Sky;
+
+
+  /* ---------------- title mockup: a code-drawn woodcut night (preview only, not wired) ---------------- */
+  function ridge(ctx, w, h, y0, amp, seed, color, step) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    let x = 0;
+    ctx.lineTo(0, y0);
+    while (x <= w + step) {
+      const n = Math.sin(x * 0.011 + seed) * 0.6 + Math.sin(x * 0.027 + seed * 2.3) * 0.3 + Math.sin(x * 0.061 + seed * 5.1) * 0.1;
+      ctx.lineTo(x, y0 - n * amp);
+      x += step;
+    }
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fill();
+  }
+  P.titleWoodcut = function (ctx, w, h, t, opt) {
+    const R = HV.Render;
+    opt = opt || {};
+    t = t || 0;
+    const mx = w * 0.70, my = h * 0.17, mr = Math.min(w, h) * 0.12;
+    Sky.draw(ctx, w, h, { mode: 'night', t: t, moonX: mx, moonY: my, moonR: 0.12, seed: 3 });
+    ridge(ctx, w, h, h * 0.44, h * 0.05, 1.3, '#1A2430', 6);
+    ridge(ctx, w, h, h * 0.50, h * 0.045, 4.1, '#141C24', 5);
+    Sky.mist(ctx, w, h * 0.92, t, 0.16);
+    /* the bluff the Howler stands on, cut against the moon */
+    ctx.fillStyle = '#0C1014';
+    ctx.beginPath();
+    ctx.moveTo(w * 0.42, h);
+    ctx.lineTo(w * 0.48, h * 0.42); ctx.lineTo(w * 0.56, h * 0.33); ctx.lineTo(w * 0.70, h * 0.31);
+    ctx.lineTo(w * 0.82, h * 0.34); ctx.lineTo(w * 0.90, h * 0.42); ctx.lineTo(w * 1.02, h * 0.47); ctx.lineTo(w * 1.02, h);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(200,214,210,0.22)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(w * 0.48, h * 0.42); ctx.lineTo(w * 0.56, h * 0.33); ctx.lineTo(w * 0.70, h * 0.31); ctx.lineTo(w * 0.82, h * 0.34); ctx.stroke();
+    if (R && R.creature) { try { R.creature(ctx, w * 0.69, h * 0.305 - 22, 'ridge_howler', { scale: 1.55, facing: -1, t: t, id: 'ridge_howler' }); } catch (e) { /* ignore */ } }
+    ridge(ctx, w, h, h * 0.66, h * 0.03, 7.7, '#0E1310', 4);
+    /* the cabin, one lit window */
+    if (R && R._drawCabin) { try { R._drawCabin(ctx, w * 0.10, h * 0.585, 104, 64, { lit: true, door: 's' }, t, { roof: '#3A2C20', body: '#4A3828' }); } catch (e) { /* ignore */ } }
+    ridge(ctx, w, h, h * 0.74, h * 0.02, 9.2, '#0A0D0A', 4);
+    if (R && R.cedarTree) {
+      try {
+        R.cedarTree(ctx, w * 0.04, h * 0.86, { scale: 1.7, seed: 'wt1' });
+        R.oakTree(ctx, w * 0.95, h * 0.90, { scale: 2.0, seed: 'wt2' });
+        R.cedarTree(ctx, w * 0.83, h * 0.88, { scale: 1.5, seed: 'wt3' });
+      } catch (e) { /* ignore */ }
+    }
+    if (R && R.hero) { try { R.hero(ctx, w * 0.34, h * 0.80, { facing: 1, lanternLit: true, t: t, scale: 2.4 }); } catch (e) { /* ignore */ } }
+    /* lantern warmth on the path */
+    const lg = ctx.createRadialGradient(w * 0.38, h * 0.80, 4, w * 0.38, h * 0.80, w * 0.32);
+    lg.addColorStop(0, 'rgba(255,190,96,0.22)'); lg.addColorStop(1, 'rgba(255,190,96,0)');
+    ctx.fillStyle = lg; ctx.fillRect(0, h * 0.5, w, h * 0.5);
+    if (R && R.overlayPaper) { try { R.overlayPaper(ctx, w, h); } catch (e) { /* ignore */ } }
+    if (opt.headline !== false && R && R.drawTitleWordmark) { try { R.drawTitleWordmark(ctx, 0, 0, w, h * 0.62, HV.PAL, 0, opt.safeT || 54); } catch (e) { /* ignore */ } }
+  };
+
+  /* ---------------- 3. scroll unroll ---------------- */
+  const reduced = () => { try { return !!(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } };
+  P._lastHide = 0;
+  P.unroll = function (overlay, node, ms) {
+    if (!overlay || !node || !node.animate || !node.classList || reduced()) return null;
+    if (overlay.classList.contains('title-mode') || overlay.classList.contains('worldmap-mode')) return null;
+    if (!(node.classList.contains('wood-panel') || node.classList.contains('parchment-sheet'))) return null;
+    if (node.classList.contains('letter-panel')) return null;
+    let rect;
+    try { rect = node.getBoundingClientRect(); } catch (e) { return null; }
+    if (!rect || rect.height < 40) return null;
+    const anim = node.animate([
+      { clipPath: 'inset(0 0 100% 0)' },
+      { clipPath: 'inset(0 0 0% 0)' },
+    ], { duration: ms, easing: 'cubic-bezier(.25,.8,.3,1)', fill: 'none' });
+    let rod = null;
+    try {
+      rod = document.createElement('div');
+      rod.className = 'hv-scroll-rod';
+      rod.style.left = (rect.left - 6) + 'px';
+      rod.style.width = (rect.width + 12) + 'px';
+      rod.style.top = (rect.top - 7) + 'px';
+      overlay.appendChild(rod);
+      const ra = rod.animate([{ transform: 'translateY(0px)' }, { transform: 'translateY(' + rect.height + 'px)' }],
+        { duration: ms, easing: 'cubic-bezier(.25,.8,.3,1)', fill: 'forwards' });
+      anim._rod = ra;
+    } catch (e) { rod = null; }
+    const done = () => {
+      if (rod && rod.parentNode) rod.parentNode.removeChild(rod);
+      overlay.removeEventListener('pointerdown', skip, true);
+      if (P._anim === anim) P._anim = null;
+    };
+    const skip = () => { try { anim.finish(); if (anim._rod) anim._rod.finish(); } catch (e) { /* ignore */ } done(); };
+    overlay.addEventListener('pointerdown', skip, true);
+    anim.onfinish = done;
+    anim.oncancel = done;
+    /* safety: never leave a rod behind */
+    setTimeout(done, ms + 400);
+    P._anim = anim;
+    return anim;
+  };
+
+  /* ---------------- 4. side fights ---------------- */
+  P.SIDE_FIGHTS = {
+    rawhead_bones: { enemy: 'rawhead', area: 'white_stag_woods', at: [30, 22], night: false },
+    raider_gallows: { enemy: 'bolin_shade', area: 'the_gallows', at: [28, 24], night: true },
+  };
+  P.storyBossCount = function (state) {
+    return (HV.STORY_CHAPTER_BOSSES || []).filter((b) => b.id !== 'under_stone' && HV.storyBossBeaten && HV.storyBossBeaten(state, b.id)).length;
+  };
+  P.scaleSideFoe = function (en, state) {
+    if (!en) return en;
+    const n = P.storyBossCount(state);
+    const hm = 0.85 + 0.12 * n, pm = 0.9 + 0.07 * n;
+    en.hp = Math.round(en.hp * hm); en.hpMax = Math.round((en.hpMax || en.hp) * hm);
+    if (en.hp > en.hpMax) en.hpMax = en.hp;
+    en.pow = Math.round(en.pow * pm);
+    en.boss = true;
+    en.sideFight = true;
+    return en;
+  };
+  P.sideFightActive = function (state, qid) {
+    return !!(state && state.quests && state.quests[qid] && !HV.questDone(state, qid));
+  };
+  function freeTile(area, x, y) {
+    const trees = new Set((area.trees || []).map((t) => t.x + ',' + t.y));
+    const ok = (tx, ty) => area.cells && tx >= 2 && ty >= 2 && tx < area.w - 2 && ty < area.h - 2 && HV.tileWalkable && HV.tileWalkable(area.cells[ty][tx]) && !trees.has(tx + ',' + ty);
+    for (let rad = 0; rad <= 10; rad++) for (let dy = -rad; dy <= rad; dy++) for (let dx = -rad; dx <= rad; dx++) if (ok(x + dx, y + dy)) return { x: x + dx, y: y + dy };
+    return { x, y };
+  }
+  P.freeTile = freeTile;
+
+  function addContent() {
+    if (HV.QUESTS && !HV.QUESTS.rawhead_bones) {
+      HV.QUESTS.rawhead_bones = {
+        name: 'Rawhead and Bloody Bones',
+        stages: [
+          { id: 'ask', journal: 'Otto says something big and raw has been dragging deer bones through the White-Stag Woods, and every hound in the county won\'t go past the creek. Folks used to scare their children with Rawhead-and-Bloody-Bones. Somebody ought to go see.' },
+          { id: 'done', journal: 'Rawhead is down in the White-Stag Woods. I kept a tooth, and Otto will want to hear every word of it.' },
+        ],
+      };
+      HV.QUESTS.raider_gallows = {
+        name: 'The Headless Raider',
+        stages: [
+          { id: 'ask', journal: 'Sexton Rue swears a rider with no head walks the Gallows of a night, still looking for what the town square took off him. He asked me to lay it down, if I can stand to.' },
+          { id: 'done', journal: 'The Headless Raider fell at the Gallows oak. His gray greatcoat came off cold and dry, like the rain never did reach him.' },
+        ],
+      };
+    }
+    if (HV.QUEST_GUIDE && !HV.QUEST_GUIDE.rawhead_bones) {
+      const g = (area, text) => ({ area, text });
+      HV.QUEST_GUIDE.rawhead_bones = [g('white_stag_woods', 'Hunt Rawhead in the White-Stag Woods (an optional fight).')];
+      HV.QUEST_GUIDE.raider_gallows = [g('the_gallows', 'Go to The Gallows after dark and lay the Headless Raider down (an optional fight).')];
+    }
+    if (HV.UNIQUES && HV.ITEM_BY_ID && !HV.ITEM_BY_ID.raiders_greatcoat) {
+      const S = (pow, extra) => Object.assign({ pow: pow || 0, def: 0, spirit: 0, grit: 0, grace: 0, wit: 0, hp: 0, stam: 0, veil: 0, light: 0, speed: 0, crit: 0, find: 0, herb: 0, ward: 0 }, extra || {});
+      const it = { id: 'raiders_greatcoat', name: 'Raider\'s Gray Greatcoat', slot: 'coat', rarity: 'rare', unique: true,
+        flavor: 'Gray wool gone soft as moss, with a high collar standing up around nothing. It never gets wet, rain or river.',
+        stats: S(0, { def: 10, hp: 16, ward: 10, veil: 8 }),
+        effects: [{ type: 'vsTag', tag: 'haint', mul: 1.12 }] };
+      HV.UNIQUES.push(it);
+      HV.ITEM_BY_ID[it.id] = it;
+    }
+    const D = HV.DIALOG;
+    if (!D || (D.otto && D.otto._side)) return;
+    /* Otto: a rumor about Rawhead */
+    if (D.otto && D.otto.shop) {
+      const base = D.otto.shop;
+      D.otto.shop = {
+        who: base.who, text: base.text,
+        choicesFn: (s) => {
+          const c = (base.choices || []).slice();
+          if (!s.quests.rawhead_bones) c.splice(c.length - 1, 0, { t: 'Heard any rumors lately?', next: 'rawhead' });
+          else if (HV.questDone(s, 'rawhead_bones') && !s.flags.rawhead_paid) c.splice(c.length - 1, 0, { t: 'Rawhead\'s done for.', next: 'rawhead_paid' });
+          return c;
+        },
+      };
+      D.otto.rawhead = { who: 'Otto the Storekeep', text: 'Rumors? Honey, I sell \'em by the pound. Here\'s one for free. Something big and raw-boned has been dragging deer carcasses through the White-Stag Woods, and every hound in the county stops dead at the creek. Old folks\'d call it Rawhead-and-Bloody-Bones. You go have a look, and I\'ll pay you for the telling.',
+        choices: [{ t: 'I\'ll go see.', next: null, startQuest: 'rawhead_bones' }, { t: 'Not today, Otto.', next: null }] };
+      D.otto.rawhead_paid = { who: 'Otto the Storekeep', text: 'You don\'t say! Sit down, sit down, and tell it slow. Here, that\'s for the story, and it\'s worth every penny. I\'ll be telling it at the stove all winter.',
+        choices: [{ t: 'Glad to tell it.', next: null, set: { rawhead_paid: true }, coins: 60 }] };
+      D.otto._side = true;
+    }
+    /* Sexton Rue: the Headless Raider */
+    if (D.sexton) {
+      ['yard', 'done'].forEach((k) => {
+        const base = D.sexton[k];
+        if (!base) return;
+        D.sexton[k] = {
+          who: base.who, text: base.text,
+          choicesFn: (s) => {
+            const c = (base.choices || []).slice();
+            if (!s.quests.raider_gallows && (s.flags.church_seen || k === 'done')) c.push({ t: 'What walks the Gallows?', next: 'raider' });
+            else if (HV.questDone(s, 'raider_gallows') && !s.flags.raider_paid) c.push({ t: 'The Raider is laid down.', next: 'raider_paid' });
+            return c;
+          },
+        };
+      });
+      D.sexton.raider = { who: 'Sexton Rue', text: 'Down past the churchyard, at the old Gallows oak, there\'s a rider walks of a night with no head on his shoulders. Lost it in a town square, back in the war, and he\'s been hunting it ever since. He ain\'t particular whose he takes instead. Lay him down, if you\'ve got the stomach, and I\'ll write him in the book with the rest.',
+        choices: [{ t: 'I\'ll go after dark.', next: null, startQuest: 'raider_gallows' }, { t: 'Not tonight.', next: null }] };
+      D.sexton.raider_paid = { who: 'Sexton Rue', text: 'Then I\'ll write him down, name or no name. A man oughtn\'t to walk forever. Here, take this for your trouble. The dead don\'t spend it.',
+        choices: [{ t: 'Rest easy, sexton.', next: null, set: { raider_paid: true }, coins: 75 }] };
+    }
+  }
+  P.addContent = addContent;
+
+  function install() {
+    addContent();
+    /* dialog choices may pay coin */
+    if (HV.applyDialogChoice && !HV.applyDialogChoice._polish) {
+      const _a = HV.applyDialogChoice;
+      HV.applyDialogChoice = function (state, ch) {
+        const r = _a.apply(this, arguments);
+        if (ch && ch.coins && state && state.hero) {
+          const n = Math.ceil(ch.coins * (HV.COIN_BUMP || 1));
+          state.hero.gold = (state.hero.gold || 0) + n;
+          if (HV.UI && HV.UI.toast) HV.UI.toast('+' + n + '¢');
+        }
+        return r;
+      };
+      HV.applyDialogChoice._polish = true;
+    }
+    const UI = HV.UI;
+    if (UI && UI.showOverlay && !UI.showOverlay._polish) {
+      const _so = UI.showOverlay, _ho = UI.hideOverlay;
+      UI.hideOverlay = function () { P._lastHide = Date.now(); return _ho.apply(this, arguments); };
+      UI.showOverlay = function (node) {
+        const wasHidden = !this.overlay || this.overlay.classList.contains('hidden');
+        const quickSwap = Date.now() - (P._lastHide || 0) < 150;
+        const r = _so.apply(this, arguments);
+        if (wasHidden) { try { P.unroll(this.overlay, node, quickSwap ? 160 : 250); } catch (e) { /* never block a menu */ } }
+        return r;
+      };
+      UI.showOverlay._polish = true;
+    }
+    const G = HV.Game;
+    if (G && G.spawnArea && !G.spawnArea._polish) {
+      const _sp = G.spawnArea;
+      G.spawnArea = function () {
+        const r = _sp.apply(this, arguments);
+        const s = this.state, a = this.area;
+        if (!s || !a || !this.entities) return r;
+        Object.keys(P.SIDE_FIGHTS).forEach((qid) => {
+          const f = P.SIDE_FIGHTS[qid];
+          if (a.id !== f.area || !P.sideFightActive(s, qid)) return;
+          if (f.night && this.isNight && !this.isNight()) return;
+          if (this.entities.some((e) => e.id === f.enemy && e.alive !== false)) return;
+          const at = freeTile(a, f.at[0], f.at[1]);
+          const diff = HV.DIFFICULTY && (HV.DIFFICULTY[s.difficulty] || HV.DIFFICULTY.hollow);
+          const en = HV.spawnEnemy(f.enemy, at.x * TILE + 16, at.y * TILE + 16, { difficulty: diff, ngplus: s.ngplus });
+          if (en) this.entities.push(P.scaleSideFoe(en, s));
+        });
+        return r;
+      };
+      G.spawnArea._polish = true;
+    }
+    if (G && G.onKill && !G.onKill._polish) {
+      const _k = G.onKill;
+      G.onKill = function (en) {
+        const r = _k.apply(this, arguments);
+        const s = this.state;
+        if (s && en) {
+          if (en.id === 'rawhead' && P.sideFightActive(s, 'rawhead_bones')) {
+            HV.advanceQuest(s, 'rawhead_bones', 1);
+            if (HV.UI && HV.UI.toast) HV.UI.toast('Rawhead is down. Otto will want to hear it.');
+          }
+          if (en.id === 'bolin_shade' && P.sideFightActive(s, 'raider_gallows')) {
+            HV.giveUnique(s, 'raiders_greatcoat');
+            HV.advanceQuest(s, 'raider_gallows', 1);
+            if (HV.UI && HV.UI.toast) HV.UI.toast('The Raider lies still. Sexton Rue will want to know.');
+          }
+        }
+        return r;
+      };
+      G.onKill._polish = true;
+    }
+  }
+  P.install = install;
+
+  if (HV.Render && !HV.Render.oilCache) HV.Render.oilCache = oilCache;
+  install();
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
