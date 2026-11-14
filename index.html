@@ -2309,6 +2309,15 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
 .hv-cmap .cmap-card .cmap-status { margin-top: 6px; font-size: 13px; font-weight: bold; color: #7d1d12; }
 .hv-cmap .cmap-card .cmap-status:empty { display: none; }
 .hv-cmap .cmap-card-x { position: absolute; right: 6px; top: 4px; border: 0; background: none; font: bold 22px/1 Georgia, serif; color: #2a1a0c; padding: 4px 8px; }
+.hv-cmap .cmap-travel {
+  display: none; margin-top: 10px; width: 100%;
+  background: linear-gradient(180deg, #3a2a18, #2a1c10); color: #f0d0a0;
+  border: 1px solid #120c07; box-shadow: 0 0 0 1px #d8c08e inset;
+  font: bold 13px/1.2 Palatino, Georgia, serif; letter-spacing: 0.08em;
+  text-transform: uppercase; padding: 8px 10px; border-radius: 2px;
+}
+.hv-cmap .cmap-travel.show { display: block; }
+.hv-cmap .cmap-travel:active { filter: brightness(1.08); }
 @media (orientation: landscape) and (max-height: 500px) {
   .hv-cmap .cmap-card { font-size: 13px; padding: 8px 12px; }
   .hv-cmap .cmap-card h3 { font-size: 15px; }
@@ -4438,7 +4447,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       desc: 'Too long in the body for any panther, with a cry like a woman in the cedars.' }),
     E({ id: 'howler_whelp', name: 'Howler Whelp', tags: ['living', 'beast'], hp: 55, pow: 11, def: 3, speed: 105, xp: 24, ai: 'rush',
       tint: '#1C242C', special: { id: 'howl', status: 'howl', range: 140 }, desc: 'A shaggy, dark-furred cub, already too broad in the shoulder, with the buds of horns.' }),
-    E({ id: 'ridge_howler', name: 'The Ozark Howler', tags: ['living', 'beast', 'haint'], hp: 340, pow: 21, def: 11, speed: 100, xp: 210, ai: 'boss',
+    E({ id: 'ridge_howler', name: 'The Ozark Howler', tags: ['living', 'beast', 'haint'], hp: 270, pow: 18, def: 8, speed: 100, xp: 200, ai: 'boss',
       tint: '#0B0C0A', glow: '#E07B39', boss: true,
       special: { id: 'howl', status: 'howl', range: 240, also: 'charge' },
       desc: 'A hulking, shaggy, bear-like beast with steer horns and red eyes. Hunters hear it. Few will swear they have seen it.' }),
@@ -4449,7 +4458,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     E({ id: 'gowrow', name: 'The Gowrow', tags: ['living', 'beast'], hp: 340, pow: 24, def: 16, speed: 75, xp: 200, ai: 'boss',
       tint: '#2F4F3E', boss: true, special: { id: 'tail', sweep: true, knock: 90 },
       desc: 'A great lizard of the ravines, with tusks and a voice like timber letting go.' }),
-    E({ id: 'whitey', name: 'Whitey of the River', tags: ['living', 'beast', 'haint'], hp: 280, pow: 17, def: 8, speed: 80, xp: 170, ai: 'boss',
+    E({ id: 'whitey', name: 'Whitey of the River', tags: ['living', 'beast', 'haint'], hp: 220, pow: 15, def: 6, speed: 80, xp: 170, ai: 'boss',
       tint: '#8A97A3', glow: '#7EC8C0', boss: true, special: { id: 'surge', water: true },
       desc: 'The pale river-thing the boatmen told on. A long back, a slow stroke, a waking in the flooded towns.' }),
     E({ id: 'momo', name: 'Bottoms Walker', tags: ['living', 'beast'], hp: 200, pow: 18, def: 9, speed: 90, xp: 120, ai: 'boss',
@@ -4466,7 +4475,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       tint: '#1A1410', desc: 'A horned hood and a long coat. The county has seen this cut of man before.' }),
     E({ id: 'night_captain', name: 'Bald Knobber Captain', tags: ['living'], hp: 80, pow: 15, def: 8, speed: 95, xp: 34, ai: 'melee',
       tint: '#1A1410', desc: 'He keeps the riders in a line, and the line is not kind.' }),
-    E({ id: 'jonas_peck', name: 'Jonas Peck', tags: ['living'], hp: 400, pow: 24, def: 13, speed: 100, xp: 260, ai: 'boss',
+    E({ id: 'jonas_peck', name: 'Jonas Peck', tags: ['living'], hp: 320, pow: 21, def: 10, speed: 100, xp: 250, ai: 'boss',
       tint: '#1A1410', boss: true, special: { id: 'volley', shots: 4 },
       desc: 'Head of the new Bald Knobber riders. He talks like a lawman and rides like a knobber.' }),
 
@@ -4506,7 +4515,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       tint: '#8A97A3', desc: 'Eyeless fish from a dark spring, gathered wrong.' }),
     E({ id: 'karst_lurker', name: 'Karst Lurker', tags: ['living', 'beast'], hp: 96, pow: 16, def: 8, speed: 70, xp: 32, ai: 'lurk',
       tint: '#3D4A55', desc: 'Something that grew to a man\'s size on cave crickets and lost goats.' }),
-    E({ id: 'under_stone', name: 'The Under-Stone', tags: ['haint', 'construct'], hp: 500, pow: 28, def: 16, speed: 60, xp: 360, ai: 'boss',
+    E({ id: 'under_stone', name: 'The Under-Stone', tags: ['haint', 'construct'], hp: 380, pow: 24, def: 12, speed: 60, xp: 320, ai: 'boss',
       tint: '#1C242C', glow: '#7EC8C0', boss: true, special: { id: 'veiltear' },
       desc: 'What sleeps in the limestone. It is not a person, and it is not a cave, and it would like the county thinner.' }),
 
@@ -14772,6 +14781,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     ],
     spawns: [
       { id: 'feral_dog', x: 18, y: 16 }, { id: 'feral_dog', x: 36, y: 18 },
+      { id: 'hill_thief', x: 28, y: 22 },
       { id: 'howler_whelp', x: 22, y: 10, atNight: true },
     ],
     chests: [{ id: 'ridge_stump', x: 14, y: 8, table: 'chest' }],
@@ -14812,6 +14822,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     ],
     spawns: [
       { id: 'cottonmouth', x: 18, y: 22 }, { id: 'cottonmouth', x: 36, y: 24 },
+      { id: 'feral_dog', x: 30, y: 16 },
       { id: 'booger_dog', x: 24, y: 12, atNight: true },
     ],
     chests: [{ id: 'river_chest', x: 22, y: 14, table: 'chest' }],
@@ -14835,6 +14846,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     ],
     npcs: [{ id: 'sexton', name: 'The Sexton', x: 28, y: 26, kind: 'npc', coat: '#3D4A55', dialog: 'sexton' }],
     spawns: [
+      { id: 'fiddleback', x: 18, y: 32 }, { id: 'feral_dog', x: 36, y: 22 },
       { id: 'churchyard_wight', x: 20, y: 30, atNight: true },
       { id: 'churchyard_wight', x: 36, y: 28, atNight: true },
       { id: 'porch_haint', x: 18, y: 16, atNight: true },
@@ -14880,13 +14892,13 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       gen: { seed: 'prom', w: 64, h: 36, road: 'ew', oaks: 20, cedars: 8 },
       start: { x: 8, y: 18 },
       exitsFrom: { w: 'ferry_crossing', e: 'the_crossroads', n: 'lead_camp', s: 'drowned_shore' },
-      spawns: [['promenade_light', 30, 16, true], ['hitch_girl', 40, 18, true], ['booger_dog', 20, 14, true]],
+      spawns: [['feral_dog', 18, 16], ['hill_thief', 44, 16], ['promenade_light', 30, 16, true], ['hitch_girl', 40, 18, true], ['booger_dog', 20, 14, true]],
       chests: [['prom_chest', 36, 12, 'chest']], caches: [['prom_cache', 50, 14, 'cache']],
     },
     { id: 'the_crossroads', name: 'The Crossroads', subtitle: 'A fork where a voice may ask if you can keep up', biome: 'road', danger: 3,
       gen: { seed: 'cross', w: 56, h: 42, road: 'cross', oaks: 16, cedars: 6 },
       exitsFrom: { w: 'devil_promenade', e: 'gowrow_ravine', n: 'bald_knob', s: 'wisp_bottoms' },
-      spawns: [['haint_wisp', 20, 16, true], ['porch_haint', 34, 24, true]],
+      spawns: [['hill_thief', 18, 20], ['feral_dog', 36, 18], ['haint_wisp', 20, 16, true], ['porch_haint', 34, 24, true]],
       npcs: [{ id: 'fiddler', name: 'A Man in a Dark Hat', x: 28, y: 22, kind: 'npc', hat: '#1A1410', coat: '#1A1410', dialog: 'fiddler', atNight: true }],
       chests: [['cross_chest', 16, 16, 'chest']], caches: [['cross_cache', 40, 28, 'cache']],
     },
@@ -14894,7 +14906,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       gen: { seed: 'knob', w: 56, h: 42, bluff: 'n', oaks: 12, rocks: 20, road: 'ns' },
       exitsFrom: { s: 'the_crossroads', w: 'high_ledge', e: 'howler_run', n: 'bolin_camp' },
       npcs: [{ id: 'jonas_peck', name: 'Jonas Peck', x: 28, y: 16, kind: 'npc', hat: '#1A1410', coat: '#1A1410', dialog: 'peck' }],
-      spawns: [['night_rider', 20, 18, true], ['night_rider', 34, 18, true], ['night_captain', 28, 12, true]],
+      spawns: [['hill_thief', 22, 22], ['feral_dog', 34, 24], ['night_rider', 20, 18, true], ['night_rider', 34, 18, true], ['night_captain', 28, 12, true]],
       chests: [['knob_chest', 26, 8, 'chest']], caches: [['knob_cache', 40, 10, 'cache']],
     },
     { id: 'stillhouse_hollow', name: 'Stillhouse Hollow', subtitle: 'Smoke in the trees and a sour-mash secret', biome: 'woods', danger: 2,
@@ -14946,14 +14958,14 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     { id: 'howler_run', name: 'Howler Run', subtitle: 'A cut in the ridge where a cry carries too far', biome: 'woods', danger: 3,
       gen: { seed: 'howl', w: 56, h: 42, road: 'ew', oaks: 32, cedars: 12, bluff: 'n' },
       exitsFrom: { w: 'post_oak_ridge', e: 'gowrow_ravine', s: 'the_crossroads', n: 'white_stag_woods' },
-      spawns: [['howler_whelp', 18, 16], ['howler_whelp', 32, 18], ['booger_dog', 24, 22, true]],
+      spawns: [['howler_whelp', 18, 16], ['howler_whelp', 32, 18], ['booger_dog', 26, 14], ['booger_dog', 24, 22, true]],
       chests: [['howl_chest', 14, 10, 'chest']], caches: [['howl_cache', 44, 14, 'cache']],
     },
     { id: 'ferry_crossing', name: 'Ferry Crossing', subtitle: 'A cable-ferry and a man who will not run at night', biome: 'river', danger: 1,
       gen: { seed: 'ferry', w: 56, h: 42, river: 'ew', riverDir: 'e', road: 'ew', oaks: 12, gravel: 16 },
       exitsFrom: { w: 'crooked_river', e: 'devil_promenade', n: 'sinkhole_country', s: 'drowned_shore' },
       npcs: [{ id: 'ferryman', name: 'Ferryman Cole', x: 28, y: 18, kind: 'npc', coat: '#4A3728', dialog: 'cole' }],
-      spawns: [['cottonmouth', 20, 24]],
+      spawns: [['cottonmouth', 20, 24], ['feral_dog', 36, 16]],
       chests: [['ferry_chest', 16, 14, 'chest']],
     },
     { id: 'wisp_bottoms', name: 'Wisp Bottoms', subtitle: 'A low wet, and lights that want you off the path', biome: 'bottoms', danger: 2,
@@ -15380,6 +15392,29 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     chests: [{ id: 'snaw_chest', x: 30, y: 14, table: 'boss' }],
   });
 
+  /* hv53 — two new required chapter maps, existing tilesets only */
+  areaWild({
+    id: 'hanging_hollow', name: 'Hanging Hollow', subtitle: 'A draw behind the county oak, where a name has walked out of the book',
+    biome: 'woods', danger: 3,
+    gen: { seed: 'hanghol', w: 52, h: 40, oaks: 28, cedars: 8, road: 'ns' },
+    start: { x: 8, y: 28 },
+    exits: [{ x: 2, y: 28, to: 'the_gallows', tx: 28, ty: 24, label: 'The Gallows' }],
+    spawns: [
+      { id: 'gallows_shade', x: 18, y: 16 }, { id: 'gallows_shade', x: 34, y: 20 },
+      { id: 'gallows_shade', x: 26, y: 24 }, { id: 'bushwhack_ghost', x: 22, y: 12 },
+      { id: 'hitch_girl', x: 30, y: 16, boss: true },
+    ],
+    chests: [{ id: 'hollow_chest', x: 32, y: 14, table: 'chest' }],
+    caches: [{ id: 'hollow_cache', x: 16, y: 18, table: 'cache', hidden: true }],
+  });
+  addDungeon({
+    id: 'harthall_hearth', name: 'Harthall Hearth', subtitle: 'The first mark on this side of the ground, cut when the house was raised',
+    seed: 'harthearth', danger: 4, w: 48, h: 36,
+    spawnIds: ['mill_spark', 'mill_spark', 'porch_haint'],
+    boss: 'castle_keeper',
+    exits: [{ x: 2, y: 18, to: 'harthall_ruins', tx: 28, ty: 20, label: 'Harthall Ruins' }],
+  });
+
   function punchPath(area, x, y) {
     if (!area || !area.cells) return;
     if (y < 1 || x < 1 || y >= area.h - 1 || x >= area.w - 1) return;
@@ -15476,6 +15511,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   ensureExit('spanish_mine', 'under_karst', 40, 3, 6, 22);
   ensureExit('drowned_shore', 'underground_river', 28, 38, 6, 16);
   ensureExit('yocum_vault', 'lead_camp', 2, 18, 28, 4);
+  ensureExit('the_gallows', 'hanging_hollow', 28, 24, 6, 28);
+  ensureExit('harthall_ruins', 'harthall_hearth', 28, 18, 6, 18);
   /* Punch a dry walk down the mid column if any water still blocks the south exits. */
   (function connectDrownedShoreFord() {
     const a = HV.AREAS.drowned_shore;
@@ -15577,6 +15614,35 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     });
   }
   Object.keys(HV.AREAS).forEach((id) => sanitizeTrees(HV.AREAS[id]));
+
+  /* hv53 — keep the new USE tiles and oak draw walkable */
+  (function punchHv53Landmarks() {
+    function punch(area, x, y) {
+      if (!area || !area.cells) return;
+      if (y < 1 || x < 1 || y >= area.h - 1 || x >= area.w - 1) return;
+      if (!HV.tileWalkable(area.cells[y][x])) area.cells[y][x] = (area.biome === 'cave') ? 'c' : ',';
+    }
+    const hollow = HV.AREAS.hanging_hollow;
+    if (hollow) {
+      for (let y = 8; y <= 14; y++) for (let x = 22; x <= 30; x++) punch(hollow, x, y);
+      for (let x = 8; x <= 26; x++) punch(hollow, x, 28);
+      for (let y = 14; y <= 28; y++) punch(hollow, 26, y);
+    }
+    const church = HV.AREAS.pine_churchyard;
+    if (church) {
+      for (let y = 24; y <= 30; y++) for (let x = 22; x <= 30; x++) punch(church, x, y);
+    }
+    const prom = HV.AREAS.devil_promenade;
+    if (prom) {
+      for (let x = 26; x <= 36; x++) punch(prom, x, 18);
+      punch(prom, 30, 16); punch(prom, 32, 16);
+    }
+    const bluff = HV.AREAS.widows_bluff;
+    if (bluff) {
+      for (let y = 26; y <= 34; y++) punch(bluff, 28, y);
+      for (let x = 24; x <= 32; x++) punch(bluff, x, 30);
+    }
+  })();
 
   /* Ila's dogtrot was hidden by a foreground oak on the front apron — move it aside. */
   (function relocateIlaApron() {
@@ -18972,7 +19038,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       chapter: 'drowned',
       chapterTitle: 'The Drowned Town',
       area: 'underground_river',
-      expectedLevel: 6,
+      expectedLevel: 5,
       hintHere: 'Face Whitey of the River in the water below (tap USE if you need to look).',
       hintGo: 'Face Whitey of the River under Drowned Shore.',
       missing: 'Face Whitey of the River under Drowned Shore',
@@ -18984,7 +19050,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       chapter: 'howl',
       chapterTitle: 'The Thing That Screams',
       area: 'howler_den',
-      expectedLevel: 8,
+      expectedLevel: 6,
       hintHere: 'Face the Howler here, or stand and listen if you mean to leave it its voice.',
       hintGo: 'Walk Howler Run and face the Howler.',
       missing: 'Face the Howler in its den off Howler Run',
@@ -18996,14 +19062,14 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       chapter: 'night_ridge',
       chapterTitle: 'Bald Knob',
       area: 'bald_knob',
-      expectedLevel: 10,
+      expectedLevel: 7,
       hintHere: 'Settle with Jonas Peck here on Bald Knob — stand with him, or end the riding.',
       hintGo: 'Settle with Jonas Peck on Bald Knob.',
       missing: 'Settle with Jonas Peck on Bald Knob',
-      completeToast: 'Bald Knob is told. The Under-Karst will open to you now.',
+      completeToast: 'Bald Knob is told. Next: the hearth at Harthall, where the first mark was cut.',
     },
   ];
-  HV.FINAL_BOSS = { id: 'under_stone', name: 'The Under-Stone', chapter: 'caves', chapterTitle: 'Under the Hills', area: 'under_karst', expectedLevel: 12 };
+  HV.FINAL_BOSS = { id: 'under_stone', name: 'The Under-Stone', chapter: 'caves', chapterTitle: 'Under the Hills', area: 'under_karst', expectedLevel: 8 };
 
   HV.storyBossBeaten = function (state, id) {
     const f = (state && state.flags) || {};
@@ -19255,6 +19321,9 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         state.world.area = id;
         HV.syncWorld(state, { type: 'area', area: id });
       });
+      state.flags.bluff_traced = true;
+      state.flags.promenade_light_watched = true;
+      state.flags.church_mark_traced = true;
     });
     step('side-mara', () => {
       talk('mara', (n, c) => c.find((x) => /fetch the oil/i.test(x.t)) || c[0]);
@@ -19331,6 +19400,20 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       state.flags.peck_beaten = true;
       HV.giveUnique(state, 'night_ridge_carbine');
       HV.advanceQuest(state, 'peck_problem', 1);
+    });
+    step('hanging-oak', () => {
+      state.flags.town_crisis = true;
+      if (!state.quests.hanging_oak) HV.startQuest(state, 'hanging_oak');
+      state.flags.annie_name = true;
+      state.flags.oak_laid = true;
+      HV.advanceQuest(state, 'hanging_oak', 2);
+      HV.syncWorld(state, { type: 'area', area: 'hanging_hollow' });
+    });
+    step('hearth-mark', () => {
+      if (!state.quests.hearth_mark) HV.startQuest(state, 'hearth_mark');
+      state.flags.hearth_read = true;
+      HV.advanceQuest(state, 'hearth_mark', 1);
+      HV.syncWorld(state, { type: 'area', area: 'harthall_hearth' });
     });
     step('faction', () => {
       if (endingId === 'purge') {
@@ -21080,6 +21163,11 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         if (sp.id === 'jonas_peck' && (HV.questDone(this.state, 'peck_problem') || this.state.flags.chose_peck)) return;
         if ((sp.id === 'momo' || sp.id === 'bottoms_walker') && HV.questDone(this.state, 'bottoms_walker')) return;
         if (sp.id === 'snawfus' && (HV.questDone(this.state, 'white_deer') || (this.state.flags && this.state.flags.snawfus_spared))) return;
+        if (sp.id === 'whitey' && HV.storyBossBeaten && HV.storyBossBeaten(this.state, 'whitey')) return;
+        if (sp.id === 'whitey' && !(HV.oakLaid && HV.oakLaid(this.state))) return;
+        if (sp.id === 'ridge_howler' && HV.storyBossBeaten && HV.storyBossBeaten(this.state, 'ridge_howler')) return;
+        if (sp.id === 'hitch_girl' && this.area.id === 'hanging_hollow' && this.state.flags && this.state.flags.annie_shade_down) return;
+        if (sp.id === 'castle_keeper' && this.area.id === 'harthall_hearth' && this.state.flags && (this.state.flags.hearth_keeper_down || this.state.flags.hearth_read)) return;
         const en = HV.spawnEnemy(sp.id, sp.x * TILE + 16, sp.y * TILE + 16, { difficulty: diff, ngplus: this.state.ngplus });
         if (en) this.entities.push(en);
       });
@@ -30725,7 +30813,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     lead_camp: [3.75, -1.5], yocum_vault: [3.75, -2.6], devil_promenade: [3.75, 0.15], the_crossroads: [5.0, 0.1],
     bald_knob: [5.0, -1.2], bolin_camp: [5.0, -2.4], howler_run: [6.25, -1.8], gowrow_ravine: [7.2, -0.75],
     howler_den: [7.35, -2.65], drowned_shore: [1.7, 1.3], underground_river: [2.85, 2.2], pine_churchyard: [0, 1.3],
-    the_gallows: [0, 2.5], burned_mill: [-1.25, 1.6], wisp_bottoms: [-2.5, 1.45],
+    the_gallows: [0, 2.5], hanging_hollow: [0, 3.55], burned_mill: [-1.25, 1.6], wisp_bottoms: [-2.5, 1.45], harthall_hearth: [0.95, -3.95],
   };
   const U = 170, MARGIN = { l: 150, r: 150, t: 170, b: 150 };
 
@@ -30747,7 +30835,9 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     high_ledge: 'Highest rock for miles. On a clear morning you can see half the county, and some of it looks back.',
     burned_mill: 'The old mill burned, and the sparks never did learn to die. You\'ll see \'em still, drifting at dusk.',
     the_gallows: 'The county hung folks from that oak, and not all of \'em guilty. The tree ain\'t forgot a one.',
+    hanging_hollow: 'A draw behind the hanging oak. A name walked out of the Sexton\'s book and came to rest here.',
     harthall_ruins: 'A stone house that wanted to be a castle. The fire won anyhow, and something stayed for the ashes.',
+    harthall_hearth: 'Under the ruined hall, a hearth that never learned to die. The first mark on this side of the ground was cut there.',
     bolin_camp: 'Old Bolin\'s camp, from the bushwhacker days. His fire-ring\'s still there, and some say so is he.',
     spanish_mine: 'A lost working back in the bluff. Folks have hunted Yocum silver in there for a hundred years.',
     fog_caves: 'The bluff breathes there, wet and white. Walk in with a light, and see you come out with it too.',
@@ -31075,7 +31165,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       + '<button type="button" class="ink-btn cmap-close" data-act="close">Close</button>'
       + '<div class="cmap-zoom"><button type="button" data-act="in" aria-label="Zoom in">+</button><button type="button" data-act="out" aria-label="Zoom out">−</button><button type="button" data-act="me" aria-label="Find me" class="cmap-me"></button></div>'
       + '<div class="cmap-key" aria-hidden="true"><span><i class="k-lamp"></i>You</span><span><i class="k-x"></i>Quest</span><span><i class="k-shut"></i>Shut</span><span><i class="k-q">?</i>Unwalked</span></div>'
-      + '<div class="cmap-card hidden"><button type="button" class="cmap-card-x" data-act="card-x" aria-label="Close note">×</button><h3></h3><div class="cmap-sub"></div><p class="cmap-blurb"></p><div class="cmap-status"></div></div>';
+      + '<div class="cmap-card hidden"><button type="button" class="cmap-card-x" data-act="card-x" aria-label="Close note">×</button><h3></h3><div class="cmap-sub"></div><p class="cmap-blurb"></p><div class="cmap-status"></div><button type="button" class="cmap-travel" data-act="travel">Take the road</button></div>';
     UI.showOverlay(p, false);
     if (UI.overlay) { UI.overlay.classList.add('worldmap-mode'); UI.overlay.classList.add('cmap-mode'); }
     const cv = p.querySelector('canvas'), ctx = cv.getContext('2d');
@@ -31287,6 +31377,13 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       card.querySelector('.cmap-blurb').textContent = known ? M.blurb(id) : 'Nobody\'s walked you out that way yet. Go and see, and the map will learn it.';
       const gate = !known && HV.areaGate && HV.areaGate(state, id);
       card.querySelector('.cmap-status').textContent = id === here ? 'You are here.' : (gate ? 'The way is shut: ' + gate : (id === goal ? 'Your road leads here.' : ''));
+      const go = card.querySelector('.cmap-travel');
+      const canGo = !!(HV.canFastTravel && HV.canFastTravel(state, id, here));
+      if (go) {
+        go.classList.toggle('show', canGo);
+        go.textContent = canGo ? 'Take the road there' : 'Take the road';
+      }
+      card.setAttribute('data-place', id);
       card.classList.remove('hidden');
     };
     p.addEventListener('click', (e) => {
@@ -31295,6 +31392,12 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
       else if (act === 'in' || act === 'out') { view.s *= act === 'in' ? 1.25 : 0.8; clampView(); redraw(); }
       else if (act === 'me' && L[here]) { view.cx = L[here].x; view.cy = L[here].y; view.s = Math.max(view.s, 0.75); clampView(); redraw(); }
       else if (act === 'card-x') card.classList.add('hidden');
+      else if (act === 'travel') {
+        const dest = card.getAttribute('data-place');
+        if (HV.tryFastTravel && HV.tryFastTravel(state, dest, here, handlers)) {
+          stop();
+        }
+      }
     });
     M._view = view; M._sheet = () => sheet; M._toScreen = toScreen;
     const start = () => { layoutScreen(); draw((root.performance && performance.now()) || 0); };
@@ -34446,6 +34549,655 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
 
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ==== 44-hv53.js ==== */
+/* THE HOLLOW VEIL — hv53: longer main road, two new required chapters,
+   daytime road enemies, boss retune hooks, Whitey/Howler stay down,
+   and county-map travel between visited camps. Preview only. */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const TILE = 32;
+
+  HV.FAST_TRAVEL_CAMPS = [
+    'yarrow_crossing', 'ila_cabin', 'bolin_camp', 'lead_camp',
+    'ferry_crossing', 'stillhouse_hollow', 'pine_churchyard',
+  ];
+  const TRAVEL_BLOCK_FROM = {
+    under_karst: 1, underground_river: 1, howler_den: 1,
+    hanging_hollow: 1, harthall_hearth: 1, gowrow_ravine: 1,
+    snawfus_glade: 1, yocum_vault: 1, fog_caves: 1, spanish_mine: 1,
+  };
+
+  HV.markWorkDone = function (state) {
+    const f = (state && state.flags) || {};
+    return !!(f.bluff_traced && f.promenade_light_watched && f.church_mark_traced);
+  };
+  HV.oakLaid = function (state) { return !!(state && state.flags && state.flags.oak_laid); };
+  HV.hearthRead = function (state) { return !!(state && state.flags && state.flags.hearth_read); };
+
+  /* New games are stamped so they play the new chapters. Pre-hv53 saves
+     are migrated once: content already behind them is marked complete so
+     they never get pulled backward or stuck. */
+  if (HV.newState && !HV.newState._hv53) {
+    const _newState = HV.newState;
+    HV.newState = function () {
+      const s = _newState.apply(this, arguments);
+      if (s && s.flags) s.flags.hv53 = true;
+      return s;
+    };
+    HV.newState._hv53 = true;
+  }
+
+  HV.migrateHv53 = function (state) {
+    if (!state || !state.flags) return state;
+    if (state.flags.hv53 || state.flags.hv53_migrated) return state;
+    state.flags.hv53_migrated = true;
+    const f = state.flags;
+    const sided = !!(f.chose_ila || f.chose_cald || f.chose_peck || f.faction || (HV.hasChosenSide && HV.hasChosenSide(state)));
+    const whiteyDone = !!(f.whitey_beaten || (HV.storyBossBeaten && HV.storyBossBeaten(state, 'whitey')));
+    const howlerDone = !!(f.howler_beaten || (HV.storyBossBeaten && HV.storyBossBeaten(state, 'ridge_howler')));
+    const peckDone = !!(f.peck_beaten || (HV.storyBossBeaten && HV.storyBossBeaten(state, 'jonas_peck')));
+    const inKarst = !!(f.descended || f.ending || f.ending_pending || (state.discovered && state.discovered.under_karst));
+    const pastOak = !!(whiteyDone || howlerDone || peckDone || inKarst);
+    const pastHearth = !!((whiteyDone && howlerDone && peckDone) || inKarst);
+    if (sided || pastOak) {
+      if (f.bluff_seen) f.bluff_traced = true;
+      if (f.promenade_seen) f.promenade_light_watched = true;
+      if (f.church_seen) f.church_mark_traced = true;
+    }
+    if (pastOak) {
+      f.oak_laid = true;
+      f.town_crisis = true;
+      f.annie_name = true;
+      f.annie_shade_down = true;
+      if (HV.QUESTS && HV.QUESTS.hanging_oak && HV.advanceQuest) HV.advanceQuest(state, 'hanging_oak', 2);
+    }
+    if (pastHearth) {
+      f.hearth_read = true;
+      f.hearth_keeper_down = true;
+      if (HV.QUESTS && HV.QUESTS.hearth_mark && HV.advanceQuest) HV.advanceQuest(state, 'hearth_mark', 1);
+    }
+    return state;
+  };
+
+  function nightNow(state) {
+    if (!state || !state.world) return false;
+    const t = state.world.time;
+    return t < 0.25 || t > 0.78;
+  }
+
+  function grantOnce(state, flag, amt) {
+    if (!state || !state.flags || state.flags[flag]) return;
+    state.flags[flag] = true;
+    if (amt && HV.grantXp && state.hero) HV.grantXp(state.hero, amt);
+  }
+
+  function inCombat(game, state) {
+    if (game && game.mode && game.mode !== 'play' && game.mode !== 'map' && game.mode !== 'menu') return true;
+    const ents = game && game.entities;
+    if (!ents || !state || !state.world) return false;
+    const x = state.world.x, y = state.world.y;
+    for (let i = 0; i < ents.length; i++) {
+      const e = ents[i];
+      if (e && e.alive !== false && e.hp > 0 && Math.hypot((e.x || 0) - x, (e.y || 0) - y) < 110) return true;
+    }
+    return false;
+  }
+
+  HV.canFastTravel = function (state, dest, here) {
+    if (!state || !dest || dest === here) return false;
+    if (HV.FAST_TRAVEL_CAMPS.indexOf(dest) < 0) return false;
+    if (!(state.discovered && state.discovered[dest])) return false;
+    if (here && TRAVEL_BLOCK_FROM[here]) return false;
+    if (HV.areaGate && HV.areaGate(state, dest)) return false;
+    if (inCombat(HV.Game, state)) return false;
+    return true;
+  };
+
+  HV.tryFastTravel = function (state, dest, here, handlers) {
+    if (!HV.canFastTravel(state, dest, here)) return false;
+    const area = HV.AREAS && HV.AREAS[dest];
+    if (!area) return false;
+    const start = area.start || { x: 8, y: 8 };
+    if (HV.UI && HV.UI.hideOverlay) HV.UI.hideOverlay();
+    const G = HV.Game;
+    if (G && G.enterArea) {
+      G.enterArea(dest, start.x * TILE + 16, start.y * TILE + 16);
+      G.mode = 'play';
+    } else {
+      state.world.area = dest;
+      state.world.x = start.x * TILE + 16;
+      state.world.y = start.y * TILE + 16;
+      if (state.discovered) state.discovered[dest] = true;
+    }
+    if (HV.UI && HV.UI.toast) HV.UI.toast('You took the long way around, and you got there.');
+    return true;
+  };
+
+  /* ---- gates, descent, missing-work copy ---- */
+  HV.AREA_GATES = HV.AREA_GATES || {};
+  if (HV.AREA_GATES.under_karst) {
+    const uk = HV.AREA_GATES.under_karst;
+    const ukOk = uk.ok;
+    const ukReason = uk.reason;
+    uk.ok = (s) => {
+      const f = (s && s.flags) || {};
+      if (f.descended || f.ending || f.ending_pending) return true;
+      return !!(ukOk(s) && HV.oakLaid(s) && HV.hearthRead(s));
+    };
+    uk.reason = function (s) {
+      const f = (s && s.flags) || {};
+      if (f.descended || f.ending || f.ending_pending) return '';
+      if (ukOk(s) && !HV.oakLaid(s)) return 'Annie\'s name is still out of the book. Lay it back at the Hanging Oak before you go under the county.';
+      if (ukOk(s) && !HV.hearthRead(s)) return 'The first mark is still unread in the hearth at Harthall. Read it before you go under the limestone.';
+      return (typeof ukReason === 'function') ? ukReason(s) : (ukReason || 'The way is shut.');
+    };
+  }
+  HV.AREA_GATES.hanging_hollow = {
+    ok: (s) => !!(HV.markWorkDone(s) && (HV.hasChosenSide && HV.hasChosenSide(s)) && (s.quests && s.quests.hanging_oak || HV.oakLaid(s))),
+    reason: 'A name walked out of the Sexton\'s book. Talk to Sheriff Wren in Yarrow, or The Sexton in the churchyard, once you have chosen a road.',
+  };
+  HV.AREA_GATES.harthall_hearth = {
+    ok: (s) => !!(HV.oakLaid(s) && (s.flags && s.flags.peck_beaten || (HV.storyBossBeaten && HV.storyBossBeaten(s, 'jonas_peck'))) && (s.quests && s.quests.hearth_mark || HV.hearthRead(s))),
+    reason: 'The first mark is cut in the hearth under Harthall. Talk to Granny Ila once Peck and the hanging oak are settled.',
+  };
+
+  if (HV.areaGate && !HV.areaGate._hv53) {
+    const _gate = HV.areaGate;
+    HV.areaGate = function (state, areaId) {
+      if (state) HV.migrateHv53(state);
+      return _gate.apply(this, arguments);
+    };
+    HV.areaGate._hv53 = true;
+  }
+  const _canDescend = HV.canDescend;
+  HV.canDescend = function (state) {
+    if (state) HV.migrateHv53(state);
+    const f = (state && state.flags) || {};
+    if (f.descended || f.ending || f.ending_pending) return true;
+    if (state && state.discovered && state.discovered.under_karst) return true;
+    if (_canDescend && !_canDescend(state)) return false;
+    return HV.oakLaid(state) && HV.hearthRead(state);
+  };
+
+  const _missing = HV.storyMissing;
+  HV.storyMissing = function (state) {
+    const missing = (_missing && _missing(state)) || [];
+    if (!HV.markWorkDone(state)) missing.push({ id: 'mark_work', text: 'trace the three marks (the bluff, the Promenade light after dusk, and the churchyard stone)' });
+    if (!HV.oakLaid(state)) missing.push({ id: 'hanging_oak', text: 'lay Annie\'s name back in the book at the Hanging Oak' });
+    if (!HV.hearthRead(state)) missing.push({ id: 'hearth_mark', text: 'read the first mark in the hearth at Harthall' });
+    return missing;
+  };
+
+  /* ---- quests, journal, guide ---- */
+  HV.QUESTS = HV.QUESTS || {};
+  HV.QUESTS.hanging_oak = {
+    name: 'The Hanging Oak',
+    stages: [
+      { id: 'ask', journal: 'A name has walked out of the Sexton\'s book. Wren says it belongs to a girl called Annie, hung from the county oak on a thin charge. The draw behind The Gallows is where a name like that would go to ground.' },
+      { id: 'name', journal: 'I took Annie\'s name off the hanging oak. Her shade still keeps the draw, or did. The Sexton will want the name back in the book.' },
+      { id: 'done', journal: 'Annie\'s name is written back in the book. The hanging oak is quieter, and the county feels one thread less frayed.' },
+    ],
+  };
+  HV.QUESTS.hearth_mark = {
+    name: 'The Hearth Mark',
+    stages: [
+      { id: 'ask', journal: 'Ila says the marks on the bluff and the churchyard were copies. The first cut was made in the hearth when Harthall was raised, under the ruined hall. She wants it read before anyone goes under the limestone.' },
+      { id: 'done', journal: 'I read the first mark in the Harthall hearth. It is older than the county, and it still knows its work. The Under-Karst will open to a person who has read it.' },
+    ],
+  };
+
+  if (HV.QUEST_GUIDE) {
+    HV.QUEST_GUIDE.hanging_oak = function (s) {
+      const f = (s && s.flags) || {};
+      if (!f.annie_name) return { area: 'hanging_hollow', text: 'Find Annie\'s name at the hanging oak in the draw behind The Gallows (tap USE).' };
+      if (!f.annie_shade_down) return { area: 'hanging_hollow', text: 'Lay Annie\'s shade down in Hanging Hollow, then take her name to The Sexton.' };
+      if (!f.oak_laid) return { area: 'pine_churchyard', text: 'Take Annie\'s name back to The Sexton at the Pine Churchyard.' };
+      return { area: 'pine_churchyard', text: 'Annie\'s name is back in the book.' };
+    };
+    HV.QUEST_GUIDE.hearth_mark = function (s) {
+      const f = (s && s.flags) || {};
+      if (!f.hearth_read) return { area: 'harthall_hearth', text: 'Go under Harthall Ruins, settle whatever keeps the hearth, and read the first mark (tap USE).' };
+      return { area: 'ila_cabin', text: 'The first mark is read. The Under-Karst will open.' };
+    };
+  }
+
+  /* ---- chapters (reuse existing art ids) ---- */
+  HV.CHAPTERS = HV.CHAPTERS || [];
+  const CH_OAK = {
+    id: 'hanging_oak', title: 'THE HANGING OAK', art: 'lore_bushwhackers',
+    line: 'A draw behind the county oak. A name walked out of the Sexton\'s book and came to rest here, and the tree has not forgotten her.',
+    areas: ['hanging_hollow', 'the_gallows'],
+  };
+  const CH_HEARTH = {
+    id: 'hearth_mark', title: 'THE HEARTH MARK', art: 'lore_karst_caves',
+    line: 'Under the ruined hall, a hearth that never learned to die. The first mark on this side of the ground was cut there when the house was raised.',
+    areas: ['harthall_hearth'],
+  };
+  if (!HV.CHAPTERS.some((c) => c.id === 'hanging_oak')) {
+    const nightIdx = HV.CHAPTERS.findIndex((c) => c.id === 'night_ridge');
+    const howlIdx = HV.CHAPTERS.findIndex((c) => c.id === 'howl');
+    const at = howlIdx >= 0 ? howlIdx : (nightIdx >= 0 ? nightIdx : HV.CHAPTERS.length);
+    HV.CHAPTERS.splice(at, 0, CH_OAK);
+  }
+  if (!HV.CHAPTERS.some((c) => c.id === 'hearth_mark')) {
+    const caveIdx = HV.CHAPTERS.findIndex((c) => c.id === 'caves');
+    HV.CHAPTERS.splice(caveIdx >= 0 ? caveIdx : HV.CHAPTERS.length, 0, CH_HEARTH);
+  }
+  if (HV.AreaBlurbs && HV.AreaBlurbs.NEW) {
+    HV.AreaBlurbs.NEW.hanging_oak = 'A name walked out of the Sexton\'s book and went to ground in the draw behind the hanging oak. The tree ain\'t forgot her, and I don\'t reckon it will.';
+    HV.AreaBlurbs.NEW.hearth_mark = 'Under Harthall there\'s a hearth that never learned to die. They cut the first mark there when they raised the house.';
+    if (HV.AreaBlurbs.on) {
+      HV.CHAPTERS.forEach((ch) => {
+        if (HV.AreaBlurbs.NEW[ch.id] && (ch.id === 'hanging_oak' || ch.id === 'hearth_mark')) ch.line = HV.AreaBlurbs.NEW[ch.id];
+      });
+    }
+  }
+
+  /* ---- nextHint: weave the new beats into the main road ---- */
+  HV.nextHint = function (state, areaId) {
+    if (!state) return 'Talk to folks in Yarrow Crossing (look for the ! over them).';
+    HV.migrateHv53(state);
+    const flags = state.flags || {};
+    const areaId2 = areaId || (state.world && state.world.area) || 'yarrow_crossing';
+    const travel = (goal, prefix) => {
+      const t = HV.formatTravel ? HV.formatTravel(areaId2, goal) : ('Go to ' + goal + '.');
+      return (prefix ? prefix + ' ' : '') + t;
+    };
+
+    const thinning = state.quests && state.quests.the_thinning;
+    const stage = thinning ? thinning.stage : 0;
+    if (!flags.ila_briefed && stage <= 0) {
+      if (areaId2 === 'yarrow_crossing') return 'Talk to Granny Ila in Yarrow Crossing (look for the ! over her).';
+      return travel('yarrow_crossing', 'Talk to Granny Ila.');
+    }
+
+    const marks = [
+      { flag: 'bluff_seen', id: 'widows_bluff', name: "Widow's Bluff" },
+      { flag: 'promenade_seen', id: 'devil_promenade', name: "Devil's Promenade" },
+      { flag: 'church_seen', id: 'pine_churchyard', name: 'Pine Churchyard' },
+    ];
+    for (let i = 0; i < marks.length; i++) {
+      const m = marks[i];
+      if (flags[m.flag]) continue;
+      if (areaId2 === m.id) return 'Walk the scarred mark here at ' + m.name + ' (tap USE if you need to look).';
+      return travel(m.id, 'Walk the scarred mark at ' + m.name + '.');
+    }
+
+    const work = [
+      { flag: 'bluff_traced', id: 'widows_bluff', here: 'Trace what\'s left of the scored mark on the lip (tap USE).', go: 'Go back to Widow\'s Bluff and trace the scored mark (tap USE on the lip).' },
+      { flag: 'promenade_light_watched', id: 'devil_promenade', here: nightNow(state) ? 'Stay at the fork and watch the light walk (tap USE).' : 'Come back to the fork after dusk and watch the light walk (tap USE).', go: 'Go back to Devil\'s Promenade after dusk and watch the light at the fork (tap USE).' },
+      { flag: 'church_mark_traced', id: 'pine_churchyard', here: 'Trace the second mark scarred in the churchyard stone (tap USE).', go: 'Go back to the Pine Churchyard and trace the second mark (tap USE).' },
+    ];
+    for (let i = 0; i < work.length; i++) {
+      const m = work[i];
+      if (flags[m.flag]) continue;
+      if (areaId2 === m.id) return m.here;
+      return travel(m.id, m.go);
+    }
+
+    if (!flags.chose_ila && !flags.chose_cald && !flags.chose_peck && !flags.faction) {
+      if (areaId2 === 'yarrow_crossing') return 'Choose a road: talk to Ila (mend), Cald (purge), or find Jonas Peck on Bald Knob.';
+      if (areaId2 === 'bald_knob') return 'Talk to Jonas Peck, or return to Yarrow to stand with Ila or Cald.';
+      return travel('yarrow_crossing', 'Return to Yarrow and choose a road: Ila, Cald, or Peck on Bald Knob.');
+    }
+
+    if (!flags.oak_laid) {
+      if (!flags.town_crisis && !(state.quests && state.quests.hanging_oak)) {
+        if (areaId2 === 'yarrow_crossing') return 'Talk to Sheriff Wren in Yarrow (look for the ! over him). A name has walked out of the book.';
+        if (areaId2 === 'pine_churchyard') return 'Talk to The Sexton about a name that walked out of his book (look for the !).';
+        return travel('yarrow_crossing', 'Talk to Sheriff Wren. A name has walked out of the Sexton\'s book.');
+      }
+      if (!flags.annie_name) {
+        if (areaId2 === 'hanging_hollow') return 'Find Annie\'s name at the hanging oak (tap USE).';
+        if (areaId2 === 'the_gallows') return 'The draw behind the oak is open. Walk into Hanging Hollow and find Annie\'s name (tap USE).';
+        return travel('hanging_hollow', 'Go to the draw behind The Gallows and find Annie\'s name at the hanging oak.');
+      }
+      if (!flags.annie_shade_down) {
+        if (areaId2 === 'hanging_hollow') return 'Annie\'s shade still keeps the draw. Lay her down, then take the name to The Sexton.';
+        return travel('hanging_hollow', 'Return to Hanging Hollow and lay Annie\'s shade down.');
+      }
+      if (areaId2 === 'pine_churchyard') return 'Give Annie\'s name back to The Sexton so he can write it in the book.';
+      return travel('pine_churchyard', 'Take Annie\'s name back to The Sexton at the Pine Churchyard.');
+    }
+
+    const bosses = HV.STORY_CHAPTER_BOSSES || [];
+    for (let i = 0; i < bosses.length; i++) {
+      const b = bosses[i];
+      if (HV.storyBossBeaten && HV.storyBossBeaten(state, b.id)) continue;
+      if (b.id === 'ridge_howler' && !(state.quests && state.quests.howler_hunt) && !HV.questDone(state, 'howler_hunt')) {
+        if (areaId2 === 'yarrow_crossing') return 'Talk to Sheriff Wren in Yarrow Crossing (look for the ! over him) about the thing that screams.';
+        return travel('yarrow_crossing', 'Talk to Sheriff Wren about the thing that screams.');
+      }
+      if (areaId2 === b.area) return b.hintHere;
+      return travel(b.area, b.hintGo);
+    }
+
+    if (!flags.hearth_read) {
+      if (!(state.quests && state.quests.hearth_mark)) {
+        if (areaId2 === 'yarrow_crossing' || areaId2 === 'ila_cabin') return 'Talk to Granny Ila (look for the !). The first mark was cut in the hearth at Harthall.';
+        return travel('yarrow_crossing', 'Talk to Granny Ila. The first mark was cut in the hearth at Harthall.');
+      }
+      if (areaId2 === 'harthall_hearth') {
+        if (!flags.hearth_keeper_down) return 'Settle whatever keeps this hearth, then read the first mark (tap USE).';
+        return 'Read the first mark in the hearth (tap USE).';
+      }
+      if (areaId2 === 'harthall_ruins') return 'The hearth is under the hall. Go inside and read the first mark (tap USE).';
+      return travel('harthall_hearth', 'Go under Harthall Ruins and read the first mark in the hearth.');
+    }
+
+    if (!flags.descended && !flags.ending_pending && !flags.ending) {
+      if (!(HV.canDescend && HV.canDescend(state))) {
+        return (HV.descendRefusal && HV.descendRefusal(state)) || 'Keep walking the main road. The Under-Karst is not open yet.';
+      }
+      if (areaId2 === 'under_karst') return 'Find the Under-Stone in the Under-Karst.';
+      return travel('under_karst', 'Descend into the Under-Karst and face the Under-Stone.');
+    }
+    if (flags.ending_pending && !flags.ending) return 'Speak with the Under-Stone and choose how this telling ends.';
+    if (flags.ending) return 'The thinning is decided. You can start New Game+ from the title.';
+
+    const banjo = state.quests && state.quests.crossroads_letter;
+    if (banjo && !banjo.done) {
+      const hasBanjo = flags.has_banjo || (HV.hasItem && HV.hasItem(state, 'crossroads_banjo'));
+      if (!hasBanjo && (banjo.stage || 0) <= 0) {
+        if (areaId2 === 'the_crossroads') return 'Tap USE on the west side of The Crossroads to dig up the banjo (no shovel needed).';
+        return travel('the_crossroads', 'Dig the banjo at The Crossroads (tap USE on the west side).');
+      }
+      if (!flags.showdown_won) {
+        if (areaId2 === 'the_crossroads') return 'Wait for night (12-minute day cycle) and meet the Man in the Dark Hat in the middle of The Crossroads to start the duel.';
+        return travel('the_crossroads', 'Go to The Crossroads at night for the Man in the Dark Hat.');
+      }
+    }
+    if (!banjo && areaId2 === 'yarrow_crossing') return 'Talk to Josie Fiddler in Yarrow (look for the ! near the well) about a crossroads banjo, or talk to other folks with a ! over them.';
+    return 'Talk to folks in Yarrow Crossing (look for the ! over them).';
+  };
+  (function keepTrackedHint() {
+    const storyHint = HV.nextHint;
+    HV.nextHint = function (state, areaId) {
+      const tracked = HV.trackedHint && HV.trackedHint(state, areaId);
+      if (tracked) return tracked;
+      return storyHint(state, areaId);
+    };
+  })();
+
+  /* ---- story USE beats ---- */
+  function near(tx, ty, x, y, d) { return Math.abs(x - tx) + Math.abs(y - ty) <= (d == null ? 2 : d); }
+
+  function takeAnnieLeaf(state) {
+    const inv = state.hero.inventory || (state.hero.inventory = []);
+    if (!inv.some((i) => i.id === 'annie_name_leaf')) {
+      inv.push({
+        id: 'annie_name_leaf', name: 'A Name on a Leaf', rarity: 'uncommon', unique: true,
+        flavor: 'Annie, written in a hand that shook. The hanging oak had taken it out of the book.',
+      });
+    }
+  }
+  function dropAnnieLeaf(state) {
+    const inv = state.hero.inventory || [];
+    for (let i = inv.length - 1; i >= 0; i--) if (inv[i] && inv[i].id === 'annie_name_leaf') inv.splice(i, 1);
+  }
+
+  function hearthPad() {
+    const a = HV.AREAS && HV.AREAS.harthall_hearth;
+    const sp = a && (a.spawns || []).find((s) => s.id === 'castle_keeper');
+    return sp ? { x: sp.x, y: sp.y } : { x: 24, y: 18 };
+  }
+
+  HV.tryStoryUse = function (game, tx, ty) {
+    const s = game && game.state;
+    const area = game && game.area;
+    if (!s || !area) return false;
+    s.flags = s.flags || {};
+    const id = area.id;
+
+    if (id === 'widows_bluff' && !s.flags.bluff_traced && (ty >= 24 && tx >= 18 && tx <= 38)) {
+      s.flags.bluff_traced = true;
+      grantOnce(s, 'xp_bluff_traced', 40);
+      if (HV.UI && HV.UI.toast) HV.UI.toast('You trace what\'s left of the scored mark. Somebody meant to unwrite a prayer, and did not quite finish.');
+      return true;
+    }
+    if (id === 'devil_promenade' && !s.flags.promenade_light_watched && (near(tx, ty, 32, 18, 6) || near(tx, ty, 30, 16, 6) || near(tx, ty, 28, 18, 6))) {
+      if (!nightNow(s)) {
+        if (HV.UI && HV.UI.toast) HV.UI.toast('The light walks after dusk. Come back when the road\'s gone dark, and stand at the fork.');
+        return true;
+      }
+      s.flags.promenade_light_watched = true;
+      grantOnce(s, 'xp_promenade_light', 50);
+      if (HV.UI && HV.UI.toast) HV.UI.toast('The light walks the fork with no hand under it, same as the old folks said, and then it is gone.');
+      return true;
+    }
+    if (id === 'pine_churchyard' && !s.flags.church_mark_traced && (near(tx, ty, 28, 28, 4) || near(tx, ty, 24, 26, 4) || near(tx, ty, 28, 24, 4) || near(tx, ty, 22, 26, 4))) {
+      s.flags.church_mark_traced = true;
+      grantOnce(s, 'xp_church_traced', 40);
+      if (HV.UI && HV.UI.toast) HV.UI.toast('You put your hand on the churchyard stone. The second mark is still warm, like a name somebody tried to scratch out.');
+      return true;
+    }
+    if (id === 'hanging_hollow' && s.quests && s.quests.hanging_oak && !s.flags.annie_name && (near(tx, ty, 26, 10, 4) || near(tx, ty, 28, 12, 4) || near(tx, ty, 24, 12, 4))) {
+      s.flags.annie_name = true;
+      takeAnnieLeaf(s);
+      grantOnce(s, 'xp_annie_name', 80);
+      if (HV.advanceQuest) HV.advanceQuest(s, 'hanging_oak', 1);
+      if (HV.UI && HV.UI.toast) HV.UI.toast('Annie, written on a leaf the oak had no right to keep. Her shade is still here.');
+      return true;
+    }
+    if (id === 'harthall_hearth' && s.quests && s.quests.hearth_mark && !s.flags.hearth_read) {
+      const pad = hearthPad();
+      if (!near(tx, ty, pad.x, pad.y, 4)) return false;
+      if (!s.flags.hearth_keeper_down) {
+        if (HV.UI && HV.UI.toast) HV.UI.toast('Something still keeps this hearth. Settle it, then read the mark.');
+        return true;
+      }
+      s.flags.hearth_read = true;
+      grantOnce(s, 'xp_hearth_read', 120);
+      if (HV.advanceQuest) HV.advanceQuest(s, 'hearth_mark', 1);
+      if (HV.UI && HV.UI.toast) HV.UI.toast('The first mark is older than the county, cut when the house was raised. It still knows its work.');
+      return true;
+    }
+    return false;
+  };
+
+  /* ---- dialogue wraps: Ila, Cald, Peck, Wren, Sexton ---- */
+  function wrapChoices(node, fn) {
+    if (!node) return;
+    const prev = node.choicesFn;
+    node.choicesFn = function (s) {
+      const c = prev ? prev(s) : (node.choices ? node.choices.slice() : []);
+      return fn(s, c);
+    };
+  }
+  function wrapText(node, fn) {
+    if (!node) return;
+    const prev = node.textFn;
+    const base = node.text;
+    node.textFn = function (s) {
+      const cur = prev ? prev(s) : base;
+      return fn(s, cur);
+    };
+  }
+
+  const D = HV.DIALOG || {};
+
+  if (D.ila && D.ila.later) {
+    wrapText(D.ila.later, (s, cur) => {
+      if (s.flags.hearth_read) return 'You read it, then. The first cut. I felt it from here, like a needle pulling through cloth. The limestone will open to you now. Go careful under there.';
+      if ((s.flags.peck_beaten || (HV.storyBossBeaten && HV.storyBossBeaten(s, 'jonas_peck'))) && HV.oakLaid(s) && !s.flags.hearth_read) {
+        return 'Peck\'s told, and Annie\'s name is back in the book. There\'s one mark left, and it ain\'t on the bluff or the churchyard. The first cut was made in the hearth when they raised Harthall. You go read it before you go under the county.';
+      }
+      const visits = s.flags.bluff_seen && s.flags.promenade_seen && s.flags.church_seen;
+      if (visits && !HV.markWorkDone(s) && !s.flags.chose_ila && !s.flags.chose_cald && !s.flags.chose_peck) {
+        return 'You\'ve walked the three wounds, honey, but you ain\'t read them yet. Go back. Trace the scored mark on the bluff. Stand at the Promenade fork after dark and watch that light. Put your hand on the churchyard stone. Then we\'ll talk about mending.';
+      }
+      return cur;
+    });
+    wrapChoices(D.ila.later, (s, c) => {
+      const sided = !!(s.flags.chose_ila || s.flags.chose_cald || s.flags.chose_peck);
+      if (!HV.markWorkDone(s)) {
+        c = c.filter((ch) => !ch.set || !ch.set.chose_ila);
+      }
+      if ((s.flags.peck_beaten || (HV.storyBossBeaten && HV.storyBossBeaten(s, 'jonas_peck'))) && HV.oakLaid(s) && !s.flags.hearth_read && !(s.quests && s.quests.hearth_mark)) {
+        c = c.slice();
+        c.unshift({ t: 'Tell me about the first mark.', next: 'hearth_ask' });
+      }
+      return c;
+    });
+    D.ila.hearth_ask = {
+      who: 'Granny Ila',
+      text: 'The marks you traced are copies, child. The first one was cut in the hearth when they raised Harthall, so the house would know which side of the ground it belonged to. The hall burned. The hearth did not. You go down there and read it, and then the limestone will have to let you in.',
+      choices: [{ t: 'I\'ll go to Harthall.', next: null, startQuest: 'hearth_mark' }],
+    };
+  }
+
+  if (D.cald && D.cald.later) {
+    wrapChoices(D.cald.later, (s, c) => {
+      if (!HV.markWorkDone(s)) c = c.filter((ch) => !ch.set || !ch.set.chose_cald);
+      return c;
+    });
+    wrapText(D.cald.later, (s, cur) => {
+      const visits = s.flags.bluff_seen && s.flags.promenade_seen && s.flags.church_seen;
+      if (visits && !HV.markWorkDone(s) && !s.flags.chose_ila && !s.flags.chose_cald && !s.flags.chose_peck) {
+        return 'You have seen the wounds. Now go put your hand on them. Trace the bluff, watch the Promenade light after dusk, and read the churchyard stone. Then we can talk about fire.';
+      }
+      return cur;
+    });
+  }
+
+  if (D.peck && D.peck.terms) {
+    wrapChoices(D.peck.terms, (s, c) => {
+      if (!HV.markWorkDone(s)) c = c.filter((ch) => !ch.set || !ch.set.chose_peck);
+      return c;
+    });
+  }
+
+  if (D.wren) {
+    const _wrenStart = D.wren.start;
+    D.wren.start = function (s) {
+      if (s && HV.markWorkDone(s) && HV.hasChosenSide && HV.hasChosenSide(s) && !s.flags.oak_laid && !(s.quests && s.quests.hanging_oak)) {
+        return 'oak_crisis';
+      }
+      return _wrenStart ? _wrenStart(s) : (s.flags.met_wren ? 'later' : 'first');
+    };
+  }
+  if (D.wren && D.wren.later) {
+    wrapText(D.wren.later, (s, cur) => {
+      if (HV.markWorkDone(s) && HV.hasChosenSide && HV.hasChosenSide(s) && !s.flags.oak_laid && !(s.quests && s.quests.hanging_oak)) {
+        return 'I will not write "haint" in a report, but I will write a missing name. The Sexton says a line walked out of his book last night. Annie, hung off the county oak on a charge that would not have held in a proper court. If her name is loose, it has gone to the draw behind The Gallows, and I cannot spare a deputy.';
+      }
+      if (s.flags.oak_laid) return 'The Sexton put Annie back in the book. I slept better, and I will not say that in the office either. If you find Peck, I still will not ask you to be gentle.';
+      return cur;
+    });
+    wrapChoices(D.wren.later, (s, c) => {
+      c = c.slice();
+      if (HV.markWorkDone(s) && HV.hasChosenSide && HV.hasChosenSide(s) && !s.flags.oak_laid && !(s.quests && s.quests.hanging_oak)) {
+        c.unshift({ t: 'Tell me about the name that walked.', next: 'oak_crisis' });
+      }
+      return c;
+    });
+    D.wren.oak_crisis = {
+      who: 'Sheriff Wren',
+      text: 'Go to the draw behind The Gallows. If Annie\'s name is there, bring it back to The Sexton and let him write it down proper. A county that cannot keep its dead in the book will not keep its living either.',
+      choices: [{ t: 'I\'ll walk the draw.', next: null, set: { town_crisis: true, met_wren: true }, startQuest: 'hanging_oak' }],
+    };
+  }
+
+  if (D.sexton) {
+    const _start = D.sexton.start;
+    D.sexton.start = function (s) {
+      if (s.quests && s.quests.hanging_oak && !s.quests.hanging_oak.done) {
+        if (s.flags.annie_name) return 'oak_pay';
+        return 'oak_ask';
+      }
+      if (HV.markWorkDone(s) && HV.hasChosenSide && HV.hasChosenSide(s) && !s.flags.oak_laid && !(s.quests && s.quests.hanging_oak)) {
+        return 'oak_news';
+      }
+      return _start ? _start(s) : 'yard';
+    };
+    D.sexton.oak_news = {
+      who: 'The Sexton',
+      text: 'A name walked out of this book last night. Annie. Hung from the county oak, and not for any honest charge. I wrote her down once. The oak took her back. If you mean to bring her name home, the draw behind The Gallows is where a loose name goes.',
+      choices: [{ t: 'I\'ll walk the draw.', next: null, set: { town_crisis: true }, startQuest: 'hanging_oak' }],
+    };
+    D.sexton.oak_ask = {
+      who: 'The Sexton',
+      text: 'I can feel the empty line in the book from here. Annie is in the draw behind the hanging oak. You bring me her name, and I will write it twice if I have to.',
+      choices: [{ t: 'I\'ll find her.', next: null }],
+    };
+    D.sexton.oak_pay = {
+      who: 'The Sexton',
+      text: 'Annie. Yes. That is her hand, even if a tree tried to keep it. I will write her back in, and I will sleep in the shed tonight. The county is one name heavier, and that is how it ought to be.',
+      choices: [{ t: 'Rest easy, The Sexton.', next: null, set: { oak_laid: true }, advance: { id: 'hanging_oak', to: 2 } }],
+    };
+    const _apply = HV.applyDialogChoice;
+    if (_apply && !_apply._hv53oak) {
+      HV.applyDialogChoice = function (state, ch) {
+        const r = _apply.apply(this, arguments);
+        if (ch && ch.set && ch.set.oak_laid && state) {
+          grantOnce(state, 'xp_oak_laid', 60);
+          dropAnnieLeaf(state);
+        }
+        return r;
+      };
+      HV.applyDialogChoice._hv53oak = true;
+    }
+  }
+
+  /* ---- install: interact, onKill ---- */
+  function install() {
+    const G = HV.Game;
+    if (G && G.loadState && !G.loadState._hv53mig) {
+      const _ls = G.loadState;
+      const wrappedLoad = function (state) {
+        if (state) HV.migrateHv53(state);
+        return _ls.apply(this, arguments);
+      };
+      Object.keys(_ls).forEach((k) => { wrappedLoad[k] = _ls[k]; });
+      G.loadState = wrappedLoad;
+      G.loadState._hv53mig = true;
+    }
+    function keepFlags(src, dest) {
+      Object.keys(src).forEach((k) => { dest[k] = src[k]; });
+      return dest;
+    }
+    if (G && G.interact && !G.interact._hv53) {
+      const _in = G.interact;
+      const wrapped = function () {
+        if (this.interactLock > 0) return;
+        const s = this.state, area = this.area;
+        if (s && area) {
+          const tx = Math.floor(s.world.x / TILE), ty = Math.floor(s.world.y / TILE);
+          if (HV.tryStoryUse(this, tx, ty)) return;
+        }
+        return _in.apply(this, arguments);
+      };
+      G.interact = keepFlags(_in, wrapped);
+      G.interact._hv53 = true;
+    }
+    if (G && G.onKill && !G.onKill._hv53) {
+      const _k = G.onKill;
+      const wrapped = function (en) {
+        const r = _k.apply(this, arguments);
+        const s = this.state, area = this.area;
+        if (s && en && area) {
+          if (en.id === 'hitch_girl' && area.id === 'hanging_hollow') {
+            s.flags.annie_shade_down = true;
+            if (HV.UI && HV.UI.toast) HV.UI.toast('Annie\'s shade is still. Take her name to The Sexton.');
+          }
+          if (en.id === 'castle_keeper' && area.id === 'harthall_hearth') {
+            s.flags.hearth_keeper_down = true;
+            if (HV.UI && HV.UI.toast) HV.UI.toast('The hearth is unkept. The first mark is cut in the stone. Tap USE and read it.');
+          }
+        }
+        return r;
+      };
+      G.onKill = keepFlags(_k, wrapped);
+      G.onKill._hv53 = true;
+    }
+  }
+
+  install();
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
 
 </script>
 </body>
