@@ -28159,27 +28159,33 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   }
 
   /* ================= 2. typewriter talk with voice blips ================= */
+  /* Lara is warm and a touch lower/softer than Josie; Josie keeps the high triangle blip. */
+  const LARA_VOICE = { f: 220, v: 0.08, type: 'sine', g: 0.018 };
   const VOICES = [
     [/under-stone|under stone/i, { f: 70, v: 0.18, type: 'sine' }],
     [/dark hat/i, { f: 95, v: 0.22, type: 'triangle' }],
     [/peck|raider|captain/i, { f: 92, v: 0.15, type: 'triangle' }],
+    [/\blara\b|traveler|^you$/i, LARA_VOICE],
     [/granny|\bila\b|calva|widow/i, { f: 205, v: 0.12, type: 'triangle' }],
-    [/josie|mara|tamsen|hitch|girl|lara/i, { f: 250, v: 0.14, type: 'triangle' }],
+    [/josie|mara|tamsen|hitch|girl/i, { f: 250, v: 0.14, type: 'triangle' }],
     [/otto|cole|ferryman|old christmas|linwood|beek/i, { f: 112, v: 0.1, type: 'triangle' }],
     [/preacher|cald|sexton|\brue\b|sheriff|wren|\blen\b/i, { f: 138, v: 0.12, type: 'triangle' }],
     [/haint|wight|shade|ghost/i, { f: 300, v: 0.25, type: 'sine' }]
   ];
-  const Talk = HV.Talk = { CPS: 60, BLIP_EVERY: 3, active: null };
+  const Talk = HV.Talk = { CPS: 60, BLIP_EVERY: 3, active: null, LARA: LARA_VOICE };
   Talk.voiceFor = function (who) {
     const s = String(who || '');
     for (const [re, v] of VOICES) if (re.test(s)) return v;
+    const hero = HV.Game && HV.Game.state && HV.Game.state.hero && HV.Game.state.hero.name;
+    if (hero && s && s.toLowerCase() === String(hero).toLowerCase()) return LARA_VOICE;
     return { f: 160, v: 0.12, type: 'triangle' };
   };
   Talk.blip = function (voice, i) {
     const A = HV.Audio;
     if (!A || !A.tone || A.muted || (A.isMuted && A.isMuted())) return;
     const wob = Math.sin(i * 2.1) * voice.v + Math.sin(i * 0.7) * voice.v * 0.5;
-    try { A.tone(voice.f * (1 + wob), null, 0.045, voice.type, 0.025); } catch (e) { /* audio locked */ }
+    const g = voice.g == null ? 0.025 : voice.g;
+    try { A.tone(voice.f * (1 + wob), null, 0.045, voice.type, g); } catch (e) { /* audio locked */ }
   };
   Talk.finish = function () {
     const t = Talk.active; if (!t) return false;
