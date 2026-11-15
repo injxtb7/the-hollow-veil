@@ -6292,7 +6292,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         const src = ctx.createBufferSource();
         src.buffer = buf; src.loop = true;
         const f = ctx.createBiquadFilter();
-        f.type = 'bandpass'; f.frequency.value = 2800; f.Q.value = 0.8;
+        f.type = 'lowpass'; f.frequency.value = 900; f.Q.value = 0.7;
         const g = ctx.createGain(); g.gain.value = 0.0001;
         src.connect(f); f.connect(g); g.connect(dest);
         src.start();
@@ -6302,7 +6302,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         const src = ctx.createBufferSource();
         src.buffer = buf; src.loop = true;
         const f = ctx.createBiquadFilter();
-        f.type = 'lowpass'; f.frequency.value = 1400;
+        f.type = 'lowpass'; f.frequency.value = 520;
         const g = ctx.createGain(); g.gain.value = 0.0001;
         src.connect(f); f.connect(g); g.connect(dest);
         src.start();
@@ -6312,8 +6312,8 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
     }
     if (!this._rain) return;
     const t = this.ctx.currentTime;
-    const g1 = on ? 0.04 * (intensity || 0.6) : 0.0001;
-    const g2 = on ? 0.028 * (intensity || 0.6) : 0.0001;
+    const g1 = on ? 0.022 * (intensity || 0.6) : 0.0001;
+    const g2 = on ? 0.02 * (intensity || 0.6) : 0.0001;
     try {
       this._rain.hi.g.gain.cancelScheduledValues(t);
       this._rain.hi.g.gain.setValueAtTime(Math.max(0.0001, this._rain.hi.g.gain.value), t);
@@ -21051,7 +21051,7 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
         + '<p style="margin:4px 0 8px;font-size:13px;opacity:0.8">For talk, the Journal, the Guide, and menus. The bars and the world stay as they are. Normal is sized for a phone.</p>'
         + '<div id="text-sizes" class="text-size-row"></div>'
         + '<div style="margin-top:16px" class="caps">Weather</div>'
-        + '<p style="margin:4px 0 8px;font-size:13px;opacity:0.8">Rain and rare night storms on the road. Off leaves the sky clear. On is the default.</p>'
+        + '<p style="margin:4px 0 8px;font-size:13px;opacity:0.8">Rare rain, thunderstorms, and a little snow on the high road. The hills stay clear to read. Off leaves the sky fair.</p>'
         + '<div id="weather-opts" class="text-size-row"></div>'
         + '<div style="margin-top:16px" class="caps">Effects</div>'
         + '<p style="margin:4px 0 8px;font-size:13px;opacity:0.8">Light draws the world at a lower resolution for a smoother picture on older phones and iPads. Full is the default.</p>'
@@ -38961,6 +38961,1021 @@ body:has(#overlay-root.title-mode:not(.hidden)) #hv-plank { display: none; }
   HV.ART.haint_wampus_cat = 'data:image/webp;base64,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';
   HV.ART_META.haint_wampus_cat = { w: 384, h: 480, bytes: 17402 };
 })(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ==== 52-hv67-weather.js ==== */
+/* hv67 — outdoor weather that never veils the road.
+   Thunderstorms and sparse snow only. No darkening overlay, no fog, no contrast tint.
+   Occasional, outdoor only, settings toggle, cheap enough for a phone. */
+(function (g) {
+  const HV = g.HV = g.HV || {};
+  const TILE = () => (HV.Render && HV.Render.TILE) || 32;
+
+  const SNOWY_IDS = {
+    post_oak_ridge: 1, high_ledge: 1, widows_bluff: 1, bald_knob: 1,
+    howler_run: 1, harthall_ruins: 1, white_stag_woods: 1
+  };
+  const SHELTER_IDS = {
+    fog_caves: 1, underground_river: 1, howler_den: 1, spanish_mine: 1,
+    yocum_vault: 1, under_karst: 1, harthall_hearth: 1, gowrow_ravine: 1,
+    snawfus_glade: 1, hanging_hollow: 1
+  };
+
+  function lowFx() {
+    return !!(HV.LowFx && HV.LowFx.on && HV.LowFx.on());
+  }
+  function reduceMotion() {
+    try {
+      return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch (e) { return false; }
+  }
+  function rgba(r, g, b, a) {
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a.toFixed(3) + ')';
+  }
+
+  HV.Weather = {
+    state: 'clear',
+    intensity: 0,
+    enabled: true,
+    onLightning: null,
+    _want: 'clear',
+    _hold: 12,
+    _flash: 0,
+    _flashPeak: 0,
+    _flashDur: 0.08,
+    _stormCd: 12,
+    _forced: false,
+    _ripples: [],
+    _flakes: [],
+    _spawnAcc: 0,
+    _listeners: [],
+    _bolt: null,
+    _t: 0,
+    /* Invariant: rain, storm and snow never lay a full-screen tint. Lightning is a brief exception. */
+    veilAlpha: function (/* kind */) { return 0; },
+    flashPeakMax: 0.12,
+
+    listenLightning(fn) {
+      if (typeof fn === 'function') this._listeners.push(fn);
+      const list = this._listeners;
+      return function () {
+        const i = list.indexOf(fn);
+        if (i >= 0) list.splice(i, 1);
+      };
+    },
+
+    isDuskOrNight() {
+      const tm = (HV.Game && HV.Game.state && HV.Game.state.world)
+        ? (((HV.Game.state.world.time % 1) + 1) % 1) : 0.5;
+      return tm < 0.32 || tm > 0.66;
+    },
+
+    isEnabled(game) {
+      if (this.enabled === false) return false;
+      const st = game && game.state && game.state.settings;
+      if (st && st.weather === 'off') return false;
+      if (st && st.weather === 'on') return true;
+      return this.enabled !== false;
+    },
+
+    setEnabled(on, game) {
+      const val = on && on !== 'off';
+      this.enabled = !!val;
+      const id = val ? 'on' : 'off';
+      if (game && game.state) {
+        game.state.settings = game.state.settings || {};
+        game.state.settings.weather = id;
+      }
+      try { if (typeof localStorage !== 'undefined') localStorage.setItem('HV_WEATHER', id); } catch (err) {}
+      if (!val) this._clearNow();
+      return this.enabled;
+    },
+
+    _clearNow() {
+      this._want = 'clear';
+      this.state = 'clear';
+      this.intensity = 0;
+      this._flash = 0;
+      this._flashFrozen = false;
+      this._ripples = [];
+      this._bolt = null;
+    },
+
+    force(state, opts) {
+      opts = opts || {};
+      const st = (state === 'rain' || state === 'storm' || state === 'snow' || state === 'clear') ? state : 'clear';
+      this._forced = opts.until == null ? true : !!opts.until;
+      this._want = st;
+      this.state = st;
+      this.intensity = st === 'clear' ? 0 : 1;
+      this._hold = 1e9;
+      this._flash = 0;
+      this._flashFrozen = false;
+      this._bolt = null;
+      this._pulses = 1;
+      this._t = opts.t != null ? opts.t : 2.4;
+      if (st !== 'snow') {
+        const nRip = opts.ripples != null ? opts.ripples : (st === 'clear' ? 0 : 12);
+        const g = opts.game || HV.Game;
+        this._ripples = [];
+        if (g && nRip && this._seedSplashes) this._seedSplashes(g, nRip);
+        else if (g && nRip) for (let i = 0; i < nRip; i++) this._spawnRipple(g);
+      } else {
+        this._ripples = [];
+        this._seedFlakes(opts.flakes != null ? opts.flakes : (lowFx() ? 45 : 80), true);
+      }
+      if (opts.flash) {
+        this._strike(opts.flashHold != null ? opts.flashHold : 0.08, opts.flashPeak != null ? opts.flashPeak : 0.1, opts.pulses);
+        if (opts.flashFreeze === 'peak') {
+          const rise = Math.min(0.016, this._flashDur * 0.35);
+          this._flash = Math.max(0.001, this._flashDur - rise);
+          this._flashFrozen = true;
+        }
+      }
+      return this;
+    },
+
+    clearForce() {
+      this._forced = false;
+      this._hold = 2;
+    },
+
+    isSheltered(area) {
+      if (!area) return true;
+      if (area.biome === 'cave' || area.interior || area.inside || area.dark) return true;
+      const id = area.id || '';
+      if (SHELTER_IDS[id]) return true;
+      if (/_cave|_mine|_den$|_vault|_interior|_hearth/.test(id)) return true;
+      if (this.isBossArena(area)) return true;
+      return false;
+    },
+
+    isBossArena(area) {
+      if (!area) return false;
+      const id = area.id || '';
+      if (id === 'howler_den' || id === 'snawfus_glade' || id === 'hanging_hollow' || id === 'the_crossroads') return true;
+      return (area.spawns || []).some((s) => s && s.boss);
+    },
+
+    isSnowyPlace(area) {
+      if (!area) return false;
+      if (area.biome === 'bluff') return true;
+      return !!SNOWY_IDS[area.id];
+    },
+
+    isLateGame(game) {
+      const s = game && game.state;
+      if (!s) return false;
+      if ((s.ngplus || 0) > 0) return true;
+      if ((s.world && s.world.day || 1) >= 5) return true;
+      const ch = s.chaptersSeen || {};
+      let n = 0;
+      for (const k in ch) if (ch[k]) n++;
+      return n >= 4;
+    },
+
+    isStoryClear(game) {
+      if (!game) return false;
+      const mode = game.mode || '';
+      if (mode === 'card' || mode === 'letter' || mode === 'rhythm' || mode === 'ending'
+        || mode === 'dialogue' || mode === 'chapter' || mode === 'title' || mode === 'book') return true;
+      if ((game.area && game.area.id) === 'the_crossroads') return true;
+      return false;
+    },
+
+    tick(dt, game) {
+      if (dt > 0.08) dt = 0.08;
+      this._t += dt;
+      const area = game && game.area;
+      /* Caves, interiors, boss arenas, and Weather: Off never keep weather, even if a preview forced it. */
+      if (!this.isEnabled(game) || this.isSheltered(area)) {
+        this._clearNow();
+        return;
+      }
+      const hide = !this._forced && this.isStoryClear(game);
+      if (hide) {
+        this._want = 'clear';
+        this.intensity = Math.max(0, this.intensity - dt * 1.6);
+        if (this.intensity < 0.03) { this.intensity = 0; this.state = 'clear'; }
+        if (!this._flashFrozen) this._flash = Math.max(0, this._flash - dt);
+        this._tickRipples(dt);
+        return;
+      }
+      if (!this._forced) {
+        this._hold -= dt;
+        if (this._hold <= 0) this._roll(game);
+        const bossFight = !!(game && game.entities && game.entities.some((e) => e && e.alive && e.boss));
+        if (bossFight) {
+          this._want = 'clear';
+          this._flash = 0;
+          this._bolt = null;
+        }
+      }
+      const target = this._want === 'clear' ? 0 : 0.85;
+      const rate = this._want === 'clear' ? 0.7 : 0.4;
+      if (this.intensity < target) this.intensity = Math.min(target, this.intensity + dt * rate);
+      else this.intensity = Math.max(target, this.intensity - dt * rate);
+      this.state = this.intensity < 0.08 ? 'clear' : this._want;
+
+      if (!this._forced && this.state === 'storm' && this.intensity > 0.45 && !reduceMotion()) {
+        this._stormCd -= dt;
+        if (this._stormCd <= 0) this._strike();
+      }
+      if (!this._flashFrozen) this._flash = Math.max(0, this._flash - dt);
+
+      if (this.state === 'rain' || this.state === 'storm') {
+        this._spawnAcc += dt * (this.state === 'storm' ? 9 : 6) * this.intensity;
+        while (this._spawnAcc >= 1) {
+          this._spawnAcc -= 1;
+          this._spawnRipple(game);
+        }
+      } else {
+        this._spawnAcc = 0;
+      }
+      this._tickRipples(dt);
+    },
+
+    _roll(game) {
+      const r = Math.random();
+      const night = !!(game && game.isNight && game.isNight());
+      const bossFight = !!(game && game.entities && game.entities.some((e) => e && e.alive && e.boss));
+      if (this._want !== 'clear') {
+        this._want = 'clear';
+        this._hold = 90 + Math.random() * 150;
+        return;
+      }
+      /* Weather is occasional and holds a long while. Most rolls stay fair. */
+      if (r < 0.72 || bossFight) {
+        this._want = 'clear';
+        this._hold = 80 + Math.random() * 140;
+        return;
+      }
+      const snowy = this.isSnowyPlace(game && game.area)
+        || (night && this.isLateGame(game) && game.area && game.area.biome !== 'river' && game.area.biome !== 'bottoms');
+      if (snowy && r > 0.88) {
+        this._want = 'snow';
+        this._hold = 50 + Math.random() * 50;
+        this._seedFlakes(lowFx() ? 45 : 80);
+        return;
+      }
+      if (!bossFight && r > 0.94) {
+        this._want = 'storm';
+        this._hold = 40 + Math.random() * 40;
+        this._stormCd = 4 + Math.random() * 6;
+        return;
+      }
+      this._want = 'rain';
+      this._hold = 45 + Math.random() * 45;
+    },
+
+    _strike(hold, peak, pulses) {
+      if (reduceMotion() && hold == null) return;
+      this._flashDur = hold != null ? hold : (0.06 + Math.random() * 0.04);
+      this._flash = this._flashDur;
+      this._flashPeak = peak != null ? Math.min(this.flashPeakMax, peak) : (0.08 + Math.random() * 0.03);
+      this._pulses = pulses != null ? Math.max(1, Math.min(2, pulses)) : (Math.random() < 0.28 ? 2 : 1);
+      this._stormCd = 10 + Math.random() * 14;
+      /* Land in the left or right third, never down the lane the player stands in. */
+      const right = Math.random() >= 0.5;
+      this._bolt = {
+        x: right ? (0.68 + Math.random() * 0.2) : (0.12 + Math.random() * 0.2),
+        seed: (Math.random() * 9991) | 0,
+        reach: 0.26 + Math.random() * 0.1,
+      };
+      const ev = { t: (HV.Game && HV.Game.state && HV.Game.state.playTime) || 0, intensity: this._flashPeak };
+      if (typeof this.onLightning === 'function') {
+        try { this.onLightning(ev); } catch (err) { /* audio hook must never break the frame */ }
+      }
+      for (let i = 0; i < this._listeners.length; i++) {
+        try { this._listeners[i](ev); } catch (err) { /* same */ }
+      }
+    },
+
+    _isPath(ch) {
+      return ch === ',' || ch === 'd' || ch === 's' || ch === 'f';
+    },
+    _isGrass(ch) {
+      return ch === '.' || ch === ';';
+    },
+    _isWater(ch) {
+      return ch === '~' || ch === 'w';
+    },
+
+    _spawnRipple(game) {
+      const area = game && game.area;
+      const s = game && game.state && game.state.world;
+      if (!area || !s || !HV.getTile) return;
+      const T = TILE();
+      const preferPath = Math.random() < 0.7;
+      let placed = null;
+      for (let tries = 0; tries < 6 && !placed; tries++) {
+        const tx = (s.x / T | 0) + ((Math.random() * 13) | 0) - 6;
+        const ty = (s.y / T | 0) + ((Math.random() * 17) | 0) - 8;
+        const ch = HV.getTile(area, tx, ty);
+        const onWater = this._isWater(ch);
+        const onPath = this._isPath(ch);
+        if (preferPath && !onPath && !onWater && tries < 4) continue;
+        if (!onWater && !onPath && !this._isGrass(ch)) continue;
+        placed = {
+          x: tx * T + 8 + Math.random() * 16,
+          y: ty * T + 12 + Math.random() * 12,
+          age: 0,
+          life: 0.5 + Math.random() * 0.4,
+          onWater: onWater,
+          onPath: onPath,
+        };
+      }
+      if (!placed) return;
+      const cap = lowFx() ? 9 : 14;
+      if (this._ripples.length >= cap) this._ripples.shift();
+      this._ripples.push(placed);
+    },
+
+    /* Mid-life rings so a still frame (and the first moments of a front) already read as wet. */
+    _seedSplashes(game, n) {
+      this._ripples = [];
+      const area = game && game.area;
+      const s = game && game.state && game.state.world;
+      if (!area || !s || !HV.getTile) return;
+      const T = TILE();
+      const cx = s.x / T | 0, cy = s.y / T | 0;
+      let tries = 0;
+      const want = Math.max(0, n | 0);
+      while (this._ripples.length < want && tries < want * 10) {
+        tries++;
+        const tx = cx + ((Math.random() * 13) | 0) - 6;
+        const ty = cy + ((Math.random() * 15) | 0) - 7;
+        const ch = HV.getTile(area, tx, ty);
+        const onWater = this._isWater(ch);
+        const onPath = this._isPath(ch);
+        if (!onWater && !onPath) continue;
+        this._ripples.push({
+          x: tx * T + 8 + Math.random() * 16,
+          y: ty * T + 12 + Math.random() * 12,
+          age: 0.12 + Math.random() * 0.32,
+          life: 0.55 + Math.random() * 0.35,
+          onWater: onWater,
+          onPath: onPath,
+        });
+      }
+    },
+
+    _tickRipples(dt) {
+      const next = [];
+      for (let i = 0; i < this._ripples.length; i++) {
+        const r = this._ripples[i];
+        r.age += dt;
+        if (r.age < r.life) next.push(r);
+      }
+      this._ripples = next;
+    },
+
+    _seedFlakes(n, reset) {
+      const need = Math.max(0, n | 0);
+      if (!reset && this._flakes && this._flakes.length === need) return;
+      this._flakes = [];
+      const cols = 6, rows = Math.max(1, Math.ceil(need / cols));
+      for (let i = 0; i < need; i++) {
+        const col = i % cols, row = (i / cols) | 0;
+        const roll = Math.random();
+        const z = roll < 0.48 ? 0 : (roll < 0.82 ? 1 : 2);
+        this._flakes.push({
+          x: (col + 0.08 + Math.random() * 0.84) / cols,
+          y: (row + 0.06 + Math.random() * 0.88) / rows,
+          s: 0.55 + Math.random() * 0.85,
+          drift: 0.55 + Math.random() * 0.55,
+          phase: Math.random() * Math.PI * 2,
+          z: z,
+          rx: z === 2 ? (4.8 + Math.random() * 1.4) : (z === 1 ? (3.2 + Math.random() * 0.9) : (2.2 + Math.random() * 0.7)),
+        });
+      }
+    },
+
+        drawRipples(ctx, area, camX, camY, t, kind) {
+      if (this.state === 'snow' || this.intensity < 0.08 || !this._ripples.length) return;
+      const wantWater = kind === 'water';
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (let i = 0; i < this._ripples.length; i++) {
+        const r = this._ripples[i];
+        if (!!r.onWater !== wantWater) continue;
+        const k = r.age / r.life;
+        const rad = (r.onWater ? 13 : 9) * (0.35 + k * 0.65);
+        const a = (1 - k) * 0.8 * Math.min(1, this.intensity + 0.25);
+        /* Pale wet rings, not ink — they have to read on the dirt path. */
+        ctx.globalAlpha = a;
+        ctx.strokeStyle = r.onWater ? 'rgba(210,228,224,0.95)' : 'rgba(226,230,234,0.95)';
+        ctx.lineWidth = k < 0.3 ? 1.25 : 1;
+        ctx.beginPath();
+        ctx.ellipse(r.x - camX, r.y - camY, rad, rad * (r.onWater ? 0.4 : 0.48), 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    },
+
+    flashAmount() {
+      if (this._flash <= 0) return 0;
+      const dur = this._flashDur || 0.08;
+      const elapsed = Math.max(0, dur - this._flash);
+      const p = Math.min(this.flashPeakMax, this._flashPeak || 0.1);
+      const pulse = (t0, width, amp) => {
+        const t = elapsed - t0;
+        if (t < 0 || t > width) return 0;
+        const rise = Math.min(0.016, width * 0.35);
+        if (t < rise) return amp * (t / rise);
+        return amp * Math.max(0, 1 - (t - rise) / Math.max(0.01, width - rise));
+      };
+      if (this._pulses === 2) return Math.max(pulse(0, 0.04, p), pulse(0.055, Math.max(0.025, dur - 0.055), p * 0.5));
+      return pulse(0, dur, p);
+    },
+
+    /* Fraction of a phone screen covered by rain streaks or falling flakes. Stays tiny so contrast holds. */
+    particleCoverage(kind, w, h) {
+      w = w || 390; h = h || 844;
+      const low = lowFx();
+      if (kind === 'snow') return ((low ? 45 : 80) * 40) / (w * h);
+      if (kind === 'storm') return ((low ? 50 : 90) * 30) / (w * h);
+      if (kind === 'rain') return ((low ? 36 : 64) * 24) / (w * h);
+      return 0;
+    },
+
+    draw(ctx, w, h, camX, camY, now, game) {
+      if (this.intensity < 0.04 && this._flash <= 0) return;
+      const area = game && game.area;
+      if (this.isSheltered(area)) return;
+      if (!this.isEnabled(game)) return;
+      const flash = this.flashAmount();
+      /* No full-screen grade, fog, or cool wash except the brief lightning lift. */
+      if (this.intensity >= 0.08) {
+        if (this.state === 'snow') this._drawSnow(ctx, w, h, camX, camY, now, game);
+        else if (this.state === 'rain' || this.state === 'storm') this._drawRain(ctx, w, h, camX, camY, now, game);
+      }
+      if (flash > 0.02) this._drawFlash(ctx, w, h, camX, camY, flash, game);
+    },
+
+    _bans(ctx, w, h, camX, camY, game) {
+      const T = TILE();
+      const bodies = [];
+      if (game && game.state && game.state.world) {
+        bodies.push({ x: game.state.world.x - camX, y: game.state.world.y - camY, r: 52 });
+      }
+      (game && game.entities || []).forEach((en) => {
+        if (!en || !en.alive) return;
+        const x = en.x - camX, y = en.y - camY;
+        if (!bodies[0] || Math.hypot(x - bodies[0].x, y - bodies[0].y) < 200) bodies.push({ x: x, y: y, r: 38 });
+      });
+      (game && game.area && game.area.npcs || []).forEach((n) => {
+        const x = n.x * T + 16 - camX, y = n.y * T + 26 - camY;
+        if (!bodies[0] || Math.hypot(x - bodies[0].x, y - bodies[0].y) < 200) bodies.push({ x: x, y: y, r: 38 });
+      });
+      if (HV.Companions && HV.Companions.activePickups && game) {
+        const list = HV.Companions.activePickups(game) || [];
+        for (let i = 0; i < list.length; i++) {
+          const p = list[i];
+          const x = (p.x != null ? p.x * T + 16 : p.wx) - camX;
+          const y = (p.y != null ? p.y * T + 16 : p.wy) - camY;
+          bodies.push({ x: x, y: y, r: 30 });
+        }
+      }
+      const bans = this._chromeBoxes(w, h, game);
+      return function blocked(x, y) {
+        for (let i = 0; i < bodies.length; i++) {
+          const b = bodies[i];
+          const d = Math.hypot(x - b.x, y - b.y);
+          if (d < b.r * 0.55) return 0;
+          if (d < b.r) return (d - b.r * 0.55) / (b.r * 0.45);
+        }
+        for (let i = 0; i < bans.length; i++) {
+          const r = bans[i];
+          if (x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h) return 0;
+        }
+        return 1;
+      };
+    },
+
+    _wrap(v, m) {
+      return ((v % m) + m) % m;
+    },
+
+    /* Keep streaks and flakes off the bars and the touch pad, including tails that start above them.
+       Boxes are stored in CSS pixels; weather is drawn in zoomed view space (zw, zh).
+       Never use canvas.width — that is the backing store and would push the hole off-screen. */
+    _viewZoom(game) {
+      if (game && game.camZoom) return game.camZoom;
+      const cw = game && game.w, ch = game && game.h;
+      if (game && game.wantTouch && cw < 600 && ch > cw) return 1.3;
+      return 1;
+    },
+    _chromeBoxes(w, h, game) {
+      const zoom = this._viewZoom(game);
+      const cssW = (game && game.w) || (game && game.canvas && game.canvas.clientWidth) || (w * zoom);
+      const cssH = (game && game.h) || (game && game.canvas && game.canvas.clientHeight) || (h * zoom);
+      const boxes = [];
+      const box = (sx, sy, sw, sh) => boxes.push({ x: sx / zoom, y: sy / zoom, w: sw / zoom, h: sh / zoom });
+      if (game && game._hudBox) box(game._hudBox.x, game._hudBox.y, game._hudBox.w, game._hudBox.h);
+      if (game && game._mapBox) box(game._mapBox.x, game._mapBox.y, game._mapBox.w, game._mapBox.h);
+      if (game && game.wantTouch) {
+        const padB = (game.safePad && game.safePad().b) || 34;
+        box(0, cssH - 230 - padB, cssW, 230 + padB);
+      }
+      return boxes;
+    },
+    _clipChrome(ctx, w, h, game) {
+      if (!ctx.clip) return;
+      const boxes = this._chromeBoxes(w, h, game);
+      if (!boxes.length) return;
+      ctx.beginPath();
+      ctx.rect(-2, -2, w + 4, h + 4);
+      for (let i = 0; i < boxes.length; i++) {
+        const b = boxes[i];
+        ctx.rect(b.x - 6, b.y - 6, b.w + 12, b.h + 12);
+      }
+      ctx.clip('evenodd');
+    },
+    _playfieldTop(game, fallback) {
+      const zoom = this._viewZoom(game);
+      let top = fallback != null ? fallback : 28;
+      if (game && game._hudBox) top = Math.max(top, (game._hudBox.y + game._hudBox.h) / zoom + 6);
+      if (game && game._mapBox) top = Math.max(top, (game._mapBox.y + game._mapBox.h) / zoom + 4);
+      return top;
+    },
+
+    _drawRain(ctx, w, h, camX, camY, now, game) {
+      const storm = this.state === 'storm';
+      const low = lowFx();
+      const n = low ? (storm ? 50 : 36) : (storm ? 90 : 64);
+      const wind = storm ? 0.46 : 0.36;
+      const speed = (storm ? 400 : 310) * (0.75 + this.intensity * 0.35);
+      const t = now != null ? now : this._t;
+      const night = !!(game && game.isNight && game.isNight());
+      /* Pale cream / blue-grey, not ink — midday grass ate the old dark streaks. */
+      const col = night ? [210, 222, 236] : [214, 222, 228];
+      const alpha = (night ? 0.58 : 0.52) + this.intensity * 0.14;
+      const blocked = this._bans(ctx, w, h, camX, camY, game);
+      const spanX = w + 56, spanY = h + 80;
+      ctx.save();
+      this._clipChrome(ctx, w, h, game);
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < n; i++) {
+        const seed = i * 97 + 13;
+        const slant = wind + ((seed % 9) - 4) * 0.018;
+        const len = 18 + (seed % 25);
+        const x = this._wrap(seed * 13 + camX * 0.18 + t * 55, spanX) - 28;
+        const y = this._wrap(seed * 7 + i * 19 + t * speed, spanY) - 36;
+        const mid = blocked(x + len * slant * 0.5, y + len * 0.5);
+        if (mid < 0.08) continue;
+        const a = alpha * mid * (0.72 + ((seed >> 5) % 6) * 0.05);
+        ctx.strokeStyle = 'rgba(' + col[0] + ',' + col[1] + ',' + col[2] + ',' + a.toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + len * slant, y + len);
+        ctx.stroke();
+      }
+      this._drawPuddles(ctx, w, h, camX, camY, game, blocked);
+      ctx.restore();
+    },
+
+    _drawPuddles(ctx, w, h, camX, camY, game, blocked) {
+      const area = game && game.area;
+      if (!area || !HV.getTile) return;
+      const T = TILE();
+      const x0 = Math.floor(camX / T) - 1, y0 = Math.floor(camY / T) - 1;
+      const x1 = Math.ceil((camX + w) / T) + 1, y1 = Math.ceil((camY + h) / T) + 1;
+      const id = area.id || '';
+      const a0 = 0.55 * Math.min(1, this.intensity + 0.2);
+      ctx.save();
+      for (let ty = y0; ty < y1; ty++) {
+        for (let tx = x0; tx < x1; tx++) {
+          if (!this._isPath(HV.getTile(area, tx, ty))) continue;
+          const hsh = HV.hash ? HV.hash(id + ':pud:' + tx + ':' + ty) : (tx * 13 + ty * 29);
+          /* A few stable glints, not a puddle on every flag. */
+          if (hsh % 7 !== 0) continue;
+          const px = tx * T + 8 + (hsh % 16) - camX;
+          const py = ty * T + 10 + ((hsh >> 4) % 14) - camY;
+          if (blocked && blocked(px, py) < 0.35) continue;
+          const rw = 5 + (hsh % 6), rh = 2.2 + ((hsh >> 3) % 3) * 0.5;
+          ctx.globalAlpha = a0;
+          ctx.fillStyle = 'rgba(168, 186, 196, 0.28)';
+          ctx.beginPath();
+          ctx.ellipse(px, py, rw, rh, -0.15, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(230, 236, 240, 0.7)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          /* a bright lip so the puddle reads as wet, not a stain */
+          ctx.globalAlpha = a0 * 0.85;
+          ctx.strokeStyle = 'rgba(242, 244, 246, 0.9)';
+          ctx.beginPath();
+          ctx.ellipse(px, py - rh * 0.35, rw * 0.45, rh * 0.35, -0.2, Math.PI * 1.1, Math.PI * 1.9);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    },
+
+    _drawSnow(ctx, w, h, camX, camY, now, game) {
+      const low = lowFx();
+      if (!this._flakes || !this._flakes.length) this._seedFlakes(low ? 45 : 80);
+      const t = now != null ? now : this._t;
+      const night = !!(game && game.isNight && game.isNight());
+      const blocked = this._bans(ctx, w, h, camX, camY, game);
+      /* Dusting sits on world props. Do not clip it to chrome — the only in-view pines
+         often tuck around the minimap, and their visible boughs still need caps.
+         Falling flakes stay clipped so they never paint the HUD or touch pad. */
+      ctx.save();
+      this._drawDusting(ctx, w, h, camX, camY, game, blocked, night);
+      this._clipChrome(ctx, w, h, game);
+      const spanX = w + 56, spanY = h + 56;
+      /* Far first, near last. Bright cream discs with a soft edge — never grey dots or +/* glyphs. */
+      const order = [0, 1, 2];
+      for (let zi = 0; zi < order.length; zi++) {
+        const z = order[zi];
+        for (let i = 0; i < this._flakes.length; i++) {
+          const f = this._flakes[i];
+          if (f.z !== z) continue;
+          const fall = (z === 0 ? 9 : (z === 1 ? 15 : 22)) + f.s * 3;
+          const wind = 18 + z * 8;
+          const sway = Math.sin(t * (1.05 + z * 0.18) + f.phase) * (4 + f.s * 2 + z * 2);
+          const y = this._wrap(f.y * spanY + t * fall, spanY) - 28;
+          const x = this._wrap(f.x * spanX + t * (wind * f.drift) + sway + camX * (0.02 + z * 0.03), spanX) - 28;
+          const mid = blocked(x, y);
+          if (mid < 0.14) continue;
+          const r = f.rx;
+          const a = mid * Math.min(1, this.intensity + 0.15) * (z === 0 ? 0.72 : (z === 1 ? 0.88 : 0.96));
+          const c0 = night ? [250, 247, 238] : [255, 252, 244];
+          const c1 = night ? [236, 232, 220] : [244, 240, 228];
+          const g = ctx.createRadialGradient(x - r * 0.15, y - r * 0.2, 0, x, y, r);
+          g.addColorStop(0, 'rgba(' + c0[0] + ',' + c0[1] + ',' + c0[2] + ',' + a.toFixed(3) + ')');
+          g.addColorStop(0.62, 'rgba(' + c0[0] + ',' + c0[1] + ',' + c0[2] + ',' + (a * 0.8).toFixed(3) + ')');
+          g.addColorStop(1, 'rgba(' + c1[0] + ',' + c1[1] + ',' + c1[2] + ',0)');
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.ellipse(x, y, r, r * 0.88, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+    },
+
+    _drawDusting(ctx, w, h, camX, camY, game, blocked, night) {
+      const area = game && game.area;
+      if (!area || !HV.getTile) return;
+      const T = TILE();
+      const id = area.id || '';
+      const low = lowFx();
+      const a = 0.72 * Math.min(1, this.intensity + 0.15);
+      const cap = night ? 'rgba(232, 228, 218,' : 'rgba(240, 236, 226,';
+      const rim = night ? 'rgba(214, 210, 200,' : 'rgba(226, 222, 212,';
+      const x0 = Math.floor(camX / T) - 1, y0 = Math.floor(camY / T) - 1;
+      const x1 = Math.ceil((camX + w) / T) + 1, y1 = Math.ceil((camY + h) / T) + 1;
+
+      /* Pale caps on the same clustered rocks, stumps and logs the world already drew. */
+      const fieldOk = (tx, ty) => {
+        const c = HV.getTile(area, tx, ty);
+        if (c !== '.' && c !== ';') return false;
+        const bs = area.buildings || [];
+        for (let i = 0; i < bs.length; i++) {
+          const b = bs[i];
+          if (tx >= b.x && tx < b.x + (b.w || 1) && ty >= b.y && ty < b.y + (b.h || 1)) return false;
+        }
+        return true;
+      };
+      ctx.save();
+      for (let ty = y0; ty < y1; ty++) {
+        for (let tx = x0; tx < x1; tx++) {
+          if ((tx + 17 * ty) % 4 !== 0) continue;
+          const chs = HV.hash ? HV.hash(id + ':cl:' + Math.floor(tx / 4) + ':' + Math.floor(ty / 4)) : (tx + ty);
+          if (chs % 5 !== 0 || !fieldOk(tx, ty)) continue;
+          const nCl = 3 + (chs % 3);
+          for (let k = 0; k < nCl; k++) {
+            const hk = HV.hash ? HV.hash(id + ':cli:' + tx + ':' + ty + ':' + k) : (tx * 9 + ty * 3 + k);
+            const ox = tx + ((hk % 5) - 2), oy = ty + (((hk >> 3) % 5) - 2);
+            if (!fieldOk(ox, oy)) continue;
+            const x = ox * T + 8 + ((hk >> 6) % 16) - camX;
+            const y = oy * T + 12 + ((hk >> 9) % 12) - camY;
+            if (blocked && blocked(x, y) < 0.25) continue;
+            const kind = (hk >> 11) % 7;
+            ctx.globalAlpha = a;
+            ctx.fillStyle = cap + '0.82)';
+            if (kind === 0) {
+              ctx.beginPath();
+              ctx.ellipse(x, y - 2.2, 5 + (hk % 3), 2.1, -0.2, 0, Math.PI * 2);
+              ctx.fill();
+            } else if (kind === 1) {
+              ctx.beginPath();
+              ctx.ellipse(x, y - 9, 5.4, 2.2, 0, 0, Math.PI * 2);
+              ctx.fill();
+            } else if (kind === 2) {
+              ctx.save();
+              ctx.translate(x, y);
+              ctx.rotate(((hk % 9) - 4) * 0.08);
+              ctx.beginPath();
+              ctx.ellipse(1, -3.4, 15, 2.1, 0, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
+          }
+        }
+      }
+
+      /* Caps on the little field stones stamped with the grass tiles. */
+      for (let ty = y0; ty < y1; ty++) {
+        for (let tx = x0; tx < x1; tx++) {
+          if (!this._isGrass(HV.getTile(area, tx, ty))) continue;
+          const hgn = HV.hash ? HV.hash(id + ':gn:' + tx + ':' + ty) : (tx * 13 + ty);
+          if (hgn % 11 !== 0) continue;
+          const x = tx * T + 10 + (hgn % 14) - camX;
+          const y = ty * T + 18 + ((hgn >> 3) % 8) - camY;
+          if (blocked && blocked(x, y) < 0.25) continue;
+          ctx.globalAlpha = a;
+          ctx.fillStyle = cap + '0.9)';
+          ctx.beginPath();
+          ctx.ellipse(x, y - 1.6, 3.4, 1.7, 0.25, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      /* Pale frost on grass tuft tips — enough to read as a snowy day, never a carpet, never on the path. */
+      const step = low ? 2 : 1;
+      for (let ty = y0; ty < y1; ty += step) {
+        for (let tx = x0; tx < x1; tx++) {
+          if (!this._isGrass(HV.getTile(area, tx, ty))) continue;
+          const hgn = HV.hash ? HV.hash(id + ':gn:' + tx + ':' + ty) : (tx * 13 + ty);
+          if (hgn % 3 === 1) continue;
+          const nTuft = 3 + (hgn % 3);
+          for (let i = 0; i < nTuft; i++) {
+            if (((hgn >> (i + 7)) % 3) === 0) continue;
+            const gx = tx * T + 5 + ((hgn >> (i + 2)) % 22) - camX;
+            const gy = ty * T + 12 + ((hgn >> (i + 5)) % 16) - 10 - (hgn % 5) - camY;
+            if (blocked && blocked(gx, gy) < 0.3) continue;
+            ctx.globalAlpha = a * 0.95;
+            ctx.fillStyle = cap + '0.95)';
+            ctx.beginPath();
+            ctx.ellipse(gx, gy, 2.1 + (hgn % 2) * 0.5, 1.15, -0.35, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      /* No path-edge lip — earlier drifts read as UI bars or beaded ovals. */
+
+      /* Snow on pine boughs and oak canopy edges, sitting on the real crown. */
+      const trees = area.trees || [];
+      ctx.fillStyle = cap + '0.9)';
+      for (let i = 0; i < trees.length; i++) {
+        const tr = trees[i];
+        const bx = tr.x * T + 16 - camX, by = tr.y * T + 24 - camY;
+        if (bx < -90 || by < -40 || bx > w + 90 || by > h + 220) continue;
+        this._drawTreeSnow(ctx, tr, bx, by, a, blocked);
+      }
+      ctx.restore();
+    },
+
+    _drawTreeSnow(ctx, tr, bx, by, a, blocked) {
+      /* Sit caps in the same local space the tree was drawn in, so they land on boughs and canopy edges. */
+      const seed = String(tr.x) + ',' + String(tr.y);
+      const blob = (x, y, rx, ry, rot) => {
+        ctx.globalAlpha = a * 0.96;
+        ctx.beginPath();
+        ctx.ellipse(x, y, rx, ry, rot || 0, 0, Math.PI * 2);
+        ctx.fill();
+      };
+      const capOn = (x0, y0, x1, y1, t, rx, ry, rot) => {
+        const x = x0 + (x1 - x0) * t;
+        const y = y0 + (y1 - y0) * t;
+        blob(x, y - 1.15, rx, ry, rot);
+      };
+      ctx.save();
+      ctx.translate(bx, by);
+      if (tr.cedar) {
+        const rng = HV.rng ? HV.rng('cdr' + seed) : function () { return 0.5; };
+        const variant = HV.hash ? (HV.hash(seed) % 3) : 0;
+        const s = 1.95 + rng() * 0.75;
+        const lean = variant === 1 ? 0.08 : (variant === 2 ? -0.06 : 0.02);
+        ctx.scale(s, s);
+        ctx.rotate(lean);
+        const layers = variant === 0
+          ? [{ y: -8, w: 28, h: 22 }, { y: -24, w: 22, h: 20 }, { y: -40, w: 16, h: 18 }, { y: -54, w: 10, h: 16 }]
+          : variant === 1
+          ? [{ y: -6, w: 24, h: 18 }, { y: -20, w: 20, h: 18 }, { y: -34, w: 15, h: 16 }, { y: -48, w: 11, h: 16 }, { y: -60, w: 7, h: 14 }]
+          : [{ y: -10, w: 26, h: 24 }, { y: -30, w: 18, h: 22 }, { y: -48, w: 12, h: 18 }];
+        for (let i = 0; i < layers.length; i++) {
+          const L = layers[i];
+          const peakY = L.y - L.h;
+          blob(0, peakY + 1.1, 3.6 + (3 - Math.min(3, i)) * 0.4, 2.15, 0);
+          capOn(0, peakY, L.w, L.y, 0.28, 4.2, 1.85, 0.42);
+          capOn(0, peakY, L.w, L.y, 0.55, 4.8, 1.95, 0.5);
+          capOn(0, peakY, L.w, L.y, 0.82, 4.0, 1.8, 0.55);
+          capOn(0, peakY, -L.w, L.y + 1, 0.28, 4.2, 1.85, -0.42);
+          capOn(0, peakY, -L.w, L.y + 1, 0.55, 4.8, 1.95, -0.5);
+          capOn(0, peakY, -L.w, L.y + 1, 0.82, 4.0, 1.8, -0.55);
+        }
+      } else {
+        const rng = HV.rng ? HV.rng('oak' + seed) : function () { return 0.5; };
+        const variant = HV.hash ? (HV.hash(seed) % 3) : 0;
+        const s = 2.15 + rng() * 0.85;
+        const flip = rng() < 0.15 ? -1 : 1;
+        ctx.scale(s * flip, s);
+        const lean = variant === 1 ? 7 : (variant === 2 ? -5 : 2);
+        const lobes = variant === 0
+          ? [{ x: -8 + lean, y: -58, rx: 28, ry: 20 }, { x: 16 + lean, y: -54, rx: 22, ry: 18 }, { x: 2 + lean, y: -76, rx: 20, ry: 16 }, { x: -22 + lean, y: -50, rx: 16, ry: 14 }, { x: 10 + lean, y: -68, rx: 14, ry: 12 }]
+          : variant === 1
+          ? [{ x: lean, y: -70, rx: 24, ry: 22 }, { x: -20 + lean, y: -56, rx: 20, ry: 16 }, { x: 20 + lean, y: -58, rx: 18, ry: 17 }, { x: -6 + lean, y: -48, rx: 16, ry: 13 }]
+          : [{ x: -14 + lean, y: -60, rx: 26, ry: 18 }, { x: 12 + lean, y: -66, rx: 24, ry: 20 }, { x: 2 + lean, y: -82, rx: 16, ry: 14 }, { x: -24 + lean, y: -46, rx: 14, ry: 12 }, { x: 26 + lean, y: -48, rx: 13, ry: 11 }];
+        for (let i = 0; i < lobes.length; i++) {
+          const L = lobes[i];
+          blob(L.x, L.y - L.ry + 2.2, Math.max(6, L.rx * 0.46), 3.6, 0);
+          blob(L.x + L.rx * 0.55, L.y - L.ry * 0.35, Math.max(4.2, L.rx * 0.28), 2.6, 0.35);
+          blob(L.x - L.rx * 0.55, L.y - L.ry * 0.28, Math.max(4.2, L.rx * 0.28), 2.6, -0.35);
+        }
+      }
+      ctx.restore();
+    },
+
+    _drawFlash(ctx, w, h, camX, camY, flash, game) {
+      /* Brief cool lift, then lit tree edges. No ground-shadow veil. */
+      ctx.save();
+      ctx.fillStyle = 'rgba(214, 222, 232, ' + flash.toFixed(3) + ')';
+      ctx.fillRect(0, 0, w, h);
+      ctx.restore();
+      const area = game && game.area;
+      const T = TILE();
+      const k = flash / Math.max(0.04, this.flashPeakMax);
+      if (area && area.trees && k > 0.15) {
+        const side = this._bolt ? (this._bolt.x >= 0.5 ? 1 : -1) : 1;
+        ctx.save();
+        if (ctx.clip) {
+          ctx.beginPath();
+          const top = this._playfieldTop(game, 8);
+          ctx.rect(0, top, w, h - top);
+          ctx.clip();
+        }
+        const trees = area.trees;
+        for (let i = 0; i < trees.length; i++) {
+          const tr = trees[i];
+          const bx = tr.x * T + 16 - camX, by = tr.y * T + 24 - camY;
+          if (bx < -90 || by < -40 || bx > w + 90 || by > h + 200) continue;
+          const cedar = !!tr.cedar;
+          const lobes = cedar
+            ? [[0, -150, 20, 15], [-12, -122, 16, 12], [13, -118, 15, 11], [0, -94, 14, 10]]
+            : [[2, -158, 28, 17], [-28, -132, 22, 14], [30, -128, 20, 13], [6, -108, 16, 12], [0, -84, 18, 11]];
+          for (let L = 0; L < lobes.length; L++) {
+            const p = lobes[L];
+            const cx = bx + p[0] + side * 3, cy = by + p[1];
+            ctx.fillStyle = 'rgba(232, 238, 246, ' + (0.22 * k).toFixed(3) + ')';
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, p[2] * 0.85, p[3] * 0.7, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(236, 242, 250, ' + (0.88 * k).toFixed(3) + ')';
+            ctx.lineWidth = 2.1;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            const start = side > 0 ? -0.25 : Math.PI * 0.55;
+            const end = side > 0 ? Math.PI * 0.55 : Math.PI + 0.25;
+            ctx.ellipse(cx, cy, p[2], p[3], 0, start, end);
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+      }
+      if (this._bolt && flash > 0.05) this._drawBolt(ctx, w, h, camX, camY, flash, game);
+    },
+
+    _boltKeepouts(w, h, camX, camY, game) {
+      const T = TILE();
+      const bodies = [];
+      if (game && game.state && game.state.world) {
+        bodies.push({ x: game.state.world.x - camX, y: game.state.world.y - camY, r: 68 });
+      }
+      (game && game.entities || []).forEach((en) => {
+        if (!en || !en.alive) return;
+        bodies.push({ x: en.x - camX, y: en.y - camY, r: en.boss ? 62 : 38 });
+      });
+      (game && game.area && game.area.npcs || []).forEach((n) => {
+        bodies.push({ x: n.x * T + 16 - camX, y: n.y * T + 26 - camY, r: 50 });
+      });
+      return bodies;
+    },
+
+    _drawBolt(ctx, w, h, camX, camY, flash, game) {
+      /* Jagged background strike: off the player and foes, below the HUD, among the trees. */
+      const bolt = this._bolt;
+      const seed = (bolt.seed || 1) | 0;
+      const rnd = (i) => {
+        const t = Math.sin((seed + 1.7) * (i + 1) * 12.9898 + i * 0.137) * 43758.5453;
+        return t - Math.floor(t);
+      };
+      const k = flash / Math.max(0.04, this.flashPeakMax);
+      const boxes = this._chromeBoxes(w, h, game);
+      const bodies = this._boltKeepouts(w, h, camX, camY, game);
+      const hits = (x, y, pad) => {
+        for (let i = 0; i < bodies.length; i++) {
+          const b = bodies[i];
+          if (Math.hypot(x - b.x, y - b.y) < b.r + (pad || 0)) return true;
+        }
+        return false;
+      };
+      /* Start just under whatever chrome sits in this column, not the taller left HUD. */
+      const colTop = (x) => {
+        let top = 8;
+        for (let i = 0; i < boxes.length; i++) {
+          const b = boxes[i];
+          if (b.y > h * 0.45) continue; /* the touch pad spans the full width at the bottom */
+          if (x >= b.x - 8 && x <= b.x + b.w + 8) top = Math.max(top, b.y + b.h + 8);
+        }
+        return top;
+      };
+      const capY = h * 0.4;
+      const score = (xf) => {
+        const x = w * xf, y = colTop(x);
+        if (y > capY - 40) return -1;
+        if (hits(x, y + 12, 6)) return -1;
+        let clear = 0;
+        for (let s = 0; s < 16; s++) {
+          const yy = y + 8 + s * 8;
+          if (yy > capY || hits(x, yy, 6)) break;
+          clear += 8;
+        }
+        return clear;
+      };
+      let xFrac = bolt.x;
+      if (xFrac == null || (xFrac > 0.36 && xFrac < 0.64) || score(xFrac) < 40) {
+        const cands = [0.86, 0.8, 0.9, 0.18, 0.12, 0.24, 0.72];
+        let best = 0.86, bestS = -1;
+        for (let i = 0; i < cands.length; i++) {
+          const s = score(cands[i]);
+          if (s > bestS) { bestS = s; best = cands[i]; }
+        }
+        xFrac = best;
+      }
+      const x0 = w * xFrac;
+      const y0 = colTop(x0) + 4;
+      /* Let hits() stop a fork that wanders onto a body; do not shorten the whole strike
+         just because a critter stands off to the side. */
+      const maxY = Math.max(y0 + 90, Math.min(capY, y0 + (bolt.reach != null ? bolt.reach * h : h * 0.32)));
+
+      const build = (x0b, y0b, segs, step, wander, lean, maxLenY, salt) => {
+        const pts = [{ x: x0b, y: y0b }];
+        let x = x0b, y = y0b;
+        for (let i = 1; i <= segs; i++) {
+          x += (rnd(i * 3 + salt) - 0.48) * wander + lean;
+          y += step * (0.65 + rnd(i * 5 + 11 + salt) * 0.7);
+          if (rnd(i + 31 + salt) < 0.22) x += (rnd(i + 47 + salt) - 0.5) * wander * 1.5;
+          if (y > maxLenY || hits(x, y, 8)) break;
+          pts.push({ x: x, y: y });
+        }
+        return pts;
+      };
+
+      const lean = xFrac >= 0.5 ? 1.15 : -1.15;
+      const main = build(x0, y0, 24, Math.max(5.5, (maxY - y0) / 22), 10.5, lean, maxY, 3);
+      if (main.length < 4) return;
+      const forks = [];
+      const forkAt = (idx, dir, segs, salt) => {
+        const p = main[Math.max(2, Math.min(main.length - 2, idx))];
+        if (!p) return;
+        const arm = build(p.x, p.y, segs, 6.2, 8.5, dir * 4.8, Math.min(maxY, p.y + 52), salt);
+        if (arm.length >= 3) forks.push(arm);
+      };
+      forkAt(5 + (seed % 4), xFrac >= 0.5 ? 1 : -1, 8, 71);
+      forkAt(11 + (seed % 5), xFrac >= 0.5 ? -1 : 1, 6, 113);
+      if (main.length > 16) forkAt(16, xFrac >= 0.5 ? 1 : -1, 5, 151);
+
+      const strokeTaper = (pts, w0, w1, color, a0, a1) => {
+        if (!pts || pts.length < 2) return;
+        ctx.strokeStyle = color;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        const n = pts.length - 1;
+        for (let i = 1; i <= n; i++) {
+          const t = (i - 0.5) / n;
+          ctx.lineWidth = w0 + (w1 - w0) * t;
+          ctx.globalAlpha = (a0 + (a1 - a0) * t) * k;
+          ctx.beginPath();
+          ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
+          ctx.lineTo(pts[i].x, pts[i].y);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      };
+
+      ctx.save();
+      this._clipChrome(ctx, w, h, game);
+      strokeTaper(main, 7.0, 3.0, 'rgba(210, 222, 240, 1)', 0.28, 0.1);
+      forks.forEach((f) => strokeTaper(f, 4.0, 1.4, 'rgba(210, 222, 240, 1)', 0.22, 0.07));
+      strokeTaper(main, 4.0, 1.7, 'rgba(236, 242, 250, 1)', 0.55, 0.2);
+      forks.forEach((f) => strokeTaper(f, 2.3, 0.9, 'rgba(236, 242, 250, 1)', 0.4, 0.12));
+      strokeTaper(main, 2.6, 1.05, 'rgba(252, 252, 248, 1)', 0.96, 0.5);
+      forks.forEach((f) => strokeTaper(f, 1.55, 0.6, 'rgba(252, 252, 248, 1)', 0.85, 0.3));
+      strokeTaper(main, 1.0, 0.3, 'rgba(22, 24, 30, 1)', 0.42, 0.06);
+      ctx.restore();
+    },
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
 
 </script>
 </body>
