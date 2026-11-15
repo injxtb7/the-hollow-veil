@@ -1,8 +1,12 @@
-/* The Hollow Veil — offline cache */
-const CACHE = 'hv-final4-67';
+/* The Hollow Veil — offline cache.
+   Do not take over open pages during install: on iPhone a 19MB index can be mid-download
+   or mid-parse, and claiming open pages leaves a black screen. The next launch gets
+   the new worker. Never wipe the old cache until this cache actually holds index. */
+const CACHE = 'hv-final4-68';
 const ASSETS = [
   './',
   './index.html',
+  './hv.js',
   './guide.html',
   './manifest.webmanifest',
   './icon-180.png',
@@ -12,13 +16,18 @@ const ASSETS = [
   './splash.png',
 ];
 self.addEventListener('install', (e) => {
-  self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
+  e.waitUntil(
+    caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()).catch(() => {
+      /* leave the previous cache in charge if this version cannot be stored */
+    })
+  );
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim())
+    caches.open(CACHE).then((c) => c.match('./index.html')).then((hit) => {
+      if (!hit) return;
+      return caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))));
+    })
   );
 });
 self.addEventListener('fetch', (e) => {
