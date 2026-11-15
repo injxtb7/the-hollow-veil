@@ -2,7 +2,7 @@
    Do not take over open pages during install: on iPhone a 19MB index can be mid-download
    or mid-parse, and claiming open pages leaves a black screen. The next launch gets
    the new worker. Never wipe the old cache until this cache actually holds index. */
-const CACHE = 'hv-final4-71';
+const CACHE = 'hv-final4-72';
 const ASSETS = [
   './',
   './index.html',
