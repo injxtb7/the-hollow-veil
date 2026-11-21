@@ -2,7 +2,7 @@
    Do not take over open pages during install: on iPhone a 19MB index can be mid-download
    or mid-parse, and claiming open pages leaves a black screen. The next launch gets
    the new worker. Never wipe the old cache until this cache actually holds index. */
-const CACHE = 'hv-final4-102';
+const CACHE = 'hv-final4-103';
 const ASSETS = [
   './',
   './index.html',
@@ -225,6 +225,7 @@ const ASSETS = [
   './art/lantern_spook_light_lantern.webp',
   './art/lantern_tin_lantern.webp',
   './art/lantern_will_o_wick.webp',
+  './art/letter_opening.webp',
   './art/lore_bald_knobbers.webp',
   './art/lore_bushwhackers.webp',
   './art/lore_drowned_towns.webp',
@@ -279,6 +280,7 @@ const ASSETS = [
   './art/portrait_fiddler.webp',
   './art/portrait_granny_ila-2.webp',
   './art/portrait_granny_ila.webp',
+  './art/portrait_hollow_light.webp',
   './art/portrait_howler-2.webp',
   './art/portrait_howler.webp',
   './art/portrait_jonas_peck-2.webp',
