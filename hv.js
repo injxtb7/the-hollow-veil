@@ -45626,3 +45626,261 @@
   install();
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
+
+/* hv105: Nick's batch of Nov 25, afternoon (preview only). Each piece has its own flag; flag off = the hv104 path.
+   1 HV.CARD_TOAST_HOLD_105 a toast never sits on an art card (the Bottoms Walker plate and every other card): the open
+                            card joins HV.toastBlockers, so the hv103 placer holds the toast until the card closes.
+   2 HV.ROUND_SEAL_105      the painted letter paper is stretched to the sheet (hv103), so on narrow phones (360 px) the
+                            painted seal came out a tall oval. When the stretch is more than 4% a round copy of the seal,
+                            cut from the same painted paper at an even scale, sits over it. At 390 px the stretch is about
+                            1%, so nothing is added and the 390 look is unchanged. CSS/JS only, same art file.
+   3 HV.PACK_GROUP_105      display only: pack lines that match (HV.itemsMatch: same item, name, +level, affix, stats)
+                            show as one row with the total ('Cedar x6') in the pack, Otto's shelf (buy and sell) and every
+                            list built on HV.groupedItems. The row points at the first real line, so use / equip / sell takes
+                            one from the stack. Save data keeps its shape (lines, qty, instIds untouched); the 90 cap still
+                            counts lines. HV.SELL_DUPES_105: a 'Sell duplicates' button at Otto's (tap twice) sells every
+                            copy past the first of each item; never quest items; equipped gear is not in the pack. */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const hasDoc = typeof document !== 'undefined';
+  const FLAGS = ['CARD_TOAST_HOLD_105', 'ROUND_SEAL_105', 'PACK_GROUP_105', 'SELL_DUPES_105'];
+  FLAGS.forEach((k) => { if (HV[k] == null) HV[k] = true; });
+  HV.HV105_FLAGS = FLAGS.slice();
+  const on = (k) => HV[k] === true;
+  const copyKeys = (from, to) => { Object.keys(from).forEach((k) => { to[k] = from[k]; }); return to; };
+  function visible(el) {
+    if (!el || !el.getBoundingClientRect) return false;
+    if (el.classList && el.classList.contains('hidden')) return false;
+    const cs = root.getComputedStyle ? root.getComputedStyle(el) : null;
+    if (cs && (cs.display === 'none' || cs.visibility === 'hidden')) return false;
+    const b = el.getBoundingClientRect();
+    return b.width > 0 && b.height > 0;
+  }
+
+  /* ------------------------------------------------------------ 1. toasts wait for art cards */
+  HV.artCardUp105 = function () {
+    if (!hasDoc || !on('CARD_TOAST_HOLD_105')) return false;
+    const c = (HV.UI && HV.UI.card) || document.getElementById('art-card');
+    return visible(c);
+  };
+  function installCardHold() {
+    if (!hasDoc || !HV.toastBlockers || HV.toastBlockers._hv105) return;
+    const _tb = HV.toastBlockers;
+    HV.toastBlockers = function () {
+      const out = _tb.apply(this, arguments) || [];
+      if (HV.POPUP_CLEAR_103 !== false && HV.artCardUp105()) {
+        const c = (HV.UI && HV.UI.card) || document.getElementById('art-card');
+        out.push(c.getBoundingClientRect());
+      }
+      /* fix1: the toast never sits on Otto's 'sell duplicates' button (the hv103 placer moves or holds it) */
+      if (HV.POPUP_CLEAR_103 !== false && on('SELL_DUPES_105')) {
+        const d = document.getElementById('hv105-dupes');
+        if (visible(d)) out.push(d.getBoundingClientRect());
+      }
+      return out;
+    };
+    copyKeys(_tb, HV.toastBlockers); HV.toastBlockers._hv105 = true;
+    /* try 2: a toast that was already showing when the card opened (the card is full screen, so the
+       hv103 tick can't move it) is parked into the hv103 hold list; hv103 brings it back when the card closes */
+    const U = HV.UI;
+    if (U && !U._hv105cardTick) U._hv105cardTick = setInterval(HV.parkUnderCard105, 150);
+  }
+  HV.parkUnderCard105 = function () {
+    const U = HV.UI;
+    if (!hasDoc || !U || HV.POPUP_CLEAR_103 === false || !HV.artCardUp105()) return false;
+    const t = U.toastEl;
+    if (!U._toastBusy || !t || t.classList.contains('hidden') || !U._defer103) return false;
+    const a = t.getBoundingClientRect(), c = (U.card || document.getElementById('art-card')).getBoundingClientRect();
+    if (!(a.top < c.bottom && a.bottom > c.top && a.left < c.right && a.right > c.left)) return false;
+    if (U._toastCur) U._defer103.push(U._toastCur);
+    (U._toastQ || []).forEach((q) => U._defer103.push(q));
+    U._toastQ = []; U._toastCur = null;
+    if (U._tt) { clearTimeout(U._tt); U._tt = null; }
+    U._toastBusy = false;
+    t.classList.add('hidden');
+    return true;
+  };
+
+  /* ------------------------------------------------------------ 2. a round seal on narrow phones */
+  /* the painted seal in letter_opening (600 x 800): centre (493.5, 110.5), radius with its shadow 78 */
+  const SEAL = { iw: 600, ih: 800, cx: 493.5, cy: 110.5, r: 78 };
+  HV.SEAL_105 = SEAL;
+  /* pure: where the round copy goes for a sheet w x h (CSS px), or null when the stretch is small */
+  HV.roundSealSpot105 = function (w, h) {
+    if (!(w > 0 && h > 0)) return null;
+    const sx = w / SEAL.iw, sy = h / SEAL.ih;
+    const stretch = Math.max(sx, sy) / Math.min(sx, sy);
+    if (stretch <= 1.04) return null;
+    const R = SEAL.r * Math.max(sx, sy);         /* covers the stretched oval underneath */
+    const s = R / SEAL.r;                         /* even scale for the copy */
+    return { left: SEAL.cx * sx - R, top: SEAL.cy * sy - R, size: 2 * R, bgW: SEAL.iw * s, bgH: SEAL.ih * s,
+      bgX: -(SEAL.cx - SEAL.r) * s, bgY: -(SEAL.cy - SEAL.r) * s, stretch: stretch };
+  };
+  function placeSeal() {
+    const p = document.getElementById('opening-letter');
+    if (!p) return;
+    const old = p.querySelector('.hv105-seal');
+    const bg = p.querySelector('.parchment-bg');
+    const img = bg && root.getComputedStyle ? root.getComputedStyle(bg).backgroundImage : '';
+    const spot = (on('ROUND_SEAL_105') && p.classList.contains('hv103-art-letter') && bg && img && img !== 'none')
+      ? HV.roundSealSpot105(bg.offsetWidth, bg.offsetHeight) : null;
+    if (!spot) { if (old) old.style.display = 'none'; return; }
+    const d = old || document.createElement('div');
+    d.className = 'hv105-seal'; d.setAttribute('aria-hidden', 'true');
+    const st = d.style;
+    st.position = 'absolute'; st.zIndex = '1'; st.pointerEvents = 'none'; st.display = 'block';
+    st.left = (bg.offsetLeft + spot.left) + 'px'; st.top = (bg.offsetTop + spot.top) + 'px';
+    st.width = spot.size + 'px'; st.height = spot.size + 'px'; st.borderRadius = '50%';
+    st.backgroundImage = img; st.backgroundRepeat = 'no-repeat';
+    st.backgroundSize = spot.bgW + 'px ' + spot.bgH + 'px'; st.backgroundPosition = spot.bgX + 'px ' + spot.bgY + 'px';
+    if (!old) p.appendChild(d);
+  }
+  HV.placeRoundSeal105 = placeSeal;
+  function installSeal() {
+    const U = HV.UI;
+    if (!hasDoc || !U || !U.showLetter || U.showLetter._hv105) return;
+    const _sl = U.showLetter;
+    U.showLetter = function () {
+      const r = _sl.apply(this, arguments);
+      try { placeSeal(); if (root.requestAnimationFrame) root.requestAnimationFrame(() => { try { placeSeal(); } catch (e) { /* ignore */ } }); } catch (e) { /* ignore */ }
+      return r;
+    };
+    copyKeys(_sl, U.showLetter); U.showLetter._hv105 = true;
+    if (root.addEventListener) root.addEventListener('resize', () => { try { placeSeal(); } catch (e) { /* ignore */ } });
+  }
+
+  /* ------------------------------------------------------------ 3. one row per stack */
+  const match = (a, b) => (HV.itemsMatch ? HV.itemsMatch(a, b) : false);
+  const units = (it) => (it && it.qty != null ? it.qty : 1);
+  /* pure: [{it (first line), i (first index), idx: [all indices], total}] in first-seen order */
+  HV.stackRows105 = function (rows) {
+    const out = [];
+    (rows || []).forEach((row) => {
+      if (!row || !row.it) return;
+      const hit = out.find((o) => match(o.it, row.it));
+      if (hit) { hit.idx.push(row.i); hit.total += units(row.it); }
+      else out.push({ it: row.it, i: row.i, idx: [row.i], total: units(row.it) });
+    });
+    return out;
+  };
+  function installGroups() {
+    if (!HV.groupedItems || HV.groupedItems._hv105) return;
+    const _g = HV.groupedItems;
+    HV.groupedItems = function (list) {
+      const groups = _g.apply(this, arguments);
+      if (!on('PACK_GROUP_105') || !Array.isArray(groups)) return groups;
+      return groups.map((g) => {
+        const rows = HV.stackRows105(g.items).map((s) => {
+          if (s.idx.length < 2) return { it: s.it, i: s.i };
+          /* a display copy: same item, the stack's total as its count; the real lines are untouched */
+          const shown = Object.assign({}, s.it, { qty: s.total });
+          return { it: shown, i: s.i, stack: s.idx.slice(), total: s.total };
+        });
+        return Object.assign({}, g, { items: rows });
+      });
+    };
+    copyKeys(_g, HV.groupedItems); HV.groupedItems._hv105 = true;
+  }
+  /* the price of one unit stays the price of one, even on a stacked display copy */
+  function installPrice() {
+    if (!HV.sellPrice || HV.sellPrice._hv105) return;
+    const _sp = HV.sellPrice;
+    HV.sellPrice = function (it) {
+      if (it && it.qty > 1 && on('PACK_GROUP_105')) {
+        const one = Object.assign({}, it, { qty: 1 });
+        const args = Array.prototype.slice.call(arguments); args[0] = one;
+        return _sp.apply(this, args);
+      }
+      return _sp.apply(this, arguments);
+    };
+    copyKeys(_sp, HV.sellPrice); HV.sellPrice._hv105 = true;
+  }
+
+  /* sell duplicates: plan (pure) then sell one unit at a time through HV.shopSell */
+  /* never sold by 'sell duplicates': quest / key items, and anything the pack files under Quest / Key */
+  HV.keepItem105 = function (it) {
+    if (!it) return true;
+    if (HV.isQuestItem && HV.isQuestItem(it)) return true;
+    return !!(HV.itemCategory && HV.itemCategory(it) === 'quest');
+  };
+  /* fix1 (Nick: "Everything except herbs and consumables"): sell duplicates also skips herbs, forage and
+     consumables, so only duplicate gear and other non-consumables are sold. Equipped gear is not in the pack. */
+  HV.DUPE_SKIP_CATS_105 = ['herbs', 'forage', 'consumables', 'quest'];
+  HV.dupeSkip105 = function (it) {
+    if (HV.keepItem105(it)) return true;
+    const cat = HV.itemCategory ? HV.itemCategory(it) : 'misc';
+    return HV.DUPE_SKIP_CATS_105.indexOf(cat) >= 0;
+  };
+  HV.dupePlan105 = function (state) {
+    const inv = (state && state.hero && state.hero.inventory) || [];
+    const rows = HV.stackRows105(inv.map((it, i) => ({ it: it, i: i })));
+    let count = 0, coin = 0;
+    const picks = [];
+    rows.forEach((s) => {
+      if (s.total < 2 || HV.dupeSkip105(s.it)) return;
+      count += s.total - 1;
+      coin += (s.total - 1) * HV.sellPrice(Object.assign({}, s.it, { qty: 1 }), state);
+      picks.push(s);
+    });
+    return { count: count, coin: coin, stacks: picks.length, picks: picks };
+  };
+  HV.sellDuplicates105 = function (state) {
+    if (!on('SELL_DUPES_105')) return { ok: false, count: 0, coin: 0 };
+    const hero = state && state.hero;
+    if (!hero || !Array.isArray(hero.inventory)) return { ok: false, count: 0, coin: 0 };
+    let count = 0, coin = 0, guard = 2000;
+    for (;;) {
+      if (--guard < 0) break;
+      const plan = HV.dupePlan105(state);
+      if (!plan.count) break;
+      const s = plan.picks[0];
+      const at = s.idx[s.idx.length - 1];       /* sell from the last copy, the first line stays */
+      const g0 = hero.gold || 0;
+      const r = HV.shopSell(state, at);
+      if (!r || !r.ok) break;
+      count++; coin += (hero.gold || 0) - g0;
+    }
+    return { ok: count > 0, count: count, coin: coin };
+  };
+  function installSellButton() {
+    const U = HV.UI;
+    if (!hasDoc || !U || !U.showShop || U.showShop._hv105) return;
+    const _ss = U.showShop;
+    U.showShop = function (state) {
+      const r = _ss.apply(this, arguments);
+      try {
+        if (!on('SELL_DUPES_105')) return r;
+        const plan = HV.dupePlan105(state);
+        const heads = Array.prototype.slice.call(document.querySelectorAll('#overlay-root .shop-panel .caps'));
+        const head = heads.find((h) => /Sell from the Pack/i.test(h.textContent || ''));
+        if (!head || head.parentNode.querySelector('#hv105-dupes')) return r;
+        const b = document.createElement('button');
+        b.id = 'hv105-dupes'; b.className = 'ink-btn ghost';
+        b.style.width = '100%'; b.style.margin = '4px 0 6px'; b.style.fontSize = '12px'; b.style.letterSpacing = '.04em';
+        b.textContent = plan.count ? ('Sell duplicates (' + plan.count + ' for ' + plan.coin + '¢)') : 'No duplicates to sell';
+        b.disabled = !plan.count;
+        let armed = false;
+        b.addEventListener('click', () => {
+          if (!armed) { armed = true; b.classList.add('gold'); b.textContent = 'Tap again: sell ' + plan.count + ', keep one of each'; return; }
+          const res = HV.sellDuplicates105(state);
+          if (U.toast) U.toast(res.ok ? ('Sold ' + res.count + ' duplicates for ' + res.coin + '¢. One of each kept.') : 'Nothing sold.');
+          if (HV.Game && HV.Game.openShop) HV.Game.openShop();
+        });
+        head.parentNode.insertBefore(b, head.nextSibling);
+      } catch (e) { /* ignore */ }
+      return r;
+    };
+    copyKeys(_ss, U.showShop); U.showShop._hv105 = true;
+  }
+
+  function install() {
+    installCardHold();
+    installSeal();
+    installGroups();
+    installPrice();
+    installSellButton();
+  }
+  install();
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
