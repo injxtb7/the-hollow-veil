@@ -42045,6 +42045,7 @@
   }
 
   function packCapacity(state) {
+    if (HV.PACK_CAP_GUARD_106 === true && HV.PACK_CAP_106 > 0) return HV.PACK_CAP_106; /* hv106: Nick raised the cap to 130 */
     if (HV.PACK_CAP_90 !== false) return 90;
     const owned = ensure(state).owned || {};
     return PACK_BASE + (owned.pack_upgrade ? PACK_BONUS : 0);
@@ -45880,6 +45881,252 @@
     installGroups();
     installPrice();
     installSellButton();
+  }
+  install();
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+/* hv106: Nick's batch of Nov 25, midday (preview only). Each piece has its own flag; flag off = the hv105 path.
+   1 HV.SOLD_TOAST_ROOM_106 after 'Sell duplicates' at Otto's, a toast-sized gap opens under the button, so the
+                            'Sold N duplicates' toast (which the hv103/hv105 placer puts just under the button) no
+                            longer sits on the WEAPONS / STAVES heading. Both read cleanly.
+   2 HV.PACK_CAP_GUARD_106  the 90 cap (counted the way the pack counts today: lines) is enforced where loot comes in,
+                            and nothing is lost: a USE (chest, cache, herb, pickup) or a smashed crate whose item does not
+                            fit is undone (chest stays shut, herb stays, coins not taken) with a 'pack full' message; a
+                            brew that would not fit does not happen (herbs kept); a kill drop that does not fit says so
+                            by name. Purchases were already blocked (hv89 Trade). Quest items always get in (hv101), and
+                            quest / story rewards, dialogue gifts and unequipping get in over the cap rather than being
+                            dropped; any other add keeps the hv101 rule. Lines already in the pack are never touched; items that stack always fit.
+   3 (skipped)              Journal > Beasts already uses the Book of the Hills art on live hv105.
+   4 (skipped)              the Howler objective + den-exit waypoint are already live (hv101 HOWLER_GATE).
+   5 HV.HERO_OUTLINE_106    in-world hero only (not the title): drawn through a small offscreen canvas; her solid body
+                            (alpha >= HERO_ALPHA_CUT_106, so not the staff glow) gives a 1 px dark ink outline and a soft
+                            drop shadow, and is drawn twice so thin spots don't read see-through. No sprite files touched.
+                            (try 2: try 1 used the full alpha, so the staff glow became a dark halo and she went darker) */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const hasDoc = typeof document !== 'undefined';
+  const FLAGS = ['SOLD_TOAST_ROOM_106', 'PACK_CAP_GUARD_106', 'HERO_OUTLINE_106'];
+  FLAGS.forEach((k) => { if (HV[k] == null) HV[k] = true; });
+  /* item 5 failed twice in the browser (she came out darker and softer), so it stops here: off by default, code kept */
+  if (HV.HERO_OUTLINE_106 === true && !HV._heroOutlineAsked106) HV.HERO_OUTLINE_106 = false;
+  HV.HV106_FLAGS = FLAGS.slice();
+  /* hv106 follow-up (Nick): the pack cap is 130 lines while PACK_CAP_GUARD_106 is on (flag off = the old 90) */
+  if (HV.PACK_CAP_106 == null) HV.PACK_CAP_106 = 130;
+  const on = (k) => HV[k] === true;
+  const copyKeys = (from, to) => { Object.keys(from).forEach((k) => { to[k] = from[k]; }); return to; };
+
+  /* ------------------------------------------------------------ 1. room for the 'Sold' toast */
+  HV.SOLD_GAP_106 = 54; /* toast 37 px + the placer's 8 px gap + a little air */
+  function installSoldRoom() {
+    if (HV.sellDuplicates105 && !HV.sellDuplicates105._hv106) {
+      const _sd = HV.sellDuplicates105;
+      HV.sellDuplicates105 = function () {
+        const r = _sd.apply(this, arguments);
+        if (r && r.ok) HV._soldAt106 = Date.now();
+        return r;
+      };
+      copyKeys(_sd, HV.sellDuplicates105); HV.sellDuplicates105._hv106 = true;
+    }
+    const U = HV.UI;
+    if (!hasDoc || !U || !U.showShop || U.showShop._hv106) return;
+    const _ss = U.showShop;
+    U.showShop = function () {
+      const r = _ss.apply(this, arguments);
+      try {
+        const b = document.getElementById('hv105-dupes');
+        if (on('SOLD_TOAST_ROOM_106') && b && HV._soldAt106 && Date.now() - HV._soldAt106 < 8000 && !document.getElementById('hv106-sold-gap')) {
+          const gap = document.createElement('div');
+          gap.id = 'hv106-sold-gap';
+          gap.style.height = HV.SOLD_GAP_106 + 'px';
+          b.parentNode.insertBefore(gap, b.nextSibling);
+        }
+      } catch (e) { /* ignore */ }
+      return r;
+    };
+    copyKeys(_ss, U.showShop); U.showShop._hv106 = true;
+  }
+
+  /* ------------------------------------------------------------ 2. pack cap on every loot add, nothing lost */
+  let ctx = null;
+  HV.packCtx106 = () => ctx;
+  function installCapHooks() {
+    if (HV.isQuestItem && !HV.isQuestItem._hv106) {
+      const _q = HV.isQuestItem;
+      HV.isQuestItem = function (it) { HV._lastAsk106 = it; return _q.apply(this, arguments); };
+      copyKeys(_q, HV.isQuestItem); HV.isQuestItem._hv106 = true;
+    }
+    if (HV.packCapEnforced && !HV.packCapEnforced._hv106) {
+      const _e = HV.packCapEnforced;
+      /* hv101 asks packIsFull && !isQuestItem(it) && packCapEnforced() right before it drops an item */
+      HV.packCapEnforced = function () {
+        if (!on('PACK_CAP_GUARD_106')) return _e.apply(this, arguments);
+        if (ctx && ctx.bypass) return false;  /* quest / story rewards, unequip: they get in over the cap */
+        const r = _e.apply(this, arguments);
+        if (!ctx) return r;                   /* anything else: the hv101 rule as before */
+        if (r) ctx.refused.push(HV._lastAsk106 || null);
+        return r;
+      };
+      copyKeys(_e, HV.packCapEnforced); HV.packCapEnforced._hv106 = true;
+    }
+    const U = HV.UI;
+    if (U && U.toast && !U.toast._hv106) {
+      const _t = U.toast;
+      U.toast = function (text) {
+        if (ctx && text === 'The pack is full.') return; /* ours says what stayed put */
+        return _t.apply(this, arguments);
+      };
+      copyKeys(_t, U.toast); U.toast._hv106 = true;
+    }
+  }
+  const capOf = (s) => (HV.Trade && HV.Trade.packCapacity) ? HV.Trade.packCapacity(s) : (on('PACK_CAP_GUARD_106') ? HV.PACK_CAP_106 : 90);
+  HV.packFullMsg106 = function (state, it, how) {
+    const n = (state && state.hero && state.hero.inventory || []).length;
+    const name = (it && it.name) || 'it';
+    if (how === 'kill') return 'Pack full (' + n + '/' + capOf(state) + '): left the ' + name + ' behind.';
+    if (how === 'brew') return 'Pack full (' + n + '/' + capOf(state) + '): the kettle waits. Sell or use something first.';
+    return 'Pack full (' + n + '/' + capOf(state) + '): the ' + name + ' stays where it was. Sell or use something first.';
+  };
+  const SKIP = { hero: 1, _derived: 1 };
+  function snap(state) {
+    const o = {};
+    Object.keys(state).forEach((k) => { if (!SKIP[k]) { try { o[k] = JSON.stringify(state[k]); } catch (e) { /* skip */ } } });
+    o._gold = state.hero.gold; o._inv = JSON.stringify(state.hero.inventory || []);
+    o._xp = state.hero.xp;
+    return o;
+  }
+  function restore(state, o) {
+    Object.keys(o).forEach((k) => {
+      if (k[0] === '_') return;
+      let now; try { now = JSON.stringify(state[k]); } catch (e) { return; }
+      if (now !== o[k]) state[k] = (o[k] === undefined) ? undefined : JSON.parse(o[k]);
+    });
+    Object.keys(state).forEach((k) => { if (!SKIP[k] && !(k in o)) delete state[k]; });
+    state.hero.gold = o._gold; state.hero.xp = o._xp;
+    const inv = state.hero.inventory, back = JSON.parse(o._inv);
+    if (JSON.stringify(inv) !== o._inv) { inv.length = 0; Array.prototype.push.apply(inv, back); }
+  }
+  /* run fn as a loot add. how: 'undo' (USE / smash: roll back), 'brew' (roll back, report), 'kill' (say what was left) */
+  HV.capGuard106 = function (fn, stateOf, how) {
+    const g = function () {
+      if (!on('PACK_CAP_GUARD_106') || ctx) return fn.apply(this, arguments);
+      const state = stateOf(this, arguments);
+      if (!state || !state.hero || !Array.isArray(state.hero.inventory)) return fn.apply(this, arguments);
+      const full = HV.packIsFull ? HV.packIsFull(state) : false;
+      const o = (full && how !== 'kill') ? snap(state) : null;
+      const game = this && this.floaters ? this : null;
+      const fl = game ? game.floaters.length : 0;
+      ctx = { refused: [], how: how };
+      let r, my = ctx;
+      try { r = fn.apply(this, arguments); } finally { ctx = null; }
+      if (!my.refused.length) return r;
+      const it = my.refused[0];
+      if (o) restore(state, o);
+      if (o && game && game.floaters.length > fl) game.floaters.length = fl; /* no 'Found ...' for what stayed */
+      const msg = HV.packFullMsg106(state, it, how);
+      HV._lastPackFull106 = msg;
+      if (HV.UI && HV.UI.toast) HV.UI.toast(msg, 3600);
+      if (how === 'brew') return { ok: false, error: msg, full: true };
+      return r;
+    };
+    g._hv106 = true;
+    return g;
+  };
+  function wrap(obj, name, stateOf, how) {
+    if (!obj || typeof obj[name] !== 'function' || obj[name]._hv106) return;
+    const f = obj[name];
+    obj[name] = copyKeys(f, HV.capGuard106(f, stateOf, how));
+    obj[name]._hv106 = true;
+  }
+  /* one-time grants (story / quest rewards, dialogue gifts, unequip) get in over the cap instead of being dropped */
+  HV.capBypass106 = function (fn) {
+    const g = function () {
+      if (!on('PACK_CAP_GUARD_106') || ctx) return fn.apply(this, arguments);
+      ctx = { bypass: true, refused: [] };
+      try { return fn.apply(this, arguments); } finally { ctx = null; }
+    };
+    g._hv106 = true;
+    return g;
+  };
+  function bypass(obj, name) {
+    if (!obj || typeof obj[name] !== 'function' || obj[name]._hv106) return;
+    const f = obj[name];
+    obj[name] = copyKeys(f, HV.capBypass106(f));
+    obj[name]._hv106 = true;
+  }
+  function installCap() {
+    installCapHooks();
+    const G = HV.Game;
+    ['giveUnique', 'giveItem', 'applyDialogChoice', 'startQuest', 'advanceQuest', 'completeQuest'].forEach((n) => bypass(HV, n));
+    bypass(G, 'unequip');
+    wrap(G, 'interact', (self) => self && self.state, 'undo');
+    wrap(G, 'onKill', (self) => self && self.state, 'kill');
+    wrap(HV.Breakables, 'smash', (self, a) => a[0] && a[0].state, 'undo');
+    wrap(HV.Craft, 'brew', (self, a) => a[0], 'brew');
+  }
+
+  /* ------------------------------------------------------------ 5. hero outline + soft shadow */
+  HV.HERO_INK_106 = 'rgba(26,20,16,0.85)';
+  HV.HERO_SHADOW_106 = 'rgba(26,16,6,0.38)';
+  const BOX = { l: 48, t: 84, w: 96, h: 112 };
+  let offA = null, offB = null, offC = null;
+  HV.HERO_ALPHA_CUT_106 = 150; /* only the solid body casts the outline (not the staff glow or soft light) */
+  HV.heroMask106 = function (data, cut, rgb) { /* pure: alpha mask -> solid ink where the sprite is solid */
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] >= cut) { data[i] = rgb[0]; data[i + 1] = rgb[1]; data[i + 2] = rgb[2]; data[i + 3] = 255; } else data[i + 3] = 0;
+    }
+    return data;
+  };
+  function installOutline() {
+    const R = HV.Render;
+    if (!hasDoc || !R || !R.hero || R.hero._hv106) return;
+    const _h = R.hero;
+    R.hero = function (c, x, y, opts) {
+      const o = opts || {};
+      const inWorld = on('HERO_OUTLINE_106') && o.scale === 0.85 && ('moving' in o) && HV.Game && HV.Game.mode === 'play' && c && c.getTransform;
+      if (!inWorld) return _h.apply(this, arguments);
+      try {
+        const m = c.getTransform();
+        const k = Math.max(0.5, Math.hypot(m.a, m.b));
+        const W = Math.ceil(BOX.w * k), H = Math.ceil(BOX.h * k);
+        if (!offA) { offA = document.createElement('canvas'); offB = document.createElement('canvas'); offC = document.createElement('canvas'); }
+        if (offA.width !== W || offA.height !== H) { offA.width = offB.width = offC.width = W; offA.height = offB.height = offC.height = H; }
+        const a = offA.getContext('2d'), b = offB.getContext('2d'), cc = offC.getContext('2d');
+        a.setTransform(1, 0, 0, 1, 0, 0); a.clearRect(0, 0, W, H);
+        a.setTransform(k, 0, 0, k, BOX.l * k, BOX.t * k);
+        _h.call(this, a, 0, 0, opts);
+        a.setTransform(1, 0, 0, 1, 0, 0);
+        const img = a.getImageData(0, 0, W, H);
+        HV.heroMask106(img.data, HV.HERO_ALPHA_CUT_106, [26, 20, 16]);
+        b.setTransform(1, 0, 0, 1, 0, 0); b.clearRect(0, 0, W, H); b.putImageData(img, 0, 0);
+        /* the sprite again, only where she is solid: thin, see-through spots read solid, colours unchanged */
+        cc.setTransform(1, 0, 0, 1, 0, 0); cc.globalCompositeOperation = 'source-over'; cc.clearRect(0, 0, W, H);
+        cc.drawImage(offA, 0, 0); cc.globalCompositeOperation = 'destination-in'; cc.drawImage(offB, 0, 0); cc.globalCompositeOperation = 'source-over';
+        const px = m.a * x + m.c * y + m.e - BOX.l * k, py = m.b * x + m.d * y + m.f - BOX.t * k;
+        c.save();
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.globalAlpha = 0.55;
+        c.shadowColor = HV.HERO_SHADOW_106; c.shadowBlur = 4 * k; c.shadowOffsetX = 0; c.shadowOffsetY = 2.5 * k;
+        c.drawImage(offB, px, py + 0.5 * k);             /* soft drop shadow, cast by the solid body */
+        c.shadowColor = 'transparent'; c.shadowBlur = 0; c.shadowOffsetY = 0;
+        c.globalAlpha = 0.8;
+        const d = Math.max(1, Math.round(k * 0.8));
+        c.drawImage(offB, px - d, py); c.drawImage(offB, px + d, py); c.drawImage(offB, px, py - d); c.drawImage(offB, px, py + d);
+        c.globalAlpha = 1;
+        c.drawImage(offC, px, py);
+        c.drawImage(offA, px, py);
+        c.restore();
+      } catch (e) { return _h.apply(this, arguments); }
+      return undefined;
+    };
+    copyKeys(_h, R.hero); R.hero._hv106 = true;
+  }
+
+  function install() {
+    installSoldRoom();
+    installCap();
+    installOutline();
   }
   install();
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
