@@ -45224,3 +45224,405 @@
   install();
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
+
+/* hv104: Nick's batch of Nov 25 (preview only). Each piece has its own flag; flag off = the hv103 path, untouched.
+   1 HV.FORK_ROADS_104       the fork only names roads the player can take right then: mend with Ila, or stand with Cald
+                             in town. Peck is never offered as a road in hints / the goal / the journal (standing with him
+                             is only offered in the talk right after the Bald Knob fight), and the journal no longer
+                             mentions a fourth road under the stone (that is chosen at the ending).
+   2 HV.PECK_HINT_104        the hearth hint after Peck says you still need two of these four before the hearth wakes:
+                             the Gowrow, the Bottoms Walker, Rawhead, and the Headless Raider at The Gallows.
+   3 HV.CALD_ASK_104         Cald's asks drop 'quiet the church' (it never counted): the lamp needs the hymn-book, Old
+                             Christmas needs the cedar bough. Talk, journal and Journal guide all say only that.
+   4 HV.SEXTON_MARK_LINE_104 the Sexton's 'I will look at the churchyard mark.' is gone once that mark is read.
+   5 HV.NPC_NAMES_104        the name of the person you would talk to (in reach of USE) shows over their head, small,
+                             drawn before the HUD so the HUD stays on top; flips under their feet if you stand above them.
+   6 HV.PAUSE_TOAST_HOLD_104 the PAUSED menu is a toast blocker like Save Slots: a held toast waits until the menu closes
+                             (or shows only where it covers no part of the menu).
+   7 HV.HARD_FASTTRAVEL_104  Hard: a save from before this build travels to every camp it has already found (seeded once,
+                             marked flags.ft_seed_104); new Hard games keep the rest-first rule for camps found later.
+   8 HV.RESUME_TOAST_104     fix round (Nick): in play, a toast may not sit on the lit things it used to hide (the Yarrow
+                             well and its lantern, any NPC, the player). They join HV.toastBlockers, so the hv103 placer
+                             moves the toast above/below them, or holds it until it is clear. */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const hasDoc = typeof document !== 'undefined';
+  const TILE = 32;
+  const FLAGS = ['FORK_ROADS_104', 'PECK_HINT_104', 'CALD_ASK_104', 'SEXTON_MARK_LINE_104', 'NPC_NAMES_104', 'PAUSE_TOAST_HOLD_104', 'HARD_FASTTRAVEL_104', 'RESUME_TOAST_104'];
+  FLAGS.forEach((k) => { if (HV[k] == null) HV[k] = true; });
+  HV.HV104_FLAGS = FLAGS.slice();
+  const on = (k) => HV[k] === true;
+  const copyKeys = (from, to) => { Object.keys(from).forEach((k) => { to[k] = from[k]; }); return to; };
+
+  /* ------------------------------------------------------------ 1. the fork names only open roads */
+  const ILA_SAY = 'tell Ila "I will mend the marks with you"';
+  const CALD_SAY = 'tell Cald "I will stand with the lantern congregation"';
+  const FORK_SWAPS = [
+    [ILA_SAY + ', ' + CALD_SAY + ' (purge), or find Jonas Peck on Bald Knob.', ILA_SAY + ', or ' + CALD_SAY + ' (purge).'],
+    ['Choose a road: talk to Jonas Peck here, or go back to Yarrow and ' + ILA_SAY + ' or ' + CALD_SAY + '.',
+      'Choose a road back in Yarrow: ' + ILA_SAY + ', or ' + CALD_SAY + '.'],
+    ['choose a road (Ila, Cald, or Peck on Bald Knob).', 'choose a road: mend with Ila, or stand with Cald.'],
+    ['Choose a road: Ila, Cald, or Peck', 'Choose a road: mend with Ila, or stand with Cald'],
+    ['choose a side with Ila, the preacher, or Peck', 'choose a side: mend with Ila, or stand with the preacher'],
+    ['Choose a side with Ila, the preacher, or Peck first.', 'Choose a side first: mend with Ila, or stand with the preacher.'],
+  ];
+  const FORK_JOURNAL = 'Two roads are open in town: mend the marks with Ila, or stand with Cald and purge them. I will have to choose.';
+  HV.forkText104 = function (t) {
+    if (!on('FORK_ROADS_104') || typeof t !== 'string') return t;
+    let out = t;
+    FORK_SWAPS.forEach((p) => { out = out.split(p[0]).join(p[1]); });
+    return out;
+  };
+
+  /* ------------------------------------------------------------ 2. the hearth needs two of four */
+  const REG_NAMES = { gowrow: 'the Gowrow', momo: 'the Bottoms Walker', rawhead: 'Rawhead', bolin_shade: 'the Headless Raider at The Gallows' };
+  const WORDS = ['no', 'one', 'two', 'three', 'four'];
+  HV.hearthNeed104 = function (s) {
+    if (!s || !HV.regionalBeaten) return '';
+    const f = s.flags || {};
+    if (f.hearth_read) return '';
+    const left = 2 - HV.regionalBeaten(s);
+    if (left <= 0) return '';
+    const kc = s.killCount || {};
+    const reg = HV.HV75_REGIONAL || [];
+    const down = reg.filter((b) => kc[b.id]).map((b) => REG_NAMES[b.id] || b.name);
+    return 'Before the hearth wakes you still need ' + WORDS[left] + (left === 2 ? ' of these four' : ' more of these four') + ': '
+      + reg.map((b) => REG_NAMES[b.id] || b.name).join(', ').replace(/, ([^,]+)$/, ', and $1') + '.'
+      + (down.length ? ' (Down already: ' + down.join(', ') + '.)' : '');
+  };
+  function installRegionalNames() {
+    (HV.HV75_REGIONAL || []).forEach((b) => {
+      if (b._hv104) return;
+      const orig = b.name;
+      Object.defineProperty(b, 'name', { configurable: true, enumerable: true,
+        get() { return on('PECK_HINT_104') && REG_NAMES[b.id] ? REG_NAMES[b.id] : orig; }, set(v) { /* keep */ } });
+      b._name103 = orig; b._hv104 = true;
+    });
+  }
+  const isHearthHint = (t) => typeof t === 'string' && /hearth|Harthall/.test(t) && !/Before the hearth wakes/.test(t);
+
+  /* ------------------------------------------------------------ 3. Cald's asks */
+  const CALD_SWAPS = [
+    ['You quiet the churchyard at night and bring me a hymn-book off that shore', 'You bring me a hymn-book off that shore'],
+    ['Bring a cedar bough from the High Ledge and sit the church quiet.', 'Bring a cedar bough from the High Ledge.'],
+    ['if I quiet the churchyard at night and bring back a hymn-book from the drowned shore.', 'if I bring back a hymn-book from the drowned shore.'],
+    ['wants a cedar bough from the high ledge and a quiet church that night.', 'wants a cedar bough from the high ledge for that night.'],
+    ['Quiet the Pine Churchyard at night and bring a hymn-book from Drowned Shore to Preacher Cald.', 'Find a hymn-book on Drowned Shore and bring it to Preacher Cald.'],
+  ];
+  HV.caldText104 = function (t) {
+    if (!on('CALD_ASK_104') || typeof t !== 'string') return t;
+    let out = t;
+    CALD_SWAPS.forEach((p) => { out = out.split(p[0]).join(p[1]); });
+    return out;
+  };
+
+  /* text helpers: wrap a node's text / a stage's journal without losing the original */
+  function wrapNodeText(node, fix) {
+    if (!node || node._hv104t) return;
+    const prev = node.textFn, base = node.text;
+    node.textFn = function (s) { return fix(prev ? prev.apply(this, arguments) : base); };
+    node._hv104t = true;
+  }
+  function wrapProp(obj, key, fix, mark) {
+    if (!obj || obj[mark]) return;
+    const orig = obj[key];
+    Object.defineProperty(obj, key, { configurable: true, enumerable: true, get() { return fix(orig); }, set(v) { /* keep */ } });
+    obj[mark] = orig;
+  }
+  function wrapFn(owner, key, fix) {
+    const f = owner && owner[key];
+    if (typeof f !== 'function' || f._hv104) return;
+    const g = function () { return fix(f.apply(this, arguments), arguments); };
+    copyKeys(f, g); g._hv104 = true;
+    owner[key] = g;
+  }
+
+  function installText() {
+    const Q = HV.QUESTS || {};
+    const th = Q.the_thinning && Q.the_thinning.stages;
+    const fst = th && th.find((st) => st.id === 'faction');
+    wrapProp(fst, 'journal', (t) => (on('FORK_ROADS_104') ? FORK_JOURNAL : t), '_journal103');
+    [['congregation_lamp', 'ask'], ['old_christmas', 'ask']].forEach((p) => {
+      const st = Q[p[0]] && (Q[p[0]].stages || []).find((x) => x.id === p[1]);
+      wrapProp(st, 'journal', HV.caldText104, '_journal103');
+    });
+    const guide = HV.QUEST_GUIDE && HV.QUEST_GUIDE.congregation_lamp;
+    if (Array.isArray(guide) && guide[0]) {
+      wrapProp(guide[0], 'text', HV.caldText104, '_text103');
+      wrapProp(guide[0], 'area', (a) => (on('CALD_ASK_104') ? 'drowned_shore' : a), '_area103');
+    }
+    const D = HV.DIALOG || {};
+    if (D.cald) { wrapNodeText(D.cald.cost, HV.caldText104); wrapNodeText(D.cald.oc, HV.caldText104); }
+    /* 4. the Sexton */
+    const yard = D.sexton && D.sexton.yard;
+    if (yard && !yard._hv104c) {
+      const prev = yard.choicesFn, base = yard.choices;
+      yard.choicesFn = function (s) {
+        const c = (prev ? prev.apply(this, arguments) : (base ? base.slice() : [])) || [];
+        if (!on('SEXTON_MARK_LINE_104')) return c;
+        const f = (s && s.flags) || {};
+        if (!(f.church_seen || f.church_mark_traced)) return c;
+        return c.filter((ch) => !(ch && ch.t === 'I will look at the churchyard mark.'));
+      };
+      yard._hv104c = true;
+    }
+    /* hints, goal, missing list, gate reason */
+    wrapFn(HV, 'nextHint', (t, args) => {
+      let out = HV.forkText104(t);
+      const s = args[0];
+      if (on('PECK_HINT_104') && isHearthHint(out)) {
+        const need = HV.hearthNeed104(s);
+        if (need) out = out + ' ' + need;
+      }
+      return out;
+    });
+    wrapFn(HV, 'openRoadsGoal', (r) => { if (r && typeof r.goal === 'string') r.goal = HV.forkText104(r.goal); return r; });
+    wrapFn(HV, 'storyMissing', (list) => { (list || []).forEach((m) => { if (m && typeof m.text === 'string') m.text = HV.forkText104(m.text); }); return list; });
+    const ur = HV.AREA_GATES && HV.AREA_GATES.underground_river;
+    wrapFn(ur, 'reason', (t) => HV.forkText104(t));
+  }
+
+  /* ------------------------------------------------------------ 5. NPC name over the one you can talk to */
+  HV.npcInReach104 = function (game) {
+    const g = game || HV.Game;
+    const s = g && g.state, area = g && g.area;
+    if (!s || !area || !s.world) return null;
+    const tx = Math.floor(s.world.x / TILE), ty = Math.floor(s.world.y / TILE);
+    const night = typeof g.isNight === 'function' ? g.isNight() : false;
+    const f = s.flags || {};
+    let best = null, bd = 99;
+    (area.npcs || []).forEach((n) => {
+      if (!n || !n.name) return;
+      if (HV.npcIsPresent ? !HV.npcIsPresent(n, s, night) : (n.atNight && !night)) return;
+      if (n.ngplusOnly && !(s.ngplus > 0)) return;
+      if (n.id === 'jonas_peck' && (f.chose_peck || f.peck_hostile || (HV.questDone && HV.questDone(s, 'peck_problem')))) return;
+      const d = Math.abs(n.x - tx) + Math.abs(n.y - ty);
+      if (d <= 2 && d < bd) { best = n; bd = d; }
+    });
+    return best;
+  };
+  /* pure: where the tag goes, in CSS px. Above the head, or under the feet if the player stands above them. */
+  HV.npcTagSpot104 = function (o) {
+    const zoom = o.zoom, w = o.w, h = o.h, zw = w / zoom, zh = h / zoom;
+    let camX = o.px - zw / 2, camY = o.py - zh / 2;
+    if (o.mapW > zw) camX = Math.max(0, Math.min(o.mapW - zw, camX)); else camX = (o.mapW - zw) / 2;
+    if (o.mapH > zh) camY = Math.max(0, Math.min(o.mapH - zh, camY)); else camY = (o.mapH - zh) / 2;
+    const nx = o.nx * TILE + 16, feet = o.ny * TILE + 26;
+    const above = !(o.py < feet - 8 && Math.abs(o.px - nx) < 28);
+    const wy = above ? feet - 50 : feet + 14;
+    let x = (nx - camX) * zoom;
+    const y = (wy - camY) * zoom;
+    const half = (o.tw || 60) / 2 + 6;
+    x = Math.max(half + 4, Math.min(w - half - 4, x));
+    return { x: x, y: y, above: above };
+  };
+  function installNames() {
+    const G = HV.Game;
+    if (!G || !G.drawHud || G.drawHud._hv104) return;
+    const _dh = G.drawHud;
+    G.drawHud = function (ctx, w, h) {
+      if (on('NPC_NAMES_104') && ctx && this.mode === 'play' && this.preview !== 'lara') {
+        try {
+          const n = HV.npcInReach104(this);
+          if (n) {
+            const s = this.state;
+            const zoom = this.camZoom || ((this.wantTouch && w < 600 && h > w) ? 1.3 : 1);
+            ctx.save();
+            ctx.font = 'bold 12px Georgia, serif';
+            const tw = ctx.measureText ? ctx.measureText(n.name).width : n.name.length * 6;
+            const p = HV.npcTagSpot104({ zoom: zoom, w: w, h: h, px: s.world.x, py: s.world.y, mapW: (this.area.w || 1) * TILE, mapH: (this.area.h || 1) * TILE, nx: n.x, ny: n.y, tw: tw });
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillStyle = 'rgba(20,15,12,0.78)';
+            const bw = tw + 12, bh = 17;
+            if (ctx.beginPath && ctx.roundRect) { ctx.beginPath(); ctx.roundRect(p.x - bw / 2, p.y - bh / 2, bw, bh, 5); ctx.fill(); } else ctx.fillRect(p.x - bw / 2, p.y - bh / 2, bw, bh);
+            ctx.fillStyle = '#F1E6CF';
+            ctx.fillText(n.name, p.x, p.y + 0.5);
+            ctx.restore();
+            this._npcTag104 = { name: n.name, x: p.x, y: p.y, w: bw, h: bh };
+          } else this._npcTag104 = null;
+        } catch (e) { this._npcTag104 = null; }
+      } else this._npcTag104 = null;
+      return _dh.apply(this, arguments);
+    };
+    copyKeys(_dh, G.drawHud);
+    G.drawHud._hv104 = true;
+  }
+
+  /* ------------------------------------------------------------ 6. toasts wait for the PAUSED menu */
+  function visible(el) {
+    if (!el || !el.getBoundingClientRect) return false;
+    if (el.classList && el.classList.contains('hidden')) return false;
+    const cs = root.getComputedStyle ? root.getComputedStyle(el) : null;
+    if (cs && (cs.display === 'none' || cs.visibility === 'hidden')) return false;
+    const b = el.getBoundingClientRect();
+    return b.width > 0 && b.height > 0;
+  }
+  HV.pauseMenuUp104 = function () {
+    if (!hasDoc || !on('PAUSE_TOAST_HOLD_104')) return false;
+    return visible(document.getElementById('hv104-pause'));
+  };
+  function installPauseHold() {
+    const U = HV.UI;
+    if (!hasDoc || !U || U._hv104pause) return;
+    U._hv104pause = true;
+    if (U.showPause) {
+      const _sp = U.showPause;
+      U.showPause = function () {
+        const r = _sp.apply(this, arguments);
+        const o = this.overlay;
+        /* the panel itself (try 1 took the last child, which is the scroll-rod decoration) */
+        const kids = (o && o.children) ? Array.prototype.slice.call(o.children) : [];
+        const p = kids.find((c) => c && c.classList && c.classList.contains('hv-scroll-panel')) || null;
+        const old = document.getElementById('hv104-pause');
+        if (old && old !== p) old.removeAttribute('id');
+        if (p && !p.id) p.id = 'hv104-pause';
+        return r;
+      };
+      copyKeys(_sp, U.showPause);
+    }
+    if (HV.toastBlockers && !HV.toastBlockers._hv104) {
+      const _tb = HV.toastBlockers;
+      HV.toastBlockers = function () {
+        const out = _tb.apply(this, arguments) || [];
+        if (HV.POPUP_CLEAR_103 !== false && HV.pauseMenuUp104()) out.push(document.getElementById('hv104-pause').getBoundingClientRect());
+        return out;
+      };
+      copyKeys(_tb, HV.toastBlockers); HV.toastBlockers._hv104 = true;
+    }
+  }
+
+  /* ------------------------------------------------------------ 8. toasts in play keep off the well lantern */
+  /* pure: CSS-px boxes for world things a toast must not cover (same camera as Game.draw) */
+  HV.playToastBlockers104 = function (o) {
+    const zoom = o.zoom, w = o.w, h = o.h, zw = w / zoom, zh = h / zoom;
+    let camX = o.px - zw / 2, camY = o.py - zh / 2;
+    if (o.mapW > zw) camX = Math.max(0, Math.min(o.mapW - zw, camX)); else camX = (o.mapW - zw) / 2;
+    if (o.mapH > zh) camY = Math.max(0, Math.min(o.mapH - zh, camY)); else camY = (o.mapH - zh) / 2;
+    const box = (cx, top, bottom, half) => {
+      const l = (cx - half - camX) * zoom + (o.ox || 0), r = (cx + half - camX) * zoom + (o.ox || 0);
+      const t = (top - camY) * zoom + (o.oy || 0), b = (bottom - camY) * zoom + (o.oy || 0);
+      return { left: l, right: r, top: t, bottom: b };
+    };
+    const out = [];
+    (o.wells || []).forEach((p) => out.push(box(p.x * TILE + 16, p.y * TILE - 56, p.y * TILE + 40, 30))); /* well + lantern + glow */
+    (o.npcs || []).forEach((n) => out.push(box(n.x * TILE + 16, n.y * TILE - 42, n.y * TILE + 30, 18))); /* head + hat */
+    out.push(box(o.px, o.py - 56, o.py + 16, 18)); /* the player, hat to boots */
+    return out.filter((b) => b.bottom > 0 && b.top < h && b.right > 0 && b.left < w);
+  };
+  /* every person and well drawn this frame, as CSS-px boxes (townsfolk, fire folk, peddler, NPCs, player) */
+  let frameRects = [], lastRects = [];
+  function recordDraws() {
+    const R = HV.Render, G = HV.Game;
+    if (!R || R._hv104rec) return;
+    R._hv104rec = true;
+    const rec = (name, up, down, half, owner) => {
+      const R = owner || HV.Render;
+      const f = R[name];
+      if (typeof f !== 'function') return;
+      R[name] = function (ctx, x, y) {
+        try {
+          if (on('RESUME_TOAST_104') && ctx && ctx.getTransform && G && G.mode === 'play') {
+            const m = ctx.getTransform(), dpr = root.devicePixelRatio || 1;
+            const o = arguments[3] || {};
+            const sc = (m.a / dpr) * (o.scale || 1);
+            const cx = (m.a * x + m.c * y + m.e) / dpr, cy = (m.b * x + m.d * y + m.f) / dpr;
+            frameRects.push({ left: cx - half * sc, right: cx + half * sc, top: cy - up * sc, bottom: cy + down * sc });
+          }
+        } catch (e) { /* ignore */ }
+        return f.apply(this, arguments);
+      };
+      copyKeys(f, R[name]);
+    };
+    rec('figure', 62, 8, 18);   /* feet at y: hat to boots */
+    rec('well', 72, 26, 30);    /* well centre: lantern + glow above */
+    if (HV.RichKit && typeof HV.RichKit.person === 'function' && !HV.RichKit._hv104rec) { HV.RichKit._hv104rec = true; rec('person', 58, 8, 16, HV.RichKit); } /* townsfolk, kids, rich figures */
+    if (G && G.draw && !G.draw._hv104r) {
+      const _d = G.draw;
+      G.draw = function () {
+        frameRects = [];
+        const r = _d.apply(this, arguments);
+        const cv = this.canvas && this.canvas.getBoundingClientRect ? this.canvas.getBoundingClientRect() : { left: 0, top: 0 };
+        lastRects = frameRects.map((b) => ({ left: b.left + (cv.left || 0), right: b.right + (cv.left || 0), top: b.top + (cv.top || 0), bottom: b.bottom + (cv.top || 0) }));
+        return r;
+      };
+      copyKeys(_d, G.draw); G.draw._hv104r = true;
+    }
+  }
+  HV.drawnBlockers104 = () => lastRects.slice();
+  function installResumeToast() {
+    if (!hasDoc || !HV.toastBlockers || HV.toastBlockers._hv104r) return;
+    const _tb = HV.toastBlockers;
+    HV.toastBlockers = function () {
+      const out = _tb.apply(this, arguments) || [];
+      const G = HV.Game;
+      if (!on('RESUME_TOAST_104') || HV.POPUP_CLEAR_103 === false || !G || G.mode !== 'play' || !G.state || !G.area || !G.state.world) return out;
+      if (out.length) return out; /* a panel or the talk box is up: hv103/hv104 rules already apply */
+      /* only while a toast is out being placed: the hv103 tick reads 'no blockers' as 'clear, let held toasts out',
+         and the player is always on screen, so counting them when idle would hold toasts forever */
+      if (!(HV.UI && HV.UI._toastBusy)) return out;
+      try {
+        const s = G.state, w = G.w || root.innerWidth, h = G.h || root.innerHeight;
+        const cv = G.canvas && G.canvas.getBoundingClientRect ? G.canvas.getBoundingClientRect() : { left: 0, top: 0 };
+        const night = typeof G.isNight === 'function' ? G.isNight() : false;
+        const npcs = (G.area.npcs || []).filter((n) => !(HV.npcIsPresent ? !HV.npcIsPresent(n, s, night) : (n.atNight && !night)));
+        const wells = (G.area.props || []).filter((p) => p && p.kind === 'well');
+        const zoom = G.camZoom || ((G.wantTouch && w < 600 && h > w) ? 1.3 : 1);
+        const drawn = lastRects.filter((r) => r.bottom > 0 && r.top < h && r.right > 0 && r.left < w);
+        /* never move up into the HUD (the toast's own spot is just under it), nor onto the touch pad / buttons */
+        const el = HV.UI.toastEl;
+        if (el && !el.style.top && el.getBoundingClientRect) HV._toastHome104 = el.getBoundingClientRect().top;
+        if (HV._toastHome104 != null) drawn.push({ left: -1e4, right: 1e4, top: -1e4, bottom: HV._toastHome104 - 9 });
+        ['pad', 'touch-acts'].forEach((id) => { const e = document.getElementById(id); if (visible(e)) drawn.push(e.getBoundingClientRect()); });
+        return out.concat(drawn, HV.playToastBlockers104({ zoom: zoom, w: w, h: h, px: s.world.x, py: s.world.y,
+          mapW: (G.area.w || 1) * TILE, mapH: (G.area.h || 1) * TILE, wells: wells, npcs: npcs, ox: cv.left || 0, oy: cv.top || 0 }));
+      } catch (e) { return out; }
+    };
+    copyKeys(_tb, HV.toastBlockers); HV.toastBlockers._hv104r = true;
+  }
+
+  /* ------------------------------------------------------------ 7. Hard: old saves fast travel */
+  HV.seedOldCamps104 = function (state) {
+    if (!state || !on('HARD_FASTTRAVEL_104')) return false;
+    state.flags = state.flags || {};
+    if (state.flags.ft_seed_104) return false;
+    const rc0 = state.flags.rested_camps;
+    const rc = (rc0 && typeof rc0 === 'object' && !Array.isArray(rc0)) ? rc0 : {};
+    if (Array.isArray(rc0)) rc0.forEach((id) => { if (typeof id === 'string') rc[id] = 1; });
+    (HV.FAST_TRAVEL_CAMPS || []).forEach((c) => { if (state.discovered && state.discovered[c]) rc[c] = rc[c] || 1; });
+    state.flags.rested_camps = rc;
+    state.flags.ft_seed_104 = 1;
+    return true;
+  };
+  function installTravel() {
+    if (HV.newState && !HV.newState._hv104) {
+      const _ns = HV.newState;
+      HV.newState = function () {
+        const s = _ns.apply(this, arguments);
+        if (s && on('HARD_FASTTRAVEL_104')) { s.flags = s.flags || {}; s.flags.ft_seed_104 = 1; }
+        return s;
+      };
+      copyKeys(_ns, HV.newState); HV.newState._hv104 = true;
+    }
+    if (HV.canFastTravel && !HV.canFastTravel._hv104) {
+      const _ft = HV.canFastTravel;
+      HV.canFastTravel = function (state) {
+        if (state && on('HARD_FASTTRAVEL_104') && HV.isHardRoad && HV.isHardRoad(state)) HV.seedOldCamps104(state);
+        return _ft.apply(this, arguments);
+      };
+      copyKeys(_ft, HV.canFastTravel); HV.canFastTravel._hv104 = true;
+    }
+  }
+
+  function install() {
+    installRegionalNames();
+    installText();
+    installNames();
+    installPauseHold();
+    installTravel();
+    installResumeToast();
+    if (hasDoc) recordDraws();
+  }
+  install();
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
