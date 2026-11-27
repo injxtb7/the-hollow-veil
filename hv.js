@@ -46131,3 +46131,161 @@
   install();
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
+
+/* hv107: shorter backup codes (preview only). Flag HV.SHORT_CODES_107; flag off = the hv106 path (HVSC4), untouched.
+   Export makes HVSC5.<crc>.<base64url>: the same lossless HVSC4 payload (pack + compactState4 JSON), but squeezed by a
+   small synchronous context-mixing coder (orders 1-4, integer-only maths so every browser decodes bit-for-bit the same)
+   instead of the byte LZ77. Still sync, so the iOS copy tap is kept. Import: HVSC5 is unpacked back to the JSON and
+   handed to the HVSC4 reader (same checks, inflateState4, safeParse, pack_keep_lines); HVSC4, HVSC2 and every older
+   code go to the old readers unchanged. */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  if (HV.SHORT_CODES_107 == null) HV.SHORT_CODES_107 = true;
+
+  /* ---- integer squash / stretch (lpaq style tables) ---- */
+  const T33 = [1, 2, 3, 6, 10, 16, 27, 45, 73, 120, 194, 310, 488, 747, 1101, 1546, 2047, 2549, 2994, 3348, 3607,
+    3785, 3901, 3975, 4022, 4050, 4068, 4079, 4085, 4089, 4092, 4093, 4094];
+  function squash(d) {
+    if (d > 2047) return 4095;
+    if (d < -2047) return 1;
+    const w = d & 127, i = (d >> 7) + 16;
+    return (T33[i] * (128 - w) + T33[i + 1] * w + 64) >> 7;
+  }
+  const STR = new Int16Array(4096);
+  (function () {
+    let pi = 0;
+    for (let x = -2047; x <= 2047; x++) { const v = squash(x); for (let i = pi; i <= v; i++) STR[i] = x; pi = v + 1; }
+    for (let i = pi; i < 4096; i++) STR[i] = 2047;
+  })();
+  const DT = new Int32Array(64);
+  for (let n = 0; n < 64; n++) DT[n] = Math.floor(131072 / (2 * n + 3));   /* 65536 / (n + 1.5) */
+  const ORDERS = [1, 2, 3, 4], LIM = 30, HB = 12;   /* 4 x 2^20 slots */
+
+  function Model() {
+    const M = ORDERS.length, SZ = 1 << (HB + 8);
+    this.P = ORDERS.map(() => new Uint16Array(SZ).fill(2048));
+    this.N = ORDERS.map(() => new Uint8Array(SZ));
+    this.W = new Float64Array(M * 256).fill(19661);   /* 0.3 in 16.16, whole numbers only */
+    this.h = [0, 0, 0, 0];
+    this.base = new Int32Array(M); this.k = new Int32Array(M); this.s = new Int32Array(M);
+    this.ctx = 1; this.pr = 2048;
+  }
+  Model.prototype.startByte = function () {
+    for (let m = 0; m < ORDERS.length; m++) {
+      let v = 0;
+      for (let q = 0; q < ORDERS[m]; q++) v = (Math.imul(v, 0x2f0b) + this.h[q] + 1) >>> 0;
+      v = Math.imul(v + m, 0x9E3779B1) >>> 0;
+      this.base[m] = ((v >>> (32 - HB)) & ((1 << HB) - 1)) << 8;
+    }
+    this.ctx = 1;
+  };
+  Model.prototype.predict = function () {
+    let dot = 0;
+    for (let m = 0; m < ORDERS.length; m++) {
+      const k = this.base[m] | this.ctx; this.k[m] = k;
+      const s = STR[this.P[m][k]]; this.s[m] = s;
+      dot += this.W[m * 256 + this.ctx] * s;
+    }
+    let p = squash(Math.floor(dot / 65536));
+    if (p < 1) p = 1; if (p > 4095) p = 4095;
+    this.pr = p; return p;
+  };
+  Model.prototype.update = function (bit) {
+    const err = (bit << 12) - this.pr;
+    for (let m = 0; m < ORDERS.length; m++) {
+      const wi = m * 256 + this.ctx;
+      this.W[wi] += Math.floor((this.s[m] * err) / 1024);
+      const P = this.P[m], N = this.N[m], k = this.k[m], n = N[k], pp = P[k];
+      let np = pp + Math.floor(((bit ? 4095 : 1) - pp) * DT[n] / 65536);
+      if (np < 1) np = 1; if (np > 4095) np = 4095;
+      P[k] = np; if (n < LIM) N[k] = n + 1;
+    }
+    this.ctx = (this.ctx << 1) | bit;
+  };
+  Model.prototype.endByte = function (c) { this.h = [c, this.h[0], this.h[1], this.h[2]]; };
+
+  function cmCompress(src) {
+    const md = new Model(), out = [];
+    const n = src.length;
+    out.push(n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255);
+    let x1 = 0, x2 = 0xffffffff;
+    for (let i = 0; i < n; i++) {
+      const c = src[i]; md.startByte();
+      for (let b = 7; b >= 0; b--) {
+        const bit = (c >> b) & 1, p = md.predict();
+        const xm = (x1 + ((x2 - x1) >>> 12) * p) >>> 0;
+        if (bit) x2 = xm; else x1 = (xm + 1) >>> 0;
+        md.update(bit);
+        while (((x1 ^ x2) & 0xff000000) === 0) { out.push(x2 >>> 24); x1 = (x1 << 8) >>> 0; x2 = ((x2 << 8) | 255) >>> 0; }
+      }
+      md.endByte(c);
+    }
+    out.push(x1 >>> 24, (x1 >>> 16) & 255, (x1 >>> 8) & 255, x1 & 255);
+    return Uint8Array.from(out);
+  }
+  function cmDecompress(src) {
+    if (!src || src.length < 8) throw new Error('short');
+    const n = (src[0] | (src[1] << 8) | (src[2] << 16) | (src[3] << 24)) >>> 0;
+    if (n > 4000000) throw new Error('too big');
+    const md = new Model(), out = new Uint8Array(n);
+    let pos = 4, x1 = 0, x2 = 0xffffffff, x = 0;
+    const nb = () => (pos < src.length ? src[pos++] : 0);
+    for (let i = 0; i < 4; i++) x = ((x << 8) | nb()) >>> 0;
+    for (let i = 0; i < n; i++) {
+      md.startByte(); let c = 0;
+      for (let b = 0; b < 8; b++) {
+        const p = md.predict();
+        const xm = (x1 + ((x2 - x1) >>> 12) * p) >>> 0;
+        const bit = x <= xm ? 1 : 0;
+        if (bit) x2 = xm; else x1 = (xm + 1) >>> 0;
+        md.update(bit); c = (c << 1) | bit;
+        while (((x1 ^ x2) & 0xff000000) === 0) {
+          x1 = (x1 << 8) >>> 0; x2 = ((x2 << 8) | 255) >>> 0; x = ((x << 8) | nb()) >>> 0;
+        }
+      }
+      out[i] = c; md.endByte(c);
+    }
+    return out;
+  }
+  HV.cm107 = { compress: cmCompress, decompress: cmDecompress };
+
+  function installCodes() {
+    const S = HV.Save;
+    if (!S || !S.encodeBackup || S.encodeBackup._hv107 || !S._codec) return;
+    const C = S._codec;
+    const _enc = S.encodeBackup, _dec = S.decodeBackup;
+    S.encodeBackup = function (state) {
+      if (HV.SHORT_CODES_107 !== true || HV.BACKUP_HVSC4 !== true || !HV.compactState4) return _enc.apply(this, arguments);
+      if (!HV.SAVE_CODE) return { ok: false, error: 'Backup codes are turned off.' };
+      if (!state || !state.hero || !state.world) return { ok: false, error: 'There is no save to copy.' };
+      let body;
+      try {
+        const boxed = C.pack(state);
+        boxed.state = HV.compactState4(boxed.state);
+        body = C.toB64UrlBytes(cmCompress(C.utf8Bytes(JSON.stringify(boxed))));
+      } catch (e) { return _enc.apply(this, arguments); }   /* fall back to HVSC4 rather than fail */
+      return { ok: true, code: 'HVSC5.' + C.crc32(body) + '.' + body, version: 5 };
+    };
+    S.decodeBackup = function (code) {
+      const raw = String(code == null ? '' : code).replace(/\s+/g, '');
+      const m = /^HVSC5\.([0-9a-z]+)\.(.+)$/i.exec(raw);
+      if (!m) return _dec.apply(this, arguments);   /* HVSC4, HVSC2 and older: unchanged */
+      if (!HV.SAVE_CODE) return { ok: false, error: 'Backup codes are turned off.' };
+      if (C.crc32(m[2]) !== m[1]) return { ok: false, error: 'That code is damaged or incomplete.' };
+      let bytes;
+      try { bytes = cmDecompress(C.fromB64UrlBytes(m[2])); JSON.parse(C.bytesToUtf8(bytes)); }
+      catch (e) { return { ok: false, error: 'That code could not be read.' }; }
+      /* same payload as HVSC4: hand it to the HVSC4 reader so every check and fix-up is the one already live */
+      const b4 = C.toB64UrlBytes(C.lzCompress(bytes));
+      const r = _dec.call(this, 'HVSC4.' + C.crc32(b4) + '.' + b4);
+      if (r && r.ok) r.version = 5;
+      return r;
+    };
+    S.encodeBackup._hv107 = true;
+  }
+
+  function install() { installCodes(); }
+  install();
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
