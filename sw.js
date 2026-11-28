@@ -2,7 +2,7 @@
    Do not take over open pages during install: on iPhone a 19MB index can be mid-download
    or mid-parse, and claiming open pages leaves a black screen. The next launch gets
    the new worker. Never wipe the old cache until this cache actually holds index. */
-const CACHE = 'hv-final4-107';
+const CACHE = 'hv-final4-109';
 const ASSETS = [
   './',
   './index.html',
@@ -10,19 +10,28 @@ const ASSETS = [
   './art/ART_FAVICON.png',
   './art/boots.webp',
   './art/boss_bolin_shade.webp',
+  './art/boss_bolin_shade_108.webp',
   './art/boss_crossroads_fiddler.webp',
+  './art/boss_crossroads_fiddler_108.webp',
   './art/boss_gowrow-2.webp',
   './art/boss_gowrow.webp',
+  './art/boss_gowrow_108.webp',
+  './art/boss_hitch_girl_108.webp',
   './art/boss_jonas_peck.webp',
+  './art/boss_jonas_peck_108.webp',
   './art/boss_momo.webp',
+  './art/boss_momo_108.webp',
   './art/boss_rawhead.webp',
+  './art/boss_rawhead_108.webp',
   './art/boss_ridge_howler.webp',
+  './art/boss_ridge_howler_108.webp',
   './art/boss_snawfus-2.webp',
   './art/boss_snawfus.webp',
   './art/boss_under_stone-2.webp',
   './art/boss_under_stone.webp',
   './art/boss_whitey-2.webp',
   './art/boss_whitey.webp',
+  './art/boss_whitey_108.webp',
   './art/chapter_caves.webp',
   './art/chapter_drowned.webp',
   './art/chapter_howl.webp',
