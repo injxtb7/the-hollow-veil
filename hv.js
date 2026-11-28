@@ -23298,7 +23298,10 @@
         const heroTx = Math.floor(s.world.x / TILE), heroTy = Math.floor(s.world.y / TILE);
         (this.area.exits || []).forEach((ex) => {
           const ex2 = (ex.x * TILE + 16 - camX) * zoom, ey2 = (ex.y * TILE + 16 - camY) * zoom;
-          const onPlayfield = ex2 > 10 && ex2 < w - 10 && ey2 > top && ey2 < bot && !underChrome(ex2, ey2);
+          let onPlayfield = ex2 > 10 && ex2 < w - 10 && ey2 > top && ey2 < bot && !underChrome(ex2, ey2);
+          /* hv120: on a wide screen a far doorway hugging its own screen edge is easy to miss; it keeps its arrow. */
+          if (onPlayfield && HV.EDGE_EXIT_ARROW_120 === true && typeof HV.edgeExitNeedsArrow120 === 'function'
+            && HV.edgeExitNeedsArrow120(this, ex, ex2, ey2, top, bot, heroTx, heroTy)) onPlayfield = false;
           if (onPlayfield) return;
           const px = (s.world.x - camX) * zoom, py0 = (s.world.y - camY) * zoom;
           const ang = Math.atan2(ey2 - py0, ex2 - px);
@@ -23579,6 +23582,7 @@
       const hint = this._syncQuestScroll(now);
       this._scrollHit = null;
       this._stripBox = null;
+      this._scrollIcon120 = null;
       if (!hint || this.mode !== 'play') {
         if (HV.UI && HV.UI.yieldForScroll) HV.UI.yieldForScroll(false);
         return;
@@ -23598,6 +23602,7 @@
       }
       const icon = this._drawScrollIcon(ctx, ix, iy, scale);
       this._scrollHit = { x: ix - 4, y: iy - 4, w: icon.w + 8, h: icon.h + 8 };
+      this._scrollIcon120 = { x: ix, y: iy, w: icon.w, h: icon.h };
       if (HV.expandTap) this._scrollHit = HV.expandTap(this._scrollHit);
       const until = this._scrollUntil || 0;
       const left = until - now;
@@ -23920,6 +23925,15 @@
         w: Math.max(hotRight, bx + (slim ? 152 : bw + 28)) - Math.min(bx - 8, hx),
         h: Math.max(hotBottom, by + panelH) + 6,
       };
+      /* hv120: with mouse and keys the hotbar docks at the bottom of the screen, not under the panel.
+         The union box then ran from y=0 to the bottom edge, so the hero band and arrow band had no
+         height and every edge arrow fell to the bottom. Keep the HUD box to the panel and give the
+         bottom bar its own box. Touch layouts are unchanged. */
+      this._hotBox120 = null;
+      if (HV.DESKTOP_HUD_120 === true && !this.wantTouch && hot.length && hy > by + panelH + 40) {
+        this._hotBox120 = { x: hx, y: hy - 8, w: Math.max(rowW, 80), h: layout.rows * slot + (layout.rows - 1) * gap + 16 };
+        this._hudBox = { x: bx - 8, y: 0, w: (slim ? 152 : bw + 28) + 8, h: by + panelH + 6 };
+      }
     },
 
     drawMinimap(ctx, w, h) {
@@ -47741,7 +47755,9 @@
     if (game.wantTouch && w < 600) top = Math.max(top, 12 + (pad.t || 0) + 90 + 26);
     if (game._hudBox) top = Math.max(top, game._hudBox.y + game._hudBox.h + 8);
     if (game._mapBox) top = Math.max(top, game._mapBox.y + game._mapBox.h + 8);
-    const bottom = h - (game.wantTouch ? 230 : 60) - (pad.b || 0);
+    let bottom = h - (game.wantTouch ? 230 : 60) - (pad.b || 0);
+    /* hv120: keep clear of the bottom-docked desktop hotbar (its own box since DESKTOP_HUD_120). */
+    if (HV.DESKTOP_HUD_120 === true && !game.wantTouch && game._hotBox120) bottom = Math.min(bottom, game._hotBox120.y - 8);
     return {
       top: top,
       bottom: bottom,
@@ -48626,3 +48642,143 @@
     HV.areaGate._hv118 = true;
   }
 })(typeof window !== 'undefined' ? window : global);
+
+/* hv120: bug sweep batch (Nick, Nov 28, 2026). Flags, all default on:
+   1 HV.EDGE_EXIT_ARROW_120  on a wide screen (iPad landscape, desktop) a far doorway that hugs its own screen edge
+                             keeps its edge arrow (Post Oak: Ila's Cabin, west). Phones are unchanged.
+   2 HV.HEARTH_WAIT_ONCE_120 Ila's hearth wait line says the hearth wakes once.
+   3 HV.BOSS_AFTER_CHAPTER_120 when a chapter card shows on entering an area, that area's boss card waits for the
+                             boss approach (or the next entry) instead of playing straight after it. hv117 gates unchanged.
+   4 HV.DESKTOP_HUD_120      mouse/keys layout: the HUD box no longer runs down to the bottom hotbar (root fix in
+                             12-game.js drawHUD + heroBand), so edge arrows sit on their own edges again.
+   5 HV.SAVED_CHIP_120       the "Saved" chip moves clear of the journal scroll icon when they would overlap. */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  ['EDGE_EXIT_ARROW_120', 'HEARTH_WAIT_ONCE_120', 'BOSS_AFTER_CHAPTER_120', 'DESKTOP_HUD_120', 'SAVED_CHIP_120']
+    .forEach((k) => { if (HV[k] == null) HV[k] = true; });
+
+  /* 1. Edge doorway arrow. Only the exit's own compass edge, only past 4 tiles (the USE prompt covers near exits). */
+  const EDGE_PX = 64, MIN_W = 700;
+  HV.edgeExitNeedsArrow120 = function (game, ex, ex2, ey2, top, bot, heroTx, heroTy) {
+    if (HV.EDGE_EXIT_ARROW_120 !== true || !game || !ex) return false;
+    const w = game.w || 0;
+    if (w < MIN_W) return false;
+    if (Math.abs(ex.x - heroTx) + Math.abs(ex.y - heroTy) <= 4) return false;
+    const d = HV.compassDir ? HV.compassDir(game.area, ex) : '';
+    if (d === 'west') return ex2 < 10 + EDGE_PX;
+    if (d === 'east') return ex2 > w - 10 - EDGE_PX;
+    if (d === 'north') return ey2 < top + EDGE_PX;
+    if (d === 'south') return ey2 > bot - EDGE_PX;
+    return false;
+  };
+
+  /* 2. "The hearth at Harthall won't wake yet. Before the hearth wakes you still need ..." -> say it once. */
+  HV.hearthWaitOnce120 = function (t) {
+    if (HV.HEARTH_WAIT_ONCE_120 !== true || typeof t !== 'string') return t;
+    return t.replace("won't wake yet. Before the hearth wakes you still need ", "won't wake yet. You still need ");
+  };
+  const D = HV.DIALOG;
+  if (D && D.ila && D.ila.later && !D.ila.later._hv120) {
+    const node = D.ila.later;
+    const prev = node.textFn;
+    const base = node.text;
+    node.textFn = function (s) {
+      const cur = prev ? prev.call(this, s) : base;
+      return HV.hearthWaitOnce120(cur);
+    };
+    node._hv120 = true;
+  }
+
+  /* 3. Boss card waits when a chapter card just played on the same entry. */
+  const NEAR_PX = 224;
+  const G = HV.Game;
+  if (G && G.enterArea && !G.enterArea._hv120) {
+    const _enter = G.enterArea;
+    G.enterArea = function (id) {
+      if (HV.BOSS_AFTER_CHAPTER_120 !== true || this.preview) { this._bossWait120 = null; return _enter.apply(this, arguments); }
+      this._bossWait120 = null;
+      const mc = this.maybeShowChapter, mb = this.maybeShowBoss;
+      let chapterShown = false;
+      const self = this;
+      /* A chapter card counts as shown when maybeShowChapter marks a new 'chapter:' seen-card. */
+      const chapterKeys = () => Object.keys((self.state && self.state.seenCards) || {}).filter((k) => k.indexOf('chapter:') === 0 && self.state.seenCards[k]).length;
+      this.maybeShowChapter = function () {
+        const before = chapterKeys();
+        const r = mc.apply(self, arguments);
+        if (chapterKeys() > before) chapterShown = true;
+        return r;
+      };
+      this.maybeShowBoss = function (bossId) {
+        if (chapterShown) { self._bossWait120 = { id: bossId, area: id }; return; }
+        return mb.apply(self, arguments);
+      };
+      try { return _enter.apply(this, arguments); }
+      finally { this.maybeShowChapter = mc; this.maybeShowBoss = mb; }
+    };
+    Object.keys(_enter).forEach((k) => { G.enterArea[k] = _enter[k]; }); /* keep earlier wrappers' markers */
+    G.enterArea._hv120 = true;
+    /* Checked each frame (cheap): play mode, same area, boss alive and within NEAR_PX of Lara, or the boss is hurt. */
+    HV.bossWaitCheck120 = function (game) {
+      const w = game && game._bossWait120;
+      if (!w) return false;
+      if (!game.area || game.area.id !== w.area) { game._bossWait120 = null; return false; }
+      if (game.mode !== 'play') return false;
+      const boss = (game.entities || []).find((en) => en && en.boss && en.id === w.id);
+      if (!boss || !boss.alive) { game._bossWait120 = null; return false; }
+      const s = game.state && game.state.world;
+      const near = s && Math.hypot(boss.x - s.x, boss.y - s.y) <= NEAR_PX;
+      const hurt = boss.hpMax && boss.hp < boss.hpMax;
+      if (!near && !hurt) return false;
+      game._bossWait120 = null;
+      game.maybeShowBoss(w.id);
+      return true;
+    };
+    const _tick = G.tick;
+    G.tick = function () {
+      const r = _tick.apply(this, arguments);
+      if (this._bossWait120) HV.bossWaitCheck120(this);
+      return r;
+    };
+    Object.keys(_tick).forEach((k) => { G.tick[k] = _tick[k]; });
+    G.tick._hv120 = true;
+  }
+
+  /* 5. Saved chip: if it would sit on the journal scroll icon, slide it right of the icon
+     (or under it when the minimap leaves no room). */
+  HV.placeSavedChip120 = function (el, game) {
+    if (HV.SAVED_CHIP_120 !== true || !el || !game) return null;
+    el.style.left = ''; el.style.top = '';
+    const icon = game._scrollIcon120;
+    if (!icon || !el.getBoundingClientRect) return null;
+    const r = el.getBoundingClientRect();
+    const cw = el.offsetWidth || r.width, ch = el.offsetHeight || r.height;
+    const gap = 6;
+    const hit = r.left < icon.x + icon.w + gap && r.right > icon.x - gap && r.top < icon.y + icon.h + gap && r.bottom + 6 > icon.y - gap;
+    if (!hit) return { moved: false };
+    const mapLeft = (game._mapBox && game._mapBox.x) || (game.w || 0);
+    const left = icon.x + icon.w + 8;
+    if (left + cw <= mapLeft - 4) {
+      el.style.left = Math.round(left + cw / 2) + 'px';
+      return { moved: 'right', left: left };
+    }
+    el.style.top = Math.round(icon.y + icon.h + gap) + 'px';
+    return { moved: 'below' };
+  };
+  const Tick = HV.SavedTick;
+  if (Tick && Tick.show && !Tick.show._hv120) {
+    const _show = Tick.show;
+    Tick.show = function () {
+      const r = _show.apply(this, arguments);
+      try {
+        const el = typeof document !== 'undefined' && document.getElementById && document.getElementById('hv-saved-tick');
+        if (el) HV.placeSavedChip120(el, HV.Game);
+      } catch (e) { /* cosmetic only */ }
+      return r;
+    };
+    Object.keys(_show).forEach((k) => { Tick.show[k] = _show[k]; });
+    Tick.show._hv120 = true;
+  }
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
