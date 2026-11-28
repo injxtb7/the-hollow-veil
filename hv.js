@@ -43502,6 +43502,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
+/* ==== folded in hv119 from 54-hv101.js (same load order; code unchanged) ==== */
 /* hv101: Ila intro, Howler gate text, mark feedback, Open Roads next goal,
    compact HVSC3 backup codes, and pack stacking + cap. Flags default ON.
    Old paths stay when a flag is off. */
@@ -45275,6 +45276,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
+/* ==== folded in hv119 from 57-hv104.js (same load order; code unchanged) ==== */
 /* hv104: Nick's batch of Nov 25 (preview only). Each piece has its own flag; flag off = the hv103 path, untouched.
    1 HV.FORK_ROADS_104       the fork only names roads the player can take right then: mend with Ila, or stand with Cald
                              in town. Peck is never offered as a road in hints / the goal / the journal (standing with him
@@ -45677,6 +45679,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
+/* ==== folded in hv119 from 58-hv105.js (same load order; code unchanged) ==== */
 /* hv105: Nick's batch of Nov 25, afternoon (preview only). Each piece has its own flag; flag off = the hv104 path.
    1 HV.CARD_TOAST_HOLD_105 a toast never sits on an art card (the Bottoms Walker plate and every other card): the open
                             card joins HV.toastBlockers, so the hv103 placer holds the toast until the card closes.
@@ -45935,6 +45938,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
+/* ==== folded in hv119 from 59-hv106.js (same load order; code unchanged) ==== */
 /* hv106: Nick's batch of Nov 25, midday (preview only). Each piece has its own flag; flag off = the hv105 path.
    1 HV.SOLD_TOAST_ROOM_106 after 'Sell duplicates' at Otto's, a toast-sized gap opens under the button, so the
                             'Sold N duplicates' toast (which the hv103/hv105 placer puts just under the button) no
@@ -46181,6 +46185,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
+/* ==== folded in hv119 from 60-hv107.js (same load order; code unchanged) ==== */
 /* hv107: shorter backup codes (preview only). Flag HV.SHORT_CODES_107; flag off = the hv106 path (HVSC4), untouched.
    Export makes HVSC5.<crc>.<base64url>: the same lossless HVSC4 payload (pack + compactState4 JSON), but squeezed by a
    small synchronous context-mixing coder (orders 1-4, integer-only maths so every browser decodes bit-for-bit the same)
@@ -46582,6 +46587,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
+/* ==== folded in hv119 from 62-hv109.js (same load order; code unchanged) ==== */
 /* hv109: on every save load, hitch_courting_ring instances keep the Opal Wray name and flavor (preview only).
    Root cause: inventory stores name and flavor on the item; Lara's Nov 16 save still has 'Vanishing Hitch Courting-Ring'
    and the old hitchhiker flavor. HV.OPAL_WRAY_108 already rewrote the catalog; this hooks HV.Save.healState, which
@@ -46624,6 +46630,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
+/* ==== folded in hv119 from 63-hv111.js (same load order; code unchanged) ==== */
 /* hv111/hv112: hero contrast + hanging exit signs. Each item has its own flag; flag off = the hv110 path. Delete nothing.
    hv112 ships HERO_CONTRAST_111 on and EXIT_SIGNS_111 off (sign code is kept).
    1 HV.HERO_CONTRAST_111  in-world hero only (not the title): a crisp 1px dark silhouette, built from her solid
@@ -47181,6 +47188,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
+/* ==== folded in hv119 from 64-hv113.js (same load order; code unchanged) ==== */
 /* hv113: nearest-exit-only floating wooden sign. A new method, not a retry of EXIT_SIGNS_111.
    HV.NEAREST_SIGN_113 defaults on. EXIT_SIGNS_111 stays off (its code is kept). Hero contrast stays on.
    At most one floating sign: the exit nearest the hero, within about 3 tiles.
@@ -47699,6 +47707,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
+/* ==== folded in hv119 from 65-hv114.js (same load order; code unchanged) ==== */
 /* hv114: keep the hero visible at Drowned Shore and at map-edge exits, and use full
    names on edge arrows. Three flags, all default on. Does not change hv113 sign or
    prompt logic, travel, or the hero contrast. */
@@ -47984,6 +47993,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
+/* ==== folded in hv119 from 66-hv115.js (same load order; code unchanged) ==== */
 /* hv115: keep the hv114 hero camera and arrow band, and turn edge-arrow NAME
    LABELS off. The gold arrows themselves are unchanged — no restyle. Spacing
    between arrows is fixed so they no longer stack in a corner (Cedar Glade east).
