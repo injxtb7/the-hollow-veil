@@ -46574,3 +46574,560 @@
   install();
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
+
+/* hv111/hv112: hero contrast + hanging exit signs. Each item has its own flag; flag off = the hv110 path. Delete nothing.
+   hv112 ships HERO_CONTRAST_111 on and EXIT_SIGNS_111 off (sign code is kept).
+   1 HV.HERO_CONTRAST_111  in-world hero only (not the title): a crisp 1px dark silhouette, built from her solid
+                           alpha (cached offscreen, 8-direction 1px offsets, nearest-neighbour, no blur) is drawn
+                           BEHIND the live, unchanged sprite, plus a soft low-alpha ellipse under her feet drawn
+                           before both. Why hv106 HERO_OUTLINE_106 failed twice (flag now off, code kept):
+                           try 1 used the full alpha, so the staff glow became a dark halo, and it redrew her from
+                           an offscreen buffer with shadowBlur, which darkened and softened her. try 2 masked to
+                           solid body (alpha >= 150) but still composited the sprite itself from that offscreen
+                           buffer (destination-in + a second drawImage), so she lost the in-world light blend and
+                           still came out darker and softer. This path never draws the sprite from a buffer and
+                           never applies shadowBlur or a filter to her.
+   2 HV.EXIT_SIGNS_111     every road exit gets a small hanging wooden sign, drawn in code, that bobs above the
+                           exit and shows the same destination name as the 'Walk on or tap USE: X' prompt. Walk-on
+                           and tap-USE travel and that prompt are unchanged. The sign stays small, sits above the
+                           exit (shifted inward), fades when the hero stands under it, and stays off the UI. */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const hasDoc = typeof document !== 'undefined';
+  const TILE = 32;
+  const FLAGS = ['HERO_CONTRAST_111', 'EXIT_SIGNS_111'];
+  if (HV.HERO_CONTRAST_111 == null) HV.HERO_CONTRAST_111 = true;
+  if (HV.EXIT_SIGNS_111 == null) HV.EXIT_SIGNS_111 = false; /* hv112: ship contrast only; sign code stays */
+  HV.HV111_FLAGS = FLAGS.slice();
+  const on = (k) => HV[k] === true;
+  const copyKeys = (from, to) => { Object.keys(from).forEach((k) => { to[k] = from[k]; }); return to; };
+
+  /* ------------------------------------------------------------ 1. hero outline + foot shadow */
+  HV.HERO_ALPHA_CUT_111 = 150; /* solid body only; not the staff glow or the built-in contact shadow */
+  HV.HERO_INK_111 = [22, 16, 12, 230];
+  const BOX = { l: 48, t: 84, w: 96, h: 112 };
+  const outlineCache = new Map();
+  const DIRS8 = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]];
+
+  function poseKey(opts, k) {
+    const o = opts || {};
+    const tq = Math.round((o.t || 0) * 20);
+    const swing = o.swing == null ? '' : String(o.swing);
+    return [Math.round(k * 100) / 100, o.facing, o.moving ? 1 : 0, o.lanternLit === false ? 0 : 1, o.coat || '', tq, swing].join('|');
+  }
+
+  function makeCv(w, h) {
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    return c;
+  }
+
+  HV.buildHeroOutline111 = function (heroFn, opts, k) {
+    k = Math.max(0.5, k || 1);
+    const key = poseKey(opts, k);
+    const hit = outlineCache.get(key);
+    if (hit) {
+      outlineCache.delete(key);
+      outlineCache.set(key, hit);
+      return hit;
+    }
+    const W = Math.max(2, Math.ceil(BOX.w * k));
+    const H = Math.max(2, Math.ceil(BOX.h * k));
+    const ox = BOX.l * k, oy = BOX.t * k;
+    const src = makeCv(W, H);
+    const sctx = src.getContext('2d', { willReadFrequently: true });
+    sctx.imageSmoothingEnabled = false;
+    sctx.setTransform(k, 0, 0, k, ox, oy);
+    heroFn.call(null, sctx, 0, 0, opts);
+    sctx.setTransform(1, 0, 0, 1, 0, 0);
+    const img = sctx.getImageData(0, 0, W, H);
+    const d = img.data;
+    const cut = HV.HERO_ALPHA_CUT_111;
+    const mask = new Uint8Array(W * H);
+    for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+      if (d[i + 3] >= cut) mask[p] = 1;
+    }
+    const out = makeCv(W, H);
+    const octx = out.getContext('2d');
+    octx.imageSmoothingEnabled = false;
+    const oimg = octx.createImageData(W, H);
+    const od = oimg.data;
+    const ink = HV.HERO_INK_111;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (!mask[y * W + x]) continue;
+        for (let di = 0; di < DIRS8.length; di++) {
+          const nx = x + DIRS8[di][0], ny = y + DIRS8[di][1];
+          if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+          const j = (ny * W + nx) * 4;
+          od[j] = ink[0]; od[j + 1] = ink[1]; od[j + 2] = ink[2]; od[j + 3] = ink[3];
+        }
+      }
+    }
+    octx.putImageData(oimg, 0, 0);
+    const rec = { canvas: out, w: W, h: H, ox: ox, oy: oy };
+    outlineCache.set(key, rec);
+    while (outlineCache.size > 32) outlineCache.delete(outlineCache.keys().next().value);
+    return rec;
+  };
+
+  /* Compare two ImageData buffers: interior pixels of `before` (solid alpha, eroded by `pad`) must match `after`. */
+  HV.diffHeroInterior111 = function (before, after, pad) {
+    pad = pad == null ? 2 : pad;
+    if (!before || !after || before.width !== after.width || before.height !== after.height) {
+      return { ok: false, compared: 0, changed: -1, reason: 'size' };
+    }
+    const W = before.width, H = before.height;
+    const a = before.data, b = after.data;
+    const solid = new Uint8Array(W * H);
+    for (let i = 0, p = 0; i < a.length; i += 4, p++) {
+      if (a[i + 3] >= 200) solid[p] = 1;
+    }
+    let compared = 0, changed = 0, maxD = 0;
+    for (let y = pad; y < H - pad; y++) {
+      for (let x = pad; x < W - pad; x++) {
+        if (!solid[y * W + x]) continue;
+        let interior = true;
+        for (let dy = -pad; dy <= pad && interior; dy++) {
+          for (let dx = -pad; dx <= pad; dx++) {
+            if (!solid[(y + dy) * W + (x + dx)]) { interior = false; break; }
+          }
+        }
+        if (!interior) continue;
+        const j = (y * W + x) * 4;
+        compared++;
+        const d = Math.max(Math.abs(a[j] - b[j]), Math.abs(a[j + 1] - b[j + 1]), Math.abs(a[j + 2] - b[j + 2]), Math.abs(a[j + 3] - b[j + 3]));
+        if (d > maxD) maxD = d;
+        if (d > 0) changed++;
+      }
+    }
+    return { ok: changed === 0 && compared > 80, compared: compared, changed: changed, maxDelta: maxD };
+  };
+
+  function installHeroContrast() {
+    const R = HV.Render;
+    if (!hasDoc || !R || !R.hero || R.hero._hv111) return;
+    const _h = R.hero;
+    R.hero = function (c, x, y, opts) {
+      const o = opts || {};
+      const inWorld = on('HERO_CONTRAST_111') && o.scale === 0.85 && ('moving' in o) && HV.Game && HV.Game.mode === 'play' && c && c.getTransform;
+      if (!inWorld) return _h.apply(this, arguments);
+      try {
+        const scale = o.scale || 0.85;
+        const footY = y + 23 * scale;
+        c.save();
+        c.fillStyle = 'rgba(12, 8, 6, 0.22)';
+        c.beginPath();
+        c.ellipse(x, footY, 17, 5.2, 0, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = 'rgba(12, 8, 6, 0.16)';
+        c.beginPath();
+        c.ellipse(x, footY, 11, 3.2, 0, 0, Math.PI * 2);
+        c.fill();
+        c.restore();
+
+        const m = c.getTransform();
+        const k = Math.max(0.5, Math.hypot(m.a, m.b));
+        const rec = HV.buildHeroOutline111(_h, o, k);
+        const px = m.a * x + m.c * y + m.e;
+        const py = m.b * x + m.d * y + m.f;
+        c.save();
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.imageSmoothingEnabled = false;
+        c.drawImage(rec.canvas, Math.round(px - rec.ox), Math.round(py - rec.oy));
+        c.restore();
+      } catch (e) { /* fall through and still draw the unchanged sprite */ }
+      return _h.apply(this, arguments);
+    };
+    copyKeys(_h, R.hero);
+    R.hero._hv111 = true;
+  }
+
+  /* ------------------------------------------------------------ 2. hanging exit signs */
+  HV.exitPromptName111 = function (ex) {
+    if (!ex) return '';
+    return ex.label || (HV.AREAS[ex.to] && HV.AREAS[ex.to].name) || ex.to;
+  };
+  HV.exitSignName111 = function (ex) {
+    return HV.exitPromptName111(ex);
+  };
+
+  function signScreenPos(game, ux, uy) {
+    const zoom = game.camZoom || ((game.wantTouch && game.w < 600 && game.h > game.w) ? 1.3 : 1);
+    return { x: ux * zoom, y: uy * zoom, zoom: zoom };
+  }
+
+  function signZoom111(game) {
+    return game.camZoom || ((game.wantTouch && game.w < 600 && game.h > game.w) ? 1.3 : 1);
+  }
+
+  function uiOverlayBoxes111(game) {
+    const out = [];
+    if (typeof document === 'undefined') return out;
+    const cv = (game && game.canvas) || document.querySelector('canvas');
+    const cr = cv && cv.getBoundingClientRect ? cv.getBoundingClientRect() : null;
+    const add = (el) => {
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      if (cr && cr.width && cr.height) {
+        const sx = game.w / cr.width, sy = game.h / cr.height;
+        out.push({ x: (r.left - cr.left) * sx, y: (r.top - cr.top) * sy, w: r.width * sx, h: r.height * sy });
+      } else {
+        out.push({ x: r.left, y: r.top, w: r.width, h: r.height });
+      }
+    };
+    const plank = document.getElementById('hv-plank');
+    if (plank && plank.classList.contains('on')) add(plank);
+    const toast = (HV.UI && HV.UI.toastEl) || document.getElementById('toast');
+    if (toast && !toast.classList.contains('hidden')) add(toast);
+    return out;
+  }
+
+  function playableBand111(game) {
+    const pad = game.safePad ? game.safePad() : { t: 0, r: 0, b: 0, l: 0 };
+    let top = 20 + (pad.t || 0) + 2;
+    const touchTop = game.h - (game.wantTouch ? 230 : 60) - (pad.b || 0) - 10;
+    const gap = 8;
+    /* When the camera is clamped at a north edge, the hero still sits beside the HP panel
+       and the minimap. The playable top must clear those boxes, not only the safe-area band. */
+    if (game._hudBox) top = Math.max(top, game._hudBox.y + game._hudBox.h + gap);
+    if (game._mapBox) top = Math.max(top, game._mapBox.y + game._mapBox.h + 22);
+    if (game._stripBox) top = Math.max(top, game._stripBox.y + game._stripBox.h + gap);
+    if (game._scrollHit) top = Math.max(top, game._scrollHit.y + game._scrollHit.h + gap);
+    uiOverlayBoxes111(game).forEach((b) => { top = Math.max(top, b.y + b.h + gap); });
+    /* Portrait phones: the area-name plank sits at sat+24vh (declutter: 18vh) and the toast
+       at sat+178. North-exit signs must clear that stack, including on the first frame
+       before those DOM boxes exist. 300 leaves the open road, well above the touch band. */
+    if (game.wantTouch && game.w < 600) top = Math.max(top, 300);
+    return { top: top, bottom: touchTop, left: 6, right: game.w - 6 };
+  }
+
+  function measureBoard111(ctx, name) {
+    const prevFont = ctx && ctx.font;
+    if (ctx) ctx.font = 'bold 8px Palatino, "Palatino Linotype", Georgia, serif';
+    let line1 = String(name || ''), line2 = '';
+    const maxW = 70;
+    const widthOf = (t) => (ctx && ctx.measureText) ? ctx.measureText(t).width : (String(t).length * 5);
+    if (widthOf(line1) > maxW) {
+      const parts = line1.split(' ');
+      if (parts.length > 1) {
+        let best = 1;
+        for (let i = 1; i < parts.length; i++) {
+          const a = parts.slice(0, i).join(' '), b = parts.slice(i).join(' ');
+          if (widthOf(a) <= maxW && widthOf(b) <= maxW) { best = i; break; }
+          best = i;
+        }
+        line1 = parts.slice(0, best).join(' ');
+        line2 = parts.slice(best).join(' ');
+      }
+    }
+    const half = Math.max(16, Math.ceil(Math.max(widthOf(line1), line2 ? widthOf(line2) : 0) / 2) + 5);
+    const bh = line2 ? 18 : 13;
+    if (ctx && prevFont != null) ctx.font = prevFont;
+    return { half: half, bh: bh, line1: line1, line2: line2 };
+  }
+
+  function visualOrigin111(ux, uy, kind) {
+    return { x: ux, y: kind === 'hang' ? uy - 26 : uy };
+  }
+
+  function signScreenBox111(game, ux, uy, kind, half, bh) {
+    const zoom = signZoom111(game);
+    const o = visualOrigin111(ux, uy, kind);
+    const hangH = kind === 'hang' ? 7 : 0;
+    const postH = kind === 'post' ? 16 : 0;
+    return {
+      x: (o.x - half - 1) * zoom,
+      y: (o.y - bh / 2 - hangH) * zoom,
+      w: (half * 2 + 2) * zoom,
+      h: (bh + hangH + postH + 2) * zoom
+    };
+  }
+
+  function rectsOverlap111(a, b, pad) {
+    pad = pad || 0;
+    return a.x < b.x + b.w + pad && a.x + a.w + pad > b.x && a.y < b.y + b.h + pad && a.y + a.h + pad > b.y;
+  }
+
+  function heroScreenBox111(game) {
+    const zoom = signZoom111(game);
+    const camX = (game.cam && game.cam.x) || 0;
+    const camY = (game.cam && game.cam.y) || 0;
+    const s = game.state && game.state.world;
+    if (!s) return null;
+    const hx = (s.x - camX) * zoom, hy = (s.y - camY) * zoom;
+    return { x: hx - 20 * zoom, y: hy - 40 * zoom, w: 40 * zoom, h: 64 * zoom };
+  }
+
+  function boxHitsChrome111(game, box) {
+    if (!box) return true;
+    const band = playableBand111(game);
+    if (box.y < band.top || box.y + box.h > band.bottom) return true;
+    if (box.x < band.left || box.x + box.w > band.right) return true;
+    if (game._hudBox && rectsOverlap111(box, game._hudBox, 8)) return true;
+    if (game._mapBox && rectsOverlap111(box, game._mapBox, 8)) return true;
+    if (game._stripBox && rectsOverlap111(box, game._stripBox, 8)) return true;
+    if (game._scrollHit && rectsOverlap111(box, game._scrollHit, 8)) return true;
+    const overlays = uiOverlayBoxes111(game);
+    for (let i = 0; i < overlays.length; i++) {
+      if (rectsOverlap111(box, overlays[i], 8)) return true;
+    }
+    return false;
+  }
+
+  function boxHitsHero111(game, box) {
+    const hero = heroScreenBox111(game);
+    return !!(hero && rectsOverlap111(box, hero, 2));
+  }
+
+  function placementClear111(game, box, opts) {
+    if (boxHitsChrome111(game, box)) return false;
+    if (!(opts && opts.allowHero) && boxHitsHero111(game, box)) return false;
+    return true;
+  }
+
+  function clampSignIntoBand111(game, ux, uy, kind, half, bh) {
+    const zoom = signZoom111(game);
+    const band = playableBand111(game);
+    let box = signScreenBox111(game, ux, uy, kind, half, bh);
+    if (box.y < band.top) uy += (band.top - box.y) / zoom;
+    box = signScreenBox111(game, ux, uy, kind, half, bh);
+    if (box.y + box.h > band.bottom) uy -= (box.y + box.h - band.bottom) / zoom;
+    box = signScreenBox111(game, ux, uy, kind, half, bh);
+    if (box.x < band.left) ux += (band.left - box.x) / zoom;
+    box = signScreenBox111(game, ux, uy, kind, half, bh);
+    if (box.x + box.w > band.right) ux -= (box.x + box.w - band.right) / zoom;
+    return { ux: ux, uy: uy, kind: kind };
+  }
+
+  function pickSignPlace111(game, ex, dir, ctx, name, hx, hy, camX, camY, nearHero) {
+    const halfBh = measureBoard111(ctx, name);
+    const half = halfBh.half, bh = halfBh.bh;
+    const exitUx = ex.x * TILE + 16 - camX;
+    const exitUy = ex.y * TILE + 16 - camY;
+    let inUx = exitUx, inUy = exitUy;
+    if (dir === 'west') inUx = exitUx + 1.2 * TILE;
+    else if (dir === 'east') inUx = exitUx - 1.2 * TILE;
+    else if (dir === 'north') inUy = exitUy + 1.2 * TILE;
+    else if (dir === 'south') inUy = exitUy - 1.2 * TILE;
+    const side = 56;
+    const farther = 74;
+    const cands = [];
+    const zoom0 = signZoom111(game);
+    const band0 = playableBand111(game);
+    const meas0 = { half: half, bh: bh };
+    const hangH = 7;
+    /* uy such that a beside board sits just under the top chrome — about hero height at a north edge */
+    const uyClear = ((band0.top + meas0.bh / 2 + 1) / zoom0);
+    const uyHero = Math.max(hy, uyClear);
+    cands.push({ ux: inUx, uy: inUy + 10, kind: 'hang' });
+    cands.push({ ux: exitUx + side, uy: uyHero, kind: 'beside' });
+    cands.push({ ux: exitUx - side, uy: uyHero, kind: 'beside' });
+    cands.push({ ux: exitUx + farther, uy: uyHero, kind: 'beside' });
+    cands.push({ ux: exitUx - farther, uy: uyHero, kind: 'beside' });
+    cands.push({ ux: exitUx + side, uy: uyClear, kind: 'beside' });
+    cands.push({ ux: exitUx - side, uy: uyClear, kind: 'beside' });
+    cands.push({ ux: inUx + side, uy: uyHero, kind: 'beside' });
+    cands.push({ ux: inUx - side, uy: uyHero, kind: 'beside' });
+    /* small post on the inward edge tiles */
+    cands.push({ ux: inUx + 28, uy: inUy, kind: 'post' });
+    cands.push({ ux: inUx - 28, uy: inUy, kind: 'post' });
+    cands.push({ ux: inUx + 28, uy: uyHero, kind: 'post' });
+    cands.push({ ux: inUx - 28, uy: uyHero, kind: 'post' });
+    /* prefer the side with more room if the first beside is tight */
+    const zoom = signZoom111(game);
+    const band = playableBand111(game);
+    const exitScx = exitUx * zoom;
+    const roomR = band.right - exitScx, roomL = exitScx - band.left;
+    if (roomL > roomR) {
+      /* try left-side candidates first: swap the first beside pair */
+      const a = cands[1], b = cands[2];
+      cands[1] = b; cands[2] = a;
+    }
+    for (let i = 0; i < cands.length; i++) {
+      const c = cands[i];
+      const box = signScreenBox111(game, c.ux, c.uy, c.kind, half, bh);
+      if (placementClear111(game, box, { allowHero: false })) {
+        return { ux: c.ux, uy: c.uy, kind: c.kind, half: half, bh: bh, box: box };
+      }
+    }
+    if (nearHero) {
+      /* Last resort: never skip a nearby exit — clamp a beside/post board into the playable band,
+         on the side with room, then step away from the hero if the box still overlaps her. */
+      let kind = 'beside';
+      let ux = exitUx + (roomR >= roomL ? side : -side);
+      const uyClearL = ((playableBand111(game).top + bh / 2 + 1) / signZoom111(game));
+      let uy = Math.max(hy, uyClearL);
+      let cl = clampSignIntoBand111(game, ux, uy, kind, half, bh);
+      ux = cl.ux; uy = cl.uy;
+      let box = signScreenBox111(game, ux, uy, kind, half, bh);
+      const step = (roomR >= roomL ? 12 : -12);
+      for (let i = 0; i < 8 && boxHitsHero111(game, box); i++) {
+        ux += step;
+        cl = clampSignIntoBand111(game, ux, uy, kind, half, bh);
+        ux = cl.ux; uy = cl.uy;
+        box = signScreenBox111(game, ux, uy, kind, half, bh);
+      }
+      if (boxHitsHero111(game, box)) {
+        /* flip side and clamp again */
+        ux = exitUx + (roomR >= roomL ? -side : side);
+        uy = hy;
+        cl = clampSignIntoBand111(game, ux, uy, kind, half, bh);
+        ux = cl.ux; uy = cl.uy;
+        box = signScreenBox111(game, ux, uy, kind, half, bh);
+      }
+      return { ux: ux, uy: uy, kind: kind, half: half, bh: bh, box: box, clamped: true };
+    }
+    return null;
+  }
+
+  function drawOneSign111(ctx, ux, uy, name, dir, alpha, t, kind) {
+    kind = kind || 'hang';
+    const pal = (HV.PAL) || {};
+    const ink = pal.ink || '#1A1410';
+    const wood = '#6E4E32';
+    const board = pal.parchment || '#F8F1E3';
+    const meas = measureBoard111(ctx, name);
+    const half = meas.half, bh = meas.bh, line1 = meas.line1, line2 = meas.line2;
+    const bob = Math.sin(t * 2.15 + (ux + uy) * 0.05) * (kind === 'hang' ? 2 : 1);
+    const sway = kind === 'hang' ? Math.sin(t * 1.7 + ux * 0.03) * 0.05 : 0;
+    const o = visualOrigin111(ux, uy, kind);
+    ctx.save();
+    ctx.translate(o.x, o.y + bob);
+    ctx.rotate(sway);
+    ctx.globalAlpha = alpha;
+    ctx.font = 'bold 8px Palatino, "Palatino Linotype", Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (kind === 'hang') {
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 1.2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-half + 5, -bh / 2 - 7); ctx.lineTo(-half + 5, -bh / 2);
+      ctx.moveTo(half - 5, -bh / 2 - 7); ctx.lineTo(half - 5, -bh / 2);
+      ctx.stroke();
+    }
+    if (kind === 'post') {
+      ctx.fillStyle = '#3A2A1C';
+      ctx.fillRect(-2, bh / 2, 4, 14);
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(-2, bh / 2, 4, 14);
+    }
+    ctx.fillStyle = wood;
+    ctx.fillRect(-half - 1, -bh / 2 - 1, half * 2 + 2, bh + 2);
+    ctx.fillStyle = board;
+    ctx.fillRect(-half, -bh / 2, half * 2, bh);
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = 1.4;
+    ctx.strokeRect(-half, -bh / 2, half * 2, bh);
+    ctx.fillStyle = ink;
+    if (line2) {
+      ctx.fillText(line1, 0, -bh / 2 + 5);
+      ctx.fillText(line2, 0, bh / 2 - 5);
+    } else {
+      ctx.fillText(line1, 0, 0);
+    }
+    ctx.restore();
+  }
+
+  HV.drawExitSigns111 = function (game, ctx) {
+    if (!game || !game.area || !ctx) return [];
+    const camX = (game.cam && game.cam.x) || 0;
+    const camY = (game.cam && game.cam.y) || 0;
+    const s = game.state;
+    const hx = s && s.world ? s.world.x - camX : 0;
+    const hy = s && s.world ? s.world.y - camY : 0;
+    const t = (s && s.playTime) || 0;
+    const signs = [];
+    (game.area.exits || []).forEach((ex) => {
+      const dir = HV.compassDir ? HV.compassDir(game.area, ex) : '';
+      const name = HV.exitSignName111(ex);
+      const dx = Math.abs((ex.x * TILE + 16) - (s && s.world ? s.world.x : 0));
+      const dy = Math.abs((ex.y * TILE + 16) - (s && s.world ? s.world.y : 0));
+      const nearHero = (dx + dy) <= 6 * TILE;
+      const place = pickSignPlace111(game, ex, dir, ctx, name, hx, hy, camX, camY, nearHero);
+      if (!place) return; /* far exits that have no on-screen playable spot; nearby exits are never skipped */
+      const dist = Math.hypot(hx - place.ux, hy - place.uy);
+      let alpha = 1;
+      if (dist < 36) alpha = Math.max(0.22, (dist - 10) / 26);
+      const sc = signScreenPos(game, visualOrigin111(place.ux, place.uy, place.kind).x, visualOrigin111(place.ux, place.uy, place.kind).y);
+      signs.push({
+        ux: place.ux, uy: place.uy, name: name, dir: dir, alpha: alpha,
+        kind: place.kind, scx: sc.x, scy: sc.y, box: place.box,
+        chrome: boxHitsChrome111(game, place.box), hero: boxHitsHero111(game, place.box)
+      });
+    });
+    signs.sort((a, b) => a.ux - b.ux || a.uy - b.uy);
+    for (let i = 0; i < signs.length; i++) {
+      for (let j = 0; j < i; j++) {
+        if (Math.abs(signs[i].ux - signs[j].ux) < 48 && Math.abs(signs[i].uy - signs[j].uy) < 30) {
+          const tryX = signs[j].ux + (signs[i].ux >= signs[j].ux ? 50 : -50);
+          const meas = measureBoard111(ctx, signs[i].name);
+          const box = signScreenBox111(game, tryX, signs[i].uy, signs[i].kind, meas.half, meas.bh);
+          if (placementClear111(game, box, { allowHero: false })) {
+            signs[i].ux = tryX;
+            signs[i].box = box;
+          }
+        }
+      }
+    }
+    signs.forEach((sg) => {
+      const hop = HV._guideHop && HV.AREAS && HV.AREAS[HV._guideHop];
+      if (hop && sg.name) {
+        const a = String(sg.name).toLowerCase(), b = String(hop.name || '').toLowerCase();
+        if (a && b && (a === b || b.indexOf(a) === 0 || a.indexOf(b) === 0)) {
+          ctx.save();
+          const tt = (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
+          ctx.globalAlpha = 0.45 + 0.25 * Math.sin(tt * 3);
+          ctx.fillStyle = '#E2B04A';
+          ctx.beginPath();
+          const o = visualOrigin111(sg.ux, sg.uy, sg.kind);
+          if (ctx.ellipse) ctx.ellipse(o.x, o.y, 40, 14, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+      drawOneSign111(ctx, sg.ux, sg.uy, sg.name, sg.dir, sg.alpha, t, sg.kind);
+    });
+    return signs;
+  };
+
+  function installExitSigns() {
+    const R = HV.Render;
+    if (R && R.overlayPaper && !R.overlayPaper._hv111) {
+      const _p = R.overlayPaper;
+      R.overlayPaper = function (ctx, zw, zh) {
+        const r = _p.apply(this, arguments);
+        const game = HV.Game;
+        if (on('EXIT_SIGNS_111') && hasDoc && game && game.mode === 'play' && game.area && ctx) {
+          HV.drawExitSigns111(game, ctx);
+          game._signsPainted111 = true;
+        }
+        return r;
+      };
+      copyKeys(_p, R.overlayPaper);
+      R.overlayPaper._hv111 = true;
+    }
+    if (R && R.exitSign && !R.exitSign._hv111) {
+      const _es = R.exitSign;
+      R.exitSign = function (ctx, x, y, label, dir) {
+        if (on('EXIT_SIGNS_111') && HV.Game && HV.Game._signsPainted111) return;
+        return _es.apply(this, arguments);
+      };
+      copyKeys(_es, R.exitSign);
+      R.exitSign._hv111 = true;
+    }
+  }
+
+  function install() {
+    installHeroContrast();
+    installExitSigns();
+  }
+  install();
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
