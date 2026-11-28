@@ -48353,3 +48353,137 @@
     node._hv116unread = true;
   }
 })(typeof window !== 'undefined' ? window : globalThis);
+
+/* hv117: story flow BUILD 2. Each piece has its own flag; flag off = the hv116 path, untouched.
+   1 HV.RIVER_OAK_117          lock Whitey's underground river until Annie's oak is laid.
+   2 HV.OAK_BEFORE_DROWNED_117 the Drowned Town card does not fire until Annie's oak is laid (or Whitey is beaten); then it shows once, on the first later Drowned Shore entry or first entry to the underground river.
+   3 HV.PROM_DAY_LINE_117      a daytime USE of the Devil's Promenade mark gets a short story line.
+   4 HV.ILA_JOSIE_117          Ila's unread-marks lines keep her old Josie/Yarrow nudge. */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+
+  if (HV.RIVER_OAK_117 == null) HV.RIVER_OAK_117 = true;
+  if (HV.OAK_BEFORE_DROWNED_117 == null) HV.OAK_BEFORE_DROWNED_117 = true;
+  if (HV.PROM_DAY_LINE_117 == null) HV.PROM_DAY_LINE_117 = true;
+  if (HV.ILA_JOSIE_117 == null) HV.ILA_JOSIE_117 = true;
+
+  const DAY_LINE = "You put your hand on the mark in the middle of the Promenade. The cut is still there by day, the same one the light has walked for a hundred years.";
+  const RIVER_LINE = "The water will not take you under yet. Annie's name is still out of the book. Lay it back at the Hanging Oak first.";
+  const JOSIE_NUDGE = ' And go see Josie Fiddler on her porch in Yarrow. She has been asking after help, and she is good company on a long road.';
+
+  function riverOn() { return HV.RIVER_OAK_117 !== false; }
+  function chapterOn() { return HV.OAK_BEFORE_DROWNED_117 !== false; }
+  function lineOn() { return HV.PROM_DAY_LINE_117 !== false; }
+  function josieOn() { return HV.ILA_JOSIE_117 !== false; }
+  function flagsOf(state) { return (state && state.flags) || {}; }
+  function nightNow(state) {
+    if (!state || !state.world) return false;
+    const t = state.world.time;
+    return t < 0.25 || t > 0.78;
+  }
+  function copyKeys(from, to) { Object.keys(from).forEach((k) => { to[k] = from[k]; }); return to; }
+
+  /* 1. River gate: keep the old ok/reason, and also wait for Annie's oak. */
+  const g = HV.AREA_GATES && HV.AREA_GATES.underground_river;
+  if (g && !g._hv117) {
+    const _ok = g.ok;
+    const _reason = g.reason;
+    g.ok = function (s) {
+      if (!riverOn()) return _ok.call(this, s);
+      if (HV.storyBossBeaten && HV.storyBossBeaten(s, 'whitey')) return true;
+      return !!(HV.oakLaid && HV.oakLaid(s) && _ok.call(this, s));
+    };
+    g.reason = function (s) {
+      if (!riverOn()) return (typeof _reason === 'function') ? _reason.call(this, s) : _reason;
+      if (HV.oakLaid && HV.oakLaid(s)) return (typeof _reason === 'function') ? _reason.call(this, s) : _reason;
+      if ((HV.marksComplete && HV.marksComplete(s)) && (HV.hasChosenSide && HV.hasChosenSide(s))) return RIVER_LINE;
+      return (typeof _reason === 'function') ? _reason.call(this, s) : _reason;
+    };
+    g._hv117 = true;
+  }
+
+  /* 2. Chapter card order. Flag off puts the Hanging Oak back before The Howl (the hv53 splice). */
+  HV.applyChapterOrder117 = function () {
+    const list = HV.CHAPTERS;
+    if (!list || !list.length) return;
+    const oakIdx = list.findIndex((c) => c.id === 'hanging_oak');
+    if (oakIdx < 0) return;
+    const oak = list.splice(oakIdx, 1)[0];
+    if (chapterOn()) {
+      const d = list.findIndex((c) => c.id === 'drowned');
+      list.splice(d >= 0 ? d : list.length, 0, oak);
+    } else {
+      const howl = list.findIndex((c) => c.id === 'howl');
+      const night = list.findIndex((c) => c.id === 'night_ridge');
+      const at = howl >= 0 ? howl : (night >= 0 ? night : list.length);
+      list.splice(at, 0, oak);
+    }
+  };
+  HV.applyChapterOrder117();
+
+  /* The list order is not what shows a card. Packed cards fire from
+     HV.Art.chapterForArea (CHAPTER_AREAS) on first entry, remembered in
+     seenCards. Hold the Drowned Town card — and do not burn that flag —
+     until Annie's oak is laid or Whitey is beaten. */
+  function isDrownedTownArea(areaId) {
+    return !!(HV.Art && HV.Art.chapterForArea && HV.Art.chapterForArea(areaId) === 'chapter_drowned');
+  }
+  function drownedTownUnlocked(state) {
+    return !!(state && ((HV.oakLaid && HV.oakLaid(state)) || (HV.storyBossBeaten && HV.storyBossBeaten(state, 'whitey'))));
+  }
+  if (HV.Game && HV.Game.maybeShowChapter && !HV.Game.maybeShowChapter._hv117) {
+    const _maybe = HV.Game.maybeShowChapter;
+    HV.Game.maybeShowChapter = function (areaId) {
+      if (!chapterOn()) return _maybe.apply(this, arguments);
+      const prev = this.preview;
+      if (prev === 'chapter' || prev === 'chapter-promenade' || prev === 'feat-chapter') {
+        return _maybe.apply(this, arguments);
+      }
+      if (isDrownedTownArea(areaId) && !drownedTownUnlocked(this.state)) return;
+      return _maybe.apply(this, arguments);
+    };
+    HV.Game.maybeShowChapter._hv117 = true;
+  }
+
+  /* 3. Daytime Promenade USE already counts as read (hv116). Give it a story line
+     in the same voice and length as the bluff and church traces. Night keeps its own line. */
+  if (HV.tryStoryUse && !HV.tryStoryUse._hv117) {
+    const _use = HV.tryStoryUse;
+    HV.tryStoryUse = function (game, tx, ty) {
+      if (!lineOn()) return _use.apply(this, arguments);
+      const s = game && game.state;
+      const area = game && game.area;
+      const dayProm = !!(s && area && area.id === 'devil_promenade' && !nightNow(s) && !flagsOf(s).promenade_light_watched);
+      const at = !!(dayProm && HV.atMarkSpot && HV.atMarkSpot(area.id, tx, ty));
+      const r = _use.apply(this, arguments);
+      if (dayProm && at && r && flagsOf(s).promenade_light_watched) {
+        if (HV.UI && HV.UI.toast) HV.UI.toast(DAY_LINE);
+      }
+      return r;
+    };
+    copyKeys(_use, HV.tryStoryUse);
+    HV.tryStoryUse._hv117 = true;
+  }
+
+  /* 4. Keep Ila's original Josie/Yarrow nudge on the unread-marks lines.
+     23-followers already appends it to her other later lines; hv116's replacement dropped it. */
+  const D = HV.DIALOG;
+  if (D && D.ila && D.ila.later && !D.ila.later._hv117josie) {
+    const node = D.ila.later;
+    const prev = node.textFn;
+    const base = node.text;
+    node.textFn = function (s) {
+      const cur = prev ? prev.call(this, s) : base;
+      if (!josieOn() || !s || !cur) return cur;
+      if (cur.indexOf(JOSIE_NUDGE) >= 0 || /Josie Fiddler/.test(cur)) return cur;
+      if (HV.ILA_UNREAD_116 === false) return cur;
+      if (s.flags && (s.flags.chose_ila || s.flags.chose_cald || s.flags.chose_peck)) return cur;
+      if (!HV.markReadCount || !HV.marksRead) return cur;
+      if (HV.marksRead(s) || HV.markReadCount(s) < 1) return cur;
+      if (s.quests && s.quests.josie_string) return cur;
+      return cur + JOSIE_NUDGE;
+    };
+    node._hv117josie = true;
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
