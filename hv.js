@@ -48487,3 +48487,132 @@
     node._hv117josie = true;
   }
 })(typeof window !== 'undefined' ? window : globalThis);
+
+/* hv118: story flow BUILD 3. Each piece has its own flag; flag off = the hv117 path, untouched.
+   1 HV.WREN_PECK_WAIT_118  Sheriff Wren holds the Bald Knobbers (Peck) hunt until the Howler is settled. Bald Knob stays open.
+   2 HV.HEARTH_HAINTS_118   Ila and the Harthall door share one gate: the hearth offer waits until 2 of the 4 old haints are beaten. */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+
+  if (HV.WREN_PECK_WAIT_118 == null) HV.WREN_PECK_WAIT_118 = true;
+  if (HV.HEARTH_HAINTS_118 == null) HV.HEARTH_HAINTS_118 = true;
+
+  const WREN_FIRST_HOWLER = "I remember you well enough. I was hoping for a quiet month, and I ain't going to get one. And I won't write \"Howler\" in any report of mine, but I'll say that ridge has been awful loud.";
+  const WREN_LATER_HOWLER = "If you find the Howler, I won't believe a word of it down at the office. I will at my front door, though.";
+  const WREN_OAK_HOWLER = "The Sexton put Annie back in the book. I slept better, and I will not say that in the office either. And I won't write \"Howler\" in any report of mine, but I'll say that ridge has been awful loud.";
+  const ILA_HEARTH_WAIT = "Peck's told, and Annie's name is back in the book. The hearth at Harthall won't wake yet. ";
+
+  function peckOn() { return HV.WREN_PECK_WAIT_118 !== false; }
+  function hearthOn() { return HV.HEARTH_HAINTS_118 !== false; }
+  function howlerSettled(s) {
+    return !!(HV.storyBossBeaten && HV.storyBossBeaten(s, 'ridge_howler'));
+  }
+  function peckWait(s) { return peckOn() && s && !howlerSettled(s); }
+  function peckSettled(s) {
+    return !!(s && ((s.flags && s.flags.peck_beaten) || (HV.storyBossBeaten && HV.storyBossBeaten(s, 'jonas_peck'))));
+  }
+  function peckAndOak(s) { return !!(peckSettled(s) && HV.oakLaid && HV.oakLaid(s)); }
+
+  /* One shared gate fact that Ila, the door, nextHint and Open Roads all read. */
+  HV.hearthHaintsReady118 = function (s) {
+    if (s && s.flags && s.flags.hearth_read) return true;
+    if (HV.hearthRead && HV.hearthRead(s)) return true;
+    return !!(HV.regionalBeaten && HV.regionalBeaten(s) >= 2);
+  };
+
+  function haintLine(s) {
+    return (HV.hearthNeed104 && HV.hearthNeed104(s)) || '';
+  }
+  function isHearthHint(t) {
+    return !!(t && /hearth|Harthall/i.test(t));
+  }
+
+  function wrapText(node, fn) {
+    if (!node) return;
+    const prev = node.textFn;
+    const base = node.text;
+    node.textFn = function (s) {
+      const cur = prev ? prev.call(this, s) : base;
+      return fn(s, cur);
+    };
+  }
+  function wrapChoices(node, fn) {
+    if (!node) return;
+    const prev = node.choicesFn;
+    const base = node.choices;
+    node.choicesFn = function (s) {
+      const c = prev ? prev.call(this, s) : (base ? base.slice() : []);
+      return fn(s, c || []);
+    };
+  }
+  function noPeck(c) {
+    return (c || []).filter((ch) => ch.startQuest !== 'peck_problem' && ch.next !== 'peck');
+  }
+
+  /* 1. Wren holds the Bald Knobbers hunt until the Howler is settled. */
+  const D = HV.DIALOG || {};
+  if (D.wren && !D.wren._hv118) {
+    wrapText(D.wren.first, (s, cur) => peckWait(s) ? WREN_FIRST_HOWLER : cur);
+    wrapChoices(D.wren.first, (s, c) => peckWait(s) ? noPeck(c) : c);
+    wrapText(D.wren.later, (s, cur) => {
+      if (!peckWait(s)) return cur;
+      if (s && s.flags && s.flags.oak_laid) return WREN_OAK_HOWLER;
+      if (cur && /missing name|name that walked|line walked out of his book/i.test(cur)) return cur;
+      return WREN_LATER_HOWLER;
+    });
+    wrapChoices(D.wren.later, (s, c) => peckWait(s) ? noPeck(c) : c);
+    wrapChoices(D.wren.peck, (s, c) => {
+      if (!peckWait(s)) return c;
+      return (c || []).map((ch) => ch.startQuest === 'peck_problem' ? { t: ch.t, next: null } : ch);
+    });
+    D.wren._hv118 = true;
+  }
+
+  /* 2. Ila and the door share the haint gate. */
+  if (D.ila && D.ila.later && !D.ila._hv118hearth) {
+    wrapText(D.ila.later, (s, cur) => {
+      if (!hearthOn()) return cur;
+      if (peckAndOak(s) && !(s.flags && s.flags.hearth_read) && !HV.hearthHaintsReady118(s)) {
+        return ILA_HEARTH_WAIT + haintLine(s);
+      }
+      return cur;
+    });
+    wrapChoices(D.ila.later, (s, c) => {
+      if (!hearthOn() || HV.hearthHaintsReady118(s)) return c;
+      return (c || []).filter((ch) => ch.next !== 'hearth_ask' && ch.startQuest !== 'hearth_mark');
+    });
+    D.ila._hv118hearth = true;
+  }
+
+  if (HV.nextHint && !HV.nextHint._hv118) {
+    const _nh = HV.nextHint;
+    HV.nextHint = function (state, areaId) {
+      const t = _nh.apply(this, arguments);
+      if (hearthOn() && HV.PECK_HINT_104 !== false && state
+          && peckAndOak(state) && !(state.flags && state.flags.hearth_read)
+          && !HV.hearthHaintsReady118(state)) {
+        const need = haintLine(state);
+        if (need && isHearthHint(t)) return need;
+      }
+      return t;
+    };
+    Object.keys(_nh).forEach((k) => { HV.nextHint[k] = _nh[k]; });
+    HV.nextHint._hv118 = true;
+  }
+
+  if (HV.areaGate && !HV.areaGate._hv118) {
+    const _gate = HV.areaGate;
+    HV.areaGate = function (state, areaId) {
+      if (hearthOn() && areaId === 'harthall_hearth' && state
+          && peckAndOak(state) && !(HV.hearthRead && HV.hearthRead(state))
+          && !HV.hearthHaintsReady118(state)) {
+        const need = haintLine(state);
+        if (need) return need;
+      }
+      return _gate.apply(this, arguments);
+    };
+    Object.keys(_gate).forEach((k) => { HV.areaGate[k] = _gate[k]; });
+    HV.areaGate._hv118 = true;
+  }
+})(typeof window !== 'undefined' ? window : global);
