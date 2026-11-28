@@ -1378,7 +1378,7 @@
       drop: { quest: 'yocum_dollar' } },
 
     { id: 'rawhead_tooth', name: 'Rawhead\'s Tooth', slot: 'charm', rarity: 'rare', unique: true,
-      flavor: 'A yellow tooth big as a thumb, drilled and hung on a greasy string. Children were threatened with Rawhead-and-Bloody-Bones. Wearing his tooth is a grim sort of answer.',
+      flavor: 'A yellow razorback tooth big as a thumb, drilled and hung on a greasy string. Folks used to threaten children with Rawhead-and-Bloody-Bones. Wearing a tooth off that skull is a grim sort of answer.',
       stats: S(4, { spirit: 3, crit: 4 }),
       effects: [{ type: 'lifesteal', frac: 0.08 }, { type: 'vsTag', tag: 'living', mul: 1.15 }],
       drop: { boss: 'rawhead' } },
@@ -2707,7 +2707,7 @@
       tint: '#4A3728', boss: true, desc: 'A pumpkin-headed walker of the river bottoms, three-toed, and shy of a crowd.' }),
     E({ id: 'rawhead', name: 'Rawhead', tags: ['haint'], hp: 240, pow: 21, def: 6, speed: 85, xp: 170, ai: 'boss',
       tint: '#8A2A1E', glow: '#C45C26', boss: true, special: { id: 'fear', status: 'howl' },
-      desc: 'Rawhead-and-Bloody-Bones, the old threat used on children who would not come in off the porch.' }),
+      desc: 'A razorback\'s raw skull on a walking skeleton of bloody bones. Folks used the name to scare children in at dark, and in a thinning year the name has a body.' }),
 
     E({ id: 'hill_thief', name: 'Ridge Thief', tags: ['living'], hp: 36, pow: 8, def: 3, speed: 90, xp: 12, ai: 'melee',
       tint: '#4A3728', desc: 'A lean man with a grain sack over his face and a short club.' }),
@@ -2770,7 +2770,7 @@
       tint: '#5B7C99', glow: '#B9A68C', desc: 'It keeps a stone house that wanted to be a castle, and a fire that already won.' }),
     E({ id: 'crossroads_fiddler', name: 'The Fork Fiddler', tags: ['haint'], hp: 200, pow: 15, def: 6, speed: 90, xp: 140, ai: 'boss',
       tint: '#1A1410', glow: '#E8C547', boss: true, special: { id: 'showdown' },
-      desc: 'A lean, hat-shadowed picker at the fork in the road, who will have a break off you before he will let you pass.' }),
+      desc: 'A lean, hat-shadowed fiddler at the fork in the road, who will have a break off you before he will let you pass.' }),
   ];
 
   HV.ENEMY_BY_ID = {};
@@ -15650,7 +15650,7 @@
     crossroads_letter: {
       name: 'A Break at the Fork',
       stages: [
-        { id: 'ask', journal: 'Josie says a man in a dark hat keeps the crossroads at night and will have a banjo break off anyone who wants to pass. She knows where an old fretless banjo is buried.' },
+        { id: 'ask', journal: 'Josie says a man in a dark hat keeps the crossroads at night and will have a break off anyone who wants to pass. She knows where an old fretless banjo is buried.' },
         { id: 'banjo', journal: 'The Crossroads Banjo is in my hands. The strings are always a little warm. The fork is waiting after dark.' },
         { id: 'done', journal: 'I held the break at the fork. The jam, Josie says, is mine to keep whenever I like.' },
       ],
@@ -16262,7 +16262,7 @@
       }
       return HV.questDone(s, 'crossroads_letter') ? 'after' : (s.flags.has_banjo ? 'go' : 'ask');
     },
-    ask: node('Josie Fiddler', 'I throw a frolic of a Saturday, when the town\'s got the heart for it. Lately, though, my mind\'s been on that fork in the road. There\'s a man in a dark hat there who\'ll want a banjo break off you before he lets you by. I know where an old fretless is buried, if you aim to answer him.', [
+    ask: node('Josie Fiddler', 'I throw a frolic of a Saturday, when the town\'s got the heart for it. Lately, though, my mind\'s been on that fork in the road. There\'s a man in a dark hat there who\'ll want a break off you before he lets you by. I know where an old fretless is buried, if you aim to answer him.', [
       { t: 'Where is the banjo?', next: 'where' },
       { t: 'Could we try a tune on the porch first?', next: 'porch' },
       { t: 'I also heard about a hitch on the Promenade.', next: 'hitch' },
@@ -26338,7 +26338,7 @@
     gowrow: 'A great lizard of the ravines, with tusks and a voice like timber letting go. Still-hands in the hollow swear it has come back. Scale-mail, if the tale is true, would turn a knife.',
     whitey: 'A pale horned serpent of the underground river, white as a drowned moon. Boatmen told it on, and then stopped telling it, which is how you know a story has gotten close.',
     momo: 'A pumpkin-headed walker of the river bottoms, three-toed, shy of a crowd. Cole wanted to know if the old Missouri story had come up the river. A flat black stone, scored three times, is sometimes all the proof a person keeps.',
-    rawhead: 'Rawhead-and-Bloody-Bones, the old threat used on children who would not come in at dark. In a thinning year the threat has a shadow, and the shadow has teeth.',
+    rawhead: 'Rawhead-and-Bloody-Bones: a razorback\'s raw skull on a walking skeleton of bloody bones. Folks used the name to scare children who would not come in at dark, and in a thinning year the name has a body.',
     hill_thief: 'A lean man with a grain sack over his face and a short club. The ridge has always had thieves. Hunger makes them, and a thinning year does not unmake them.',
     moonshiner: 'He would rather you had not found the still. The mash in Stillhouse Hollow went sour the year the marks failed, and some of the still-hands went with it.',
     night_rider: 'A horned hood and a long coat. The county has seen this cut of man before. The Bald Knobbers rode in the old days, and now they ride again, talking like lawmen and riding like what they are.',
@@ -26363,7 +26363,7 @@
     gallows_shade: 'The rope-creak walks without a tree. The county oak has not quite put the work down, and a square nail from that wood is a cold weight in the hand.',
     mill_spark: 'A leftover of the fire that took the mill. Beek burned his hand on a heat that was not honest. Ila can teach the talking that puts such a fire out.',
     castle_keeper: 'It keeps a stone house that wanted to be a castle, and a fire that already won. Harthall is a ruin with a memory, and the memory has a temper.',
-    crossroads_fiddler: 'A lean, hat-shadowed picker at the fork in the road, who will have a break off you before he lets you pass. Josie knows where an old fretless is buried. If you have walked this telling before, he may have another string.',
+    crossroads_fiddler: 'A lean, hat-shadowed fiddler at the fork in the road, who will have a break off you before he lets you pass. Josie knows where an old fretless is buried. If you have walked this telling before, he may have another string.',
   };
 
   HV.BESTIARY = (HV.ENEMIES || []).map((e) => ({
@@ -37730,10 +37730,10 @@
     under_stone: { art: 'boss_under_stone', title: 'THE UNDER-STONE', line: 'The limestone knows your name. The marks were first cut here.' },
     ridge_howler: { art: 'boss_ridge_howler', title: 'THE OZARK HOWLER', line: 'A hulking, shaggy, bear-like beast with steer horns and red eyes. The ridge has been loud.' },
     momo: { art: 'boss_momo', title: 'THE BOTTOMS WALKER', line: 'Pumpkin-headed and three-toed, the old Missouri walker come up the river.' },
-    rawhead: { art: 'boss_rawhead', title: 'RAWHEAD', line: 'Rawhead-and-Bloody-Bones, the old threat used on children who would not come in off the porch.' },
+    rawhead: { art: 'boss_rawhead', title: 'RAWHEAD', line: 'A razorback\'s raw skull on a walking skeleton of bloody bones. Folks used the name to scare children in at dark, and in a thinning year the name has a body.' },
     jonas_peck: { art: 'boss_jonas_peck', title: 'JONAS PECK', line: 'He talks like a lawman and rides like a Bald Knobber. The knob has gone loud after dark.' },
     bolin_shade: { art: 'boss_bolin_shade', title: 'THE HEADLESS RAIDER', line: 'A guerrilla shade of the old war, still looking for what was taken from him and shown in a public place.' },
-    crossroads_fiddler: { art: 'boss_crossroads_fiddler', title: 'THE FORK FIDDLER', line: 'A lean, hat-shadowed picker at the fork in the road, who will have a break off you before he will let you pass.' },
+    crossroads_fiddler: { art: 'boss_crossroads_fiddler', title: 'THE FORK FIDDLER', line: 'A lean, hat-shadowed fiddler at the fork in the road, who will have a break off you before he will let you pass.' },
   };
 
   if (HV.Art) {
@@ -46358,10 +46358,10 @@
     gowrow: { title: 'THE GOWROW', line: 'A ravine lizard of tusk and timber-crack, coming out of the cut.' },
     whitey: { title: 'WHITEY', line: 'A grey-white horned beast of the underground river, spined and plated, pale as a drowned moon.' },
     momo: { title: 'THE BOTTOMS WALKER', line: 'Pumpkin-headed and three-toed, the old Missouri walker come up the river.' },
-    rawhead: { title: 'RAWHEAD', line: 'Rawhead-and-Bloody-Bones, the old threat used on children who would not come in off the porch.' },
+    rawhead: { title: 'RAWHEAD', line: 'A razorback\'s raw skull on a walking skeleton of bloody bones. Folks used the name to scare children in at dark, and in a thinning year the name has a body.' },
     jonas_peck: { title: 'JONAS PECK', line: 'He talks like a lawman and rides like a Bald Knobber. The knob has gone loud after dark.' },
     bolin_shade: { title: 'THE HEADLESS RAIDER', line: 'A guerrilla shade of the old war, still looking for what was taken from him and shown in a public place.' },
-    crossroads_fiddler: { title: 'THE FORK FIDDLER', line: 'A lean, hat-shadowed picker at the fork in the road, who will have a break off you before he will let you pass.' },
+    crossroads_fiddler: { title: 'THE FORK FIDDLER', line: 'A lean, hat-shadowed fiddler at the fork in the road, who will have a break off you before he will let you pass.' },
     hitch_girl: { title: 'OPAL WRAY', line: 'A ghost girl who walks the Devil\'s Promenade gravel road at night, and leaves a thin gold courting ring where she fades.' }
   };
   function cardFor(id) {
