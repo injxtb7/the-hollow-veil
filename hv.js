@@ -48183,3 +48183,173 @@
 
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
+
+/* hv116: story flow BUILD 1. Each piece has its own flag; flag off = the hv115 path, untouched.
+   1 HV.MARK_READ_116   one shared "mark read" fact: a USE on a story mark counts as read, including a
+                        daytime USE of the Devil's Promenade mark. The toast, Open Roads, Ila, and the
+                        oak door all read this fact, so they agree, and the fork opens. Ila and the oak
+                        door no longer send you back after dusk once that mark is read.
+   2 HV.ILA_UNREAD_116  if some marks were already read before you talk to Ila, she names the unread
+                        ones instead of saying "Keep on walking." */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+
+  if (HV.MARK_READ_116 == null) HV.MARK_READ_116 = true;
+  if (HV.ILA_UNREAD_116 == null) HV.ILA_UNREAD_116 = true;
+
+  const MARKS = [
+    { id: 'bluff', seen: 'bluff_seen', work: 'bluff_traced', name: "the scored mark on Widow's Bluff" },
+    { id: 'promenade', seen: 'promenade_seen', work: 'promenade_light_watched', name: 'the mark in the middle of the Promenade' },
+    { id: 'church', seen: 'church_seen', work: 'church_mark_traced', name: 'the churchyard stone' },
+  ];
+  const byKey = {};
+  MARKS.forEach((m) => { byKey[m.id] = m; byKey[m.seen] = m; byKey[m.work] = m; });
+
+  function markOn() { return HV.MARK_READ_116 !== false; }
+  function ilaOn() { return HV.ILA_UNREAD_116 !== false; }
+  function flagsOf(state) { return (state && state.flags) || {}; }
+  function nightNow(state) {
+    if (!state || !state.world) return false;
+    const t = state.world.time;
+    return t < 0.25 || t > 0.78;
+  }
+  function grantOnce(state, flag, amt) {
+    if (!state || !state.flags || state.flags[flag]) return;
+    state.flags[flag] = true;
+    if (amt && HV.grantXp && state.hero) HV.grantXp(state.hero, amt);
+  }
+  function copyKeys(from, to) { Object.keys(from).forEach((k) => { to[k] = from[k]; }); return to; }
+
+  /* One fact: a mark is read if it was used (seen) or, for older saves, if its work flag is set. */
+  HV.markIsRead = function (state, which) {
+    const m = byKey[which];
+    if (!m) return false;
+    const f = flagsOf(state);
+    return !!(f[m.seen] || f[m.work]);
+  };
+  HV.markReadCount = function (state) {
+    return MARKS.filter((m) => HV.markIsRead(state, m.id)).length;
+  };
+  HV.marksRead = function (state) {
+    return MARKS.every((m) => HV.markIsRead(state, m.id));
+  };
+  HV.unreadMarks116 = function (state) {
+    return MARKS.filter((m) => !HV.markIsRead(state, m.id));
+  };
+
+  /* Ila, the oak door, Cald, Peck, and storyMissing all go through markWorkDone. */
+  if (HV.markWorkDone && !HV.markWorkDone._hv116) {
+    const _mwd = HV.markWorkDone;
+    HV.markWorkDone = function (state) {
+      if (!markOn()) return _mwd.apply(this, arguments);
+      return HV.marksRead(state);
+    };
+    copyKeys(_mwd, HV.markWorkDone);
+    HV.markWorkDone._hv116 = true;
+  }
+
+  if (HV.storyFlagToast && !HV.storyFlagToast._hv116) {
+    const NAMES = { bluff_seen: "Widow's Bluff", promenade_seen: "Devil's Promenade", church_seen: 'Pine Churchyard' };
+    const _toast = HV.storyFlagToast;
+    HV.storyFlagToast = function (state, key, already) {
+      if (!markOn() || !NAMES[key] || already) return _toast.apply(this, arguments);
+      return 'Mark read: ' + NAMES[key] + ' (' + HV.markReadCount(state) + '/3)';
+    };
+    copyKeys(_toast, HV.storyFlagToast);
+    HV.storyFlagToast._hv116 = true;
+  }
+
+  if (HV.openRoadsGoal && !HV.openRoadsGoal._hv116) {
+    const _or = HV.openRoadsGoal;
+    HV.openRoadsGoal = function (state) {
+      const r = _or.apply(this, arguments);
+      if (!markOn() || !r) return r;
+      const f = flagsOf(state);
+      const q = state && state.quests && state.quests.the_thinning;
+      const stage = q ? (q.stage || 0) : 0;
+      if (!f.ila_briefed && stage <= 0) return r;
+      const n = HV.markReadCount(state);
+      if (n < 3) {
+        r.progress = 'The three marks · ' + n + ' of 3';
+        return r;
+      }
+      if (!HV.hasChosenSide || !HV.hasChosenSide(state)) {
+        r.progress = 'The three marks · 3 of 3';
+        let goal = 'Choose a road: Ila, Cald, or Peck';
+        if (HV.forkText104) goal = HV.forkText104(goal);
+        r.goal = goal;
+      }
+      return r;
+    };
+    copyKeys(_or, HV.openRoadsGoal);
+    HV.openRoadsGoal._hv116 = true;
+  }
+
+  /* nextHint still walks the old work flags (including "come back after dusk").
+     Feed it a copy where a read mark already has its work flag, and leave the save alone. */
+  if (HV.nextHint && !HV.nextHint._hv116) {
+    const _nh = HV.nextHint;
+    HV.nextHint = function (state, areaId) {
+      if (!markOn() || !state) return _nh.apply(this, arguments);
+      const f = flagsOf(state);
+      const patched = Object.assign({}, state, { flags: Object.assign({}, f) });
+      MARKS.forEach((m) => { if (HV.markIsRead(state, m.id)) patched.flags[m.work] = true; });
+      return _nh.call(this, patched, areaId);
+    };
+    copyKeys(_nh, HV.nextHint);
+    HV.nextHint._hv116 = true;
+  }
+
+  /* Daytime USE on the Promenade already sets promenade_seen (and toasts "Mark read").
+     Stop the follow-up "come back after dusk" toast and finish the watch step instead. */
+  if (HV.tryStoryUse && !HV.tryStoryUse._hv116) {
+    const _use = HV.tryStoryUse;
+    HV.tryStoryUse = function (game, tx, ty) {
+      if (!markOn()) return _use.apply(this, arguments);
+      const s = game && game.state;
+      const area = game && game.area;
+      const at = (HV.atMarkSpot && area) ? HV.atMarkSpot(area.id, tx, ty) : false;
+      if (s && area && area.id === 'devil_promenade' && at && !flagsOf(s).promenade_light_watched && !nightNow(s)) {
+        if (HV.markIsRead(s, 'promenade') || (HV.atMarkSpot && HV.atMarkSpot('devil_promenade', tx, ty))) {
+          /* A USE on the mark by day counts; don't send the player back after dusk. */
+          if (!s.flags) s.flags = {};
+          s.flags.promenade_light_watched = true;
+          if (s.flags.promenade_seen == null && HV.MARK_READ_ON_USE === false) s.flags.promenade_seen = true;
+          grantOnce(s, 'xp_promenade_light', 50);
+          return true;
+        }
+      }
+      return _use.apply(this, arguments);
+    };
+    copyKeys(_use, HV.tryStoryUse);
+    HV.tryStoryUse._hv116 = true;
+  }
+
+  function ilaUnreadLine(unread) {
+    if (!unread || !unread.length) return null;
+    if (unread.length === 1) {
+      return "There's still " + unread[0].name + " to read, honey. You go do that, then we'll talk about mending.";
+    }
+    if (unread.length === 2) {
+      return "You've started, but you ain't finished. There's still " + unread[0].name + ', and ' + unread[1].name + '.';
+    }
+    return null;
+  }
+
+  const D = HV.DIALOG;
+  if (D && D.ila && D.ila.later && !D.ila.later._hv116unread) {
+    const node = D.ila.later;
+    const prev = node.textFn;
+    const base = node.text;
+    node.textFn = function (s) {
+      const cur = prev ? prev.call(this, s) : base;
+      if (!ilaOn() || !s || !s.flags) return cur;
+      if (s.flags.chose_ila || s.flags.chose_cald || s.flags.chose_peck) return cur;
+      if (HV.marksRead(s)) return cur;
+      if (HV.markReadCount(s) < 1) return cur;
+      return ilaUnreadLine(HV.unreadMarks116(s)) || cur;
+    };
+    node._hv116unread = true;
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
