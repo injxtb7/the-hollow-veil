@@ -22764,6 +22764,11 @@
       else camY = (mapH - zh) / 2;
       this.cam.x = camX;
       this.cam.y = camY;
+      if (typeof HV.adjustCam114 === 'function') {
+        HV.adjustCam114(this);
+        camX = this.cam.x;
+        camY = this.cam.y;
+      }
       const biome = this.area.biome || '';
       const edgeFill = (biome === 'cave') ? '#252C33'
         : (biome === 'river' || biome === 'bottoms') ? '#1A2830'
@@ -23299,8 +23304,11 @@
           const ang = Math.atan2(ey2 - py0, ex2 - px);
           const pos = clampMarker(ex2, ey2, ex2, ey2);
           const name = ex.label || (HV.AREAS[ex.to] && HV.AREAS[ex.to].name) || ex.to;
+          const short = (HV.ARROW_NAMES_114 === true && typeof HV.arrowName114 === 'function')
+            ? (HV.arrowName114(ex) || shortName(name))
+            : shortName(name);
           const tileD = Math.abs(ex.x - heroTx) + Math.abs(ex.y - heroTy);
-          pending.push({ mx: pos[0], my: pos[1], ang, name, short: shortName(name), ex2, ey2, tileD, showLabel: false, tx: ex.x, ty: ex.y, to: ex.to });
+          pending.push({ mx: pos[0], my: pos[1], ang, name, short: short, ex2, ey2, tileD, showLabel: false, tx: ex.x, ty: ex.y, to: ex.to });
         });
         /* One arrow per doorway: merge reverse-exit twins stacked on the same tiles. Keep distinct edge exits. */
         const clustered = [];
@@ -23324,7 +23332,7 @@
         limitBand((m) => m.my > bot - 80, 2);
         /* The exit on the way to the followed road always shows its name. */
         pending.forEach((m) => { if (HV._guideHop && m.to === HV._guideHop) m.showLabel = true; });
-        const labW = (m) => (m.showLabel ? Math.min(110, 16 + String(m.short || '').length * 6.2) : 28);
+        const labW = (m) => (m.showLabel ? Math.min((HV.ARROW_NAMES_114 === true) ? 200 : 110, 16 + String(m.short || '').length * 6.2) : 28);
         const boxOf = (m) => {
           const lw = labW(m);
           const left = m.mx < w / 2;
@@ -23367,6 +23375,45 @@
             if (b.x < strip.x + strip.w + 6 && b.x + b.w + 6 > strip.x && b.y < strip.y + strip.h + 6 && b.y + b.h + 6 > strip.y) {
               m.my = Math.min(bot + 40, strip.y + strip.h + 22);
             }
+          });
+        }
+        this._arrows114 = [];
+        if (HV.ARROW_BAND_114 === true && typeof HV.placeArrow114 === 'function') {
+          pending.forEach((m) => {
+            if (HV.ARROW_LABELS_115 === false) {
+              if (m.showLabel) m.labelHidden114 = true;
+              m.showLabel = false;
+            } else if (m.showLabel && typeof HV.hideArrowLabel114 === 'function' && HV.hideArrowLabel114(this, m)) {
+              m.showLabel = false;
+              m.labelHidden114 = true;
+            }
+            const rec = HV.placeArrow114(this, m);
+            if (rec) { m.mx = rec.mx; m.my = rec.my; }
+          });
+          if (HV.ARROW_LABELS_115 === false && typeof HV.separateArrows115 === 'function') {
+            HV.separateArrows115(this, pending);
+          }
+          pending.forEach((m) => {
+            const rec = (typeof HV.arrowMarkBox114 === 'function')
+              ? HV.arrowMarkBox114(this, m.mx, m.my, m.short || m.name, m.showLabel)
+              : { box: { x: m.mx - 12, y: m.my - 12, w: 24, h: 24 }, circle: { x: m.mx - 12, y: m.my - 12, w: 24, h: 24 }, label: null };
+            const hits = (HV.ARROW_LABELS_115 === false && typeof HV.arrowHits115 === 'function')
+              ? HV.arrowHits115(this, { mx: m.mx, my: m.my, to: m.to, circle: rec.circle, showLabel: m.showLabel, label: rec.label }, pending)
+              : (typeof HV.arrowChromeHits114 === 'function' ? HV.arrowChromeHits114(this, rec) : []);
+            this._arrows114.push({
+              name: m.short || m.name,
+              showLabel: !!m.showLabel,
+              hidden: !!m.labelHidden114,
+              mx: m.mx,
+              my: m.my,
+              ang: m.ang,
+              dir: m._dir115 || '',
+              to: m.to,
+              box: rec && rec.box,
+              label: rec && rec.label,
+              circle: rec && rec.circle,
+              hits: hits
+            });
           });
         }
         pending.forEach((m) => {
@@ -47649,5 +47696,490 @@
   }
 
   install();
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+/* hv114: keep the hero visible at Drowned Shore and at map-edge exits, and use full
+   names on edge arrows. Three flags, all default on. Does not change hv113 sign or
+   prompt logic, travel, or the hero contrast. */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  const TILE = 32;
+  if (HV.HERO_DRAW_114 == null) HV.HERO_DRAW_114 = true;
+  if (HV.EDGE_CAMERA_114 == null) HV.EDGE_CAMERA_114 = true;
+  if (HV.ARROW_NAMES_114 == null) HV.ARROW_NAMES_114 = true;
+  if (HV.ARROW_BAND_114 == null) HV.ARROW_BAND_114 = true;
+
+  function zoomOf(game) {
+    if (game && game.camZoom) return game.camZoom;
+    if (game && game.cam && game.cam.zoom) return game.cam.zoom;
+    const w = game && game.w, h = game && game.h;
+    if (w && h && game.wantTouch && w < 600 && h > w) return 1.3;
+    return 1;
+  }
+
+  function padOf(game) {
+    return (game.safePad && game.safePad()) || { t: 0, r: 0, b: 0, l: 0 };
+  }
+
+  /* Playable band for the hero: clear of the HUD / minimap and the touch controls. */
+  function heroBand(game) {
+    const pad = padOf(game);
+    const w = game.w || 0, h = game.h || 0;
+    let top = 20 + (pad.t || 0);
+    /* First-frame fallback on a portrait phone, before _hudBox / _mapBox exist. */
+    if (game.wantTouch && w < 600) top = Math.max(top, 12 + (pad.t || 0) + 90 + 26);
+    if (game._hudBox) top = Math.max(top, game._hudBox.y + game._hudBox.h + 8);
+    if (game._mapBox) top = Math.max(top, game._mapBox.y + game._mapBox.h + 8);
+    const bottom = h - (game.wantTouch ? 230 : 60) - (pad.b || 0);
+    return {
+      top: top,
+      bottom: bottom,
+      left: 8 + (pad.l || 0),
+      right: w - 8 - (pad.r || 0)
+    };
+  }
+
+  function heroBox(game, camX, camY, zoom) {
+    const s = game.state && game.state.world;
+    if (!s) return null;
+    const hx = (s.x - camX) * zoom, hy = (s.y - camY) * zoom;
+    return { x: hx - 20 * zoom, y: hy - 40 * zoom, w: 40 * zoom, h: 64 * zoom };
+  }
+
+  /* Within 4 tiles of a map edge (covers the Underground River at y=38 on h=42). */
+  function nearMapEdge(game) {
+    const s = game.state && game.state.world, a = game.area;
+    if (!s || !a) return false;
+    const tx = s.x / TILE, ty = s.y / TILE;
+    const m = 4;
+    return tx <= m || ty <= m || tx >= (a.w || 0) - m || ty >= (a.h || 0) - m;
+  }
+
+  HV.heroScreenBox114 = function (game) {
+    if (!game) return null;
+    const z = zoomOf(game);
+    const camX = (game.cam && game.cam.x) || 0;
+    const camY = (game.cam && game.cam.y) || 0;
+    return heroBox(game, camX, camY, z);
+  };
+
+  HV.heroBand114 = heroBand;
+
+  /* After the usual center-and-clamp, allow the camera past the map edge just enough
+     that the hero's sprite sits fully in the playable band. Called from Game.draw. */
+  HV.adjustCam114 = function (game) {
+    if (!game || !game.state || !game.state.world || !game.area) return;
+    const drawOn = HV.HERO_DRAW_114 === true;
+    const edgeOn = HV.EDGE_CAMERA_114 === true;
+    if (!drawOn && !edgeOn) return;
+    const z = zoomOf(game);
+    let camX = (game.cam && game.cam.x) || 0;
+    let camY = (game.cam && game.cam.y) || 0;
+    let box = heroBox(game, camX, camY, z);
+    if (!box) return;
+    const band = heroBand(game);
+    if (band.bottom - band.top < 8 || band.right - band.left < 8) return;
+    const underY = box.y < band.top || (box.y + box.h) > band.bottom;
+    const underX = box.x < band.left || (box.x + box.w) > band.right;
+    if (!underX && !underY) return;
+    if (!drawOn && edgeOn && !nearMapEdge(game)) return;
+
+    const shiftY = () => {
+      box = heroBox(game, camX, camY, z);
+      if (box.h > band.bottom - band.top) {
+        const mid = (band.top + band.bottom) / 2;
+        const hy = (game.state.world.y - camY) * z;
+        camY -= (mid - hy) / z;
+        return;
+      }
+      if (box.y < band.top) camY -= (band.top - box.y) / z;
+      box = heroBox(game, camX, camY, z);
+      if (box.y + box.h > band.bottom) camY += (box.y + box.h - band.bottom) / z;
+    };
+    const shiftX = () => {
+      box = heroBox(game, camX, camY, z);
+      if (box.w > band.right - band.left) {
+        const mid = (band.left + band.right) / 2;
+        const hx = (game.state.world.x - camX) * z;
+        camX -= (mid - hx) / z;
+        return;
+      }
+      if (box.x < band.left) camX -= (band.left - box.x) / z;
+      box = heroBox(game, camX, camY, z);
+      if (box.x + box.w > band.right) camX += (box.x + box.w - band.right) / z;
+    };
+    shiftY();
+    shiftX();
+
+    if (!game.cam) game.cam = {};
+    game.cam.x = camX;
+    game.cam.y = camY;
+    game.cam.zoom = z;
+  };
+
+  /* Full exit / sign name, no Xing / Btms / Prom. abbreviations. */
+  HV.arrowName114 = function (ex) {
+    if (HV.ARROW_NAMES_114 !== true) return null;
+    if (typeof HV.exitSignName111 === 'function') return HV.exitSignName111(ex);
+    return (ex && (ex.label || (HV.AREAS && HV.AREAS[ex.to] && HV.AREAS[ex.to].name) || ex.to)) || '';
+  };
+
+  function exitName(ex) {
+    if (!ex) return '';
+    if (typeof HV.exitSignName111 === 'function') return HV.exitSignName111(ex);
+    return (ex.label || (HV.AREAS && HV.AREAS[ex.to] && HV.AREAS[ex.to].name) || ex.to) || '';
+  }
+
+  function textWidth(game, name, size) {
+    const ctx = game && game.ctx;
+    const str = String(name || '');
+    if (ctx && ctx.measureText) {
+      const prev = ctx.font;
+      ctx.font = (size || 10) + 'px Palatino, "Palatino Linotype", Georgia, serif';
+      const tw = ctx.measureText(str).width;
+      ctx.font = prev;
+      return tw;
+    }
+    return Math.max(8, str.length * (size === 13 ? 7.2 : 6.2));
+  }
+
+  function unionBox(a, b) {
+    const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y);
+    return { x: x, y: y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y };
+  }
+
+  function overlaps(a, b, pad) {
+    if (!a || !b) return false;
+    const p = pad || 0;
+    return a.x < b.x + b.w + p && a.x + a.w + p > b.x && a.y < b.y + b.h + p && a.y + a.h + p > b.y;
+  }
+
+  /* Same geometry as Game.draw's 'Walk on or tap USE' box. Null when no exit is in prompt range. */
+  HV.promptBox114 = function (game) {
+    if (!game || !game.state || !game.area) return null;
+    if (typeof HV.promptExit113 !== 'function') return null;
+    const pe = HV.promptExit113(game);
+    if (!pe) return null;
+    const pad = padOf(game);
+    const w = game.w || 0, h = game.h || 0;
+    const name = exitName(pe);
+    const msg = 'Walk on or tap USE: ' + name;
+    const tw = textWidth(game, msg, 13);
+    const py = game.wantTouch ? (h - 200 - (pad.b || 0)) : (h - 36 - (pad.b || 0));
+    return { x: w / 2 - tw / 2 - 10, y: py - 16, w: tw + 20, h: 24, name: name };
+  };
+
+  /* Playable band for edge arrows: the hero band, plus the objective scroll when
+     it's up, and above the prompt when that's up. Hero camera band is unchanged. */
+  HV.arrowBand114 = function (game) {
+    const band = Object.assign({}, heroBand(game));
+    const gap = 8;
+    if (game._stripBox) band.top = Math.max(band.top, game._stripBox.y + game._stripBox.h + gap);
+    if (game._scrollHit) band.top = Math.max(band.top, game._scrollHit.y + game._scrollHit.h + gap);
+    const prompt = HV.promptBox114(game);
+    if (prompt) band.bottom = Math.min(band.bottom, prompt.y - 6);
+    return band;
+  };
+
+  /* Hide the edge label when the USE prompt already names that same exit. */
+  HV.hideArrowLabel114 = function (game, mOrEx) {
+    if (HV.ARROW_BAND_114 !== true) return false;
+    const pe = (typeof HV.promptExit113 === 'function') ? HV.promptExit113(game) : null;
+    if (!pe || !mOrEx) return false;
+    const promptName = exitName(pe);
+    const arrowName = mOrEx.short || mOrEx.name || exitName(mOrEx);
+    return !!(promptName && arrowName && promptName === arrowName);
+  };
+
+  /* Combined circle + (optional) label box, matching the paint in Game.draw. */
+  HV.arrowMarkBox114 = function (game, mx, my, name, showLabel) {
+    const circle = { x: mx - 12, y: my - 12, w: 24, h: 24 };
+    if (!showLabel || !name) return { circle: circle, label: null, box: circle };
+    const tw = textWidth(game, name, (HV.narrowPortrait && HV.narrowPortrait(game.w, game.h)) ? 11 : 10);
+    const left = mx < (game.w || 0) / 2;
+    const label = left
+      ? { x: mx - 14, y: my + 13, w: tw + 6, h: 14 }
+      : { x: mx + 11 - tw - 3, y: my + 13, w: tw + 6, h: 14 };
+    return { circle: circle, label: label, box: unionBox(circle, label) };
+  };
+
+  HV.arrowChromeHits114 = function (game, mark) {
+    const hits = [];
+    if (!mark) return hits;
+    const label = mark.label;
+    if (!label) return hits;
+    const pad = 1;
+    if (game._hudBox && overlaps(label, game._hudBox, pad)) hits.push('hud');
+    if (game._mapBox && overlaps(label, game._mapBox, pad)) hits.push('map');
+    if (game._stripBox && overlaps(label, game._stripBox, pad)) hits.push('strip');
+    if (game._scrollHit && overlaps(label, game._scrollHit, pad)) hits.push('scroll');
+    const prompt = HV.promptBox114(game);
+    if (prompt && overlaps(label, prompt, pad)) hits.push('prompt');
+    const touchTop = (game.h || 0) - (game.wantTouch ? 230 : 60) - ((game.safePad && game.safePad().b) || 0);
+    if (label.y + label.h > touchTop + 1) hits.push('touch');
+    const sign = game._nearestSign113 && game._nearestSign113.box;
+    if (sign && overlaps(label, sign, 6)) hits.push('sign');
+    return hits;
+  };
+
+  /* Nudge an edge arrow (and its label) into the playable band, clear of the floating sign. */
+  HV.placeArrow114 = function (game, m) {
+    if (HV.ARROW_BAND_114 !== true || !game || !m) return null;
+    const band = HV.arrowBand114(game);
+    const name = m.short || m.name || '';
+    const show = !!m.showLabel;
+    let mx = m.mx, my = m.my;
+    const pack = () => HV.arrowMarkBox114(game, mx, my, name, show);
+    const clamp = () => {
+      let rec = pack();
+      let box = rec.box;
+      if (box.y < band.top) my += band.top - box.y;
+      rec = pack(); box = rec.box;
+      if (box.y + box.h > band.bottom) my -= (box.y + box.h - band.bottom);
+      rec = pack(); box = rec.box;
+      if (box.x < band.left) mx += band.left - box.x;
+      rec = pack(); box = rec.box;
+      if (box.x + box.w > band.right) mx -= (box.x + box.w - band.right);
+      mx = Math.max(12, Math.min((game.w || 0) - 12, mx));
+    };
+    clamp();
+    const sign = game._nearestSign113 && game._nearestSign113.box;
+    const inBand = (rec) => rec.box.y >= band.top - 1 && rec.box.y + rec.box.h <= band.bottom + 1
+      && rec.box.x >= band.left - 1 && rec.box.x + rec.box.w <= band.right + 1;
+    const clearOfSign = (rec) => {
+      if (!sign) return true;
+      if (rec.label && overlaps(rec.label, sign, 6)) return false;
+      if (rec.circle && overlaps(rec.circle, sign, 4)) return false;
+      return true;
+    };
+    const tryAt = (nx, ny) => {
+      const ox = mx, oy = my;
+      mx = nx; my = ny;
+      clamp();
+      const rec = pack();
+      if (inBand(rec) && clearOfSign(rec)) return rec;
+      mx = ox; my = oy;
+      return null;
+    };
+    if (sign && !clearOfSign(pack())) {
+      const xs = [];
+      const mid = ((game.w || 0) / 2);
+      [40, 70, 100, 130, 160, 200, 240, 280, 310, 350].forEach((x) => xs.push(x));
+      xs.sort((a, b) => Math.abs(a - mx) - Math.abs(b - mx));
+      const belowMy = sign.y + sign.h + 16 + 12;
+      const aboveMy = sign.y - 16 - 14;
+      const ys = [my, belowMy, aboveMy, band.top + 14, band.bottom - 28];
+      let got = null;
+      for (let yi = 0; yi < ys.length && !got; yi++) {
+        for (let xi = 0; xi < xs.length && !got; xi++) got = tryAt(xs[xi], ys[yi]);
+      }
+      if (got) return { mx: mx, my: my, showLabel: show, box: got.box, label: got.label, circle: got.circle };
+    }
+    const rec = pack();
+    return { mx: mx, my: my, showLabel: show, box: rec.box, label: rec.label, circle: rec.circle };
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = HV;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+/* hv115: keep the hv114 hero camera and arrow band, and turn edge-arrow NAME
+   LABELS off. The gold arrows themselves are unchanged — no restyle. Spacing
+   between arrows is fixed so they no longer stack in a corner (Cedar Glade east).
+   HV.ARROW_LABELS_115 defaults OFF. Signs and the prompt are untouched. */
+(function (root) {
+  'use strict';
+  const HV = root.HV = root.HV || {};
+  if (HV.ARROW_LABELS_115 == null) HV.ARROW_LABELS_115 = false;
+
+  function overlaps(a, b, pad) {
+    if (!a || !b) return false;
+    const p = pad || 0;
+    return a.x < b.x + b.w + p && a.x + a.w + p > b.x && a.y < b.y + b.h + p && a.y + a.h + p > b.y;
+  }
+
+  function circleOf(m) {
+    return { x: m.mx - 12, y: m.my - 12, w: 24, h: 24 };
+  }
+
+  function dirOf(game, m) {
+    const A = game && game.area;
+    if (!A) return '';
+    const ex = (A.exits || []).find((e) => e.x === m.tx && e.y === m.ty)
+      || (A.exits || []).find((e) => e.to === m.to);
+    if (!ex) return '';
+    return (HV.compassDir && HV.compassDir(A, ex)) || '';
+  }
+
+  function chromeBoxes(game) {
+    const boxes = [];
+    if (game._hudBox) boxes.push({ kind: 'hud', b: game._hudBox });
+    if (game._mapBox) boxes.push({ kind: 'map', b: game._mapBox });
+    if (game._stripBox) boxes.push({ kind: 'strip', b: game._stripBox });
+    if (game._scrollHit) boxes.push({ kind: 'scroll', b: game._scrollHit });
+    const prompt = (typeof HV.promptBox114 === 'function') ? HV.promptBox114(game) : null;
+    if (prompt) boxes.push({ kind: 'prompt', b: prompt });
+    const sign = game._nearestSign113 && game._nearestSign113.box;
+    if (sign) boxes.push({ kind: 'sign', b: sign });
+    const hero = (typeof HV.heroScreenBox114 === 'function') ? HV.heroScreenBox114(game) : null;
+    if (hero) boxes.push({ kind: 'hero', b: hero });
+    const pad = (game.safePad && game.safePad()) || { t: 0, r: 0, b: 0, l: 0 };
+    const touchTop = (game.h || 0) - (game.wantTouch ? 230 : 60) - (pad.b || 0);
+    boxes.push({ kind: 'touch', b: { x: 0, y: touchTop, w: game.w || 0, h: (game.h || 0) - touchTop } });
+    return boxes;
+  }
+
+  HV.arrowHits115 = function (game, m, others) {
+    const hits = [];
+    const c = m.circle || circleOf(m);
+    if (m.showLabel && m.label) hits.push('label');
+    chromeBoxes(game).forEach((ch) => {
+      const pad = (ch.kind === 'hero' || ch.kind === 'sign') ? 4 : 1;
+      if (overlaps(c, ch.b, pad)) hits.push(ch.kind);
+    });
+    (others || []).forEach((o) => {
+      if (o === m) return;
+      if (m.to && o.to && o.to === m.to) return;
+      if (overlaps(c, o.circle || circleOf(o), 8)) hits.push('arrow');
+    });
+    return hits;
+  };
+
+  /* After the band clamp: pin each arrow to the edge of its exit, then spread
+     them so no two share a corner. The gold marker is unchanged. */
+  HV.separateArrows115 = function (game, pending) {
+    if (HV.ARROW_LABELS_115 !== false || !game || !pending || !pending.length) return;
+    if (typeof HV.arrowBand114 !== 'function') return;
+    const band = HV.arrowBand114(game);
+    if (!band || band.bottom - band.top < 24 || band.right - band.left < 24) return;
+    const pad = (game.safePad && game.safePad()) || { t: 0, r: 0, b: 0, l: 0 };
+    const touchTop = (game.h || 0) - (game.wantTouch ? 230 : 60) - (pad.b || 0);
+    const inset = 14; /* 12px circle box + 2px so the gold circle does not kiss chrome */
+    const minX = band.left + inset, maxX = band.right - inset;
+    const minY = band.top + inset, maxY = Math.min(band.bottom, touchTop) - inset;
+    if (maxX - minX < 8 || maxY - minY < 8) return;
+
+    /* Don't clamp raw off-screen exit coordinates into a corner (that put
+       Yarrow Crossing on top of Howler Run at Post Oak on iPhone). Sit the
+       arrow where the hero-to-exit ray meets that exit's own compass edge. */
+    const z = (game.camZoom || ((game.wantTouch && game.w < 600 && game.h > game.w) ? 1.3 : 1));
+    const world = game.state && game.state.world;
+    const camX = (game.cam && game.cam.x) || 0;
+    const camY = (game.cam && game.cam.y) || 0;
+    const hx = world ? (world.x - camX) * z : (game.w || 0) / 2;
+    const hy = world ? (world.y - camY) * z : (game.h || 0) / 2;
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const rayEdge = (d, ex, ey) => {
+      if (d === 'south') {
+        const den = ey - hy;
+        const x = Math.abs(den) < 1 ? ex : hx + (ex - hx) * (maxY - hy) / den;
+        return { x: clamp(x, minX, maxX), y: maxY };
+      }
+      if (d === 'north') {
+        const den = ey - hy;
+        const x = Math.abs(den) < 1 ? ex : hx + (ex - hx) * (minY - hy) / den;
+        return { x: clamp(x, minX, maxX), y: minY };
+      }
+      if (d === 'east') {
+        const den = ex - hx;
+        const y = Math.abs(den) < 1 ? ey : hy + (ey - hy) * (maxX - hx) / den;
+        return { x: maxX, y: clamp(y, minY, maxY) };
+      }
+      if (d === 'west') {
+        const den = ex - hx;
+        const y = Math.abs(den) < 1 ? ey : hy + (ey - hy) * (minX - hx) / den;
+        return { x: minX, y: clamp(y, minY, maxY) };
+      }
+      return { x: clamp(ex, minX, maxX), y: clamp(ey, minY, maxY) };
+    };
+
+    pending.forEach((m) => {
+      const d = dirOf(game, m);
+      m._dir115 = d;
+      const rawX = (typeof m.ex2 === 'number') ? m.ex2 : m.mx;
+      const rawY = (typeof m.ey2 === 'number') ? m.ey2 : m.my;
+      const at = rayEdge(d, rawX, rawY);
+      m.mx = at.x;
+      m.my = at.y;
+    });
+
+    const blocked = (m) => HV.arrowHits115(game, m, pending).filter((h) => h !== 'label');
+
+    const tryMove = (m, dx, dy) => {
+      const ox = m.mx, oy = m.my;
+      m.mx = Math.max(minX, Math.min(maxX, m.mx + dx));
+      m.my = Math.max(minY, Math.min(maxY, m.my + dy));
+      if (!blocked(m).length) return true;
+      m.mx = ox; m.my = oy;
+      return false;
+    };
+
+    for (let iter = 0; iter < 24; iter++) {
+      let moved = false;
+      pending.forEach((m) => {
+        if (!blocked(m).length) return;
+        const d = m._dir115;
+        const along = (d === 'west' || d === 'east')
+          ? [[0, -36], [0, 36], [0, -72], [0, 72], [0, -108], [0, 108], [0, -144], [0, 144], [0, -180], [0, 180], [36, 0], [-36, 0]]
+          : (d === 'north' || d === 'south')
+            ? [[-36, 0], [36, 0], [-72, 0], [72, 0], [-108, 0], [108, 0], [-144, 0], [144, 0], [-180, 0], [180, 0], [0, -36], [0, 36]]
+            : [[0, -36], [0, 36], [-36, 0], [36, 0], [0, -72], [0, 72], [-72, 0], [72, 0]];
+        for (let i = 0; i < along.length; i++) {
+          if (tryMove(m, along[i][0], along[i][1])) { moved = true; return; }
+        }
+      });
+      if (!moved) break;
+    }
+  };
+
+
+  HV.arrowEdgeOK115 = function (game, m) {
+    if (!game || !m) return { ok: false, why: 'no-mark' };
+    const A = game.area;
+    const ex = (A && A.exits || []).find((e) => e.to === m.to)
+      || (A && A.exits || []).find((e) => e.x === m.tx && e.y === m.ty);
+    if (!ex) return { ok: false, why: 'no-exit', to: m.to };
+    const d = (HV.compassDir && HV.compassDir(A, ex)) || dirOf(game, m);
+    if (!d) {
+      return { ok: true, to: m.to, dir: '', interior: true };
+    }
+    if (typeof HV.arrowBand114 !== 'function') return { ok: false, why: 'no-band' };
+    const band = HV.arrowBand114(game);
+    const pad = (game.safePad && game.safePad()) || { t: 0, r: 0, b: 0, l: 0 };
+    const touchTop = (game.h || 0) - (game.wantTouch ? 230 : 60) - (pad.b || 0);
+    const inset = 14;
+    const minX = band.left + inset, maxX = band.right - inset;
+    const minY = band.top + inset, maxY = Math.min(band.bottom, touchTop) - inset;
+    const slop = 18;
+    let onEdge = false;
+    if (d === 'south') onEdge = Math.abs(m.my - maxY) <= slop;
+    else if (d === 'north') onEdge = Math.abs(m.my - minY) <= slop;
+    else if (d === 'east') onEdge = Math.abs(m.mx - maxX) <= slop;
+    else if (d === 'west') onEdge = Math.abs(m.mx - minX) <= slop;
+    if (!onEdge) return { ok: false, why: 'wrong-edge', to: m.to, dir: d, x: m.mx, y: m.my };
+
+    const z = (game.camZoom || ((game.wantTouch && game.w < 600 && game.h > game.w) ? 1.3 : 1));
+    const world = game.state && game.state.world;
+    const camX = (game.cam && game.cam.x) || 0;
+    const camY = (game.cam && game.cam.y) || 0;
+    const hx = world ? (world.x - camX) * z : (game.w || 0) / 2;
+    const hy = world ? (world.y - camY) * z : (game.h || 0) / 2;
+    const ex2 = (ex.x * 32 + 16 - camX) * z, ey2 = (ex.y * 32 + 16 - camY) * z;
+    const ang = (typeof m.ang === 'number') ? m.ang : Math.atan2(ey2 - hy, ex2 - hx);
+    /* Outward = the chevron points into that compass half-plane (from the hero
+       toward the exit). A south door that also sits west of Lara may point
+       down-left and still be a south arrow. */
+    const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+    const a = wrap(ang);
+    let outward = false;
+    if (d === 'east') outward = Math.abs(a) <= Math.PI / 2 + 0.01;
+    else if (d === 'west') outward = Math.abs(a) >= Math.PI / 2 - 0.01;
+    else if (d === 'south') outward = a >= -0.01;
+    else if (d === 'north') outward = a <= 0.01;
+    if (!outward) return { ok: false, why: 'inward', to: m.to, dir: d, ang: ang };
+    return { ok: true, to: m.to, dir: d };
+  };
+
   if (typeof module !== 'undefined' && module.exports) module.exports = HV;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
